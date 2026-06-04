@@ -1,0 +1,595 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>DHL Operational Control | Captura</title>
+
+<style>
+:root{
+    --dhl-red:#D40511;
+    --dhl-yellow:#FFCC00;
+    --bg:#f5f5f5;
+}
+
+*{
+    box-sizing:border-box;
+    font-family:Arial,sans-serif;
+}
+
+body{
+    margin:0;
+    background:var(--bg);
+}
+
+header{
+    background:var(--dhl-yellow);
+    padding:18px;
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    flex-wrap:wrap;
+    gap:12px;
+}
+
+header h1{
+    margin:0;
+    color:var(--dhl-red);
+    font-size:24px;
+}
+
+.header-user{
+    background:white;
+    padding:10px 14px;
+    border-radius:12px;
+    font-weight:bold;
+}
+
+.logout-btn{
+    border:none;
+    background:var(--dhl-red);
+    color:white;
+    padding:10px 15px;
+    border-radius:12px;
+    font-weight:bold;
+    cursor:pointer;
+}
+
+.container{
+    max-width:1200px;
+    margin:auto;
+    padding:20px;
+}
+
+.section-title{
+    margin-bottom:16px;
+}
+
+.materials-grid{
+    display:grid;
+    grid-template-columns:repeat(auto-fit,minmax(180px,1fr));
+    gap:14px;
+}
+
+.material-btn{
+    border:none;
+    background:white;
+    border-left:8px solid var(--dhl-red);
+    border-radius:18px;
+    padding:22px 16px;
+    font-size:18px;
+    font-weight:bold;
+    cursor:pointer;
+    box-shadow:0 4px 14px rgba(0,0,0,.08);
+    text-align:left;
+}
+
+.material-btn span{
+    display:block;
+    font-size:12px;
+    color:#666;
+    margin-top:8px;
+}
+
+/* MODAL */
+
+.app-modal{
+    display:none;
+    position:fixed;
+    inset:0;
+    background:rgba(0,0,0,.55);
+    z-index:9999;
+    justify-content:center;
+    align-items:center;
+    padding:16px;
+}
+
+.modal-card{
+    width:100%;
+    max-width:560px;
+    background:white;
+    border-radius:24px;
+    padding:24px;
+    box-shadow:0 12px 35px rgba(0,0,0,.25);
+}
+
+.modal-header{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    gap:10px;
+    margin-bottom:18px;
+}
+
+.modal-header h2{
+    margin:0;
+    color:var(--dhl-red);
+}
+
+.close-btn{
+    border:none;
+    background:#eee;
+    width:38px;
+    height:38px;
+    border-radius:50%;
+    font-weight:bold;
+    cursor:pointer;
+}
+
+.last-summary{
+    display:grid;
+    grid-template-columns:repeat(3,1fr);
+    gap:10px;
+    margin-bottom:18px;
+}
+
+.summary-box{
+    background:#fafafa;
+    border-radius:16px;
+    padding:14px;
+    text-align:center;
+    border:1px solid #eee;
+}
+
+.summary-label{
+    font-size:12px;
+    color:#666;
+    font-weight:bold;
+    margin-bottom:8px;
+}
+
+.summary-value{
+    font-size:20px;
+    font-weight:bold;
+    color:#D40511;
+    word-break:break-word;
+}
+
+.capture-box{
+    background:#fff7cc;
+    border-radius:18px;
+    padding:16px;
+}
+
+.capture-box label{
+    display:block;
+    font-weight:bold;
+    margin-bottom:10px;
+}
+
+.sequence-input{
+    width:100%;
+    padding:18px;
+    border-radius:16px;
+    border:2px solid #ddd;
+    font-size:32px;
+    font-weight:bold;
+    text-align:center;
+    letter-spacing:6px;
+}
+
+.save-btn{
+    width:100%;
+    margin-top:16px;
+    padding:16px;
+    border:none;
+    border-radius:16px;
+    background:var(--dhl-red);
+    color:white;
+    font-size:18px;
+    font-weight:bold;
+    cursor:pointer;
+}
+
+.toast{
+    display:none;
+    position:fixed;
+    bottom:20px;
+    right:20px;
+    background:var(--dhl-red);
+    color:white;
+    padding:14px 22px;
+    border-radius:14px;
+    font-weight:bold;
+}
+
+@media(max-width:600px){
+    .last-summary{
+        grid-template-columns:repeat(3,1fr);
+        gap:6px;
+    }
+
+    .summary-box{
+        padding:10px 6px;
+    }
+
+    .summary-label{
+        font-size:10px;
+    }
+
+    .summary-value{
+        font-size:14px;
+    }
+
+    .modal-card{
+        padding:18px;
+    }
+
+    .summary-value{
+        font-size:18px;
+    }
+
+    .sequence-input{
+        font-size:28px;
+    }
+}
+</style>
+</head>
+
+<body>
+
+<header>
+    <h1 id="areaTitle">Captura</h1>
+
+    <div class="header-user" id="activeUser">
+        Usuario
+    </div>
+
+    <button class="logout-btn" onclick="logout()">
+        Cerrar sesión
+    </button>
+</header>
+
+<div class="container">
+
+    <h2 class="section-title">Selecciona material</h2>
+
+    <div class="materials-grid" id="materialsGrid">
+        Cargando materiales...
+    </div>
+
+</div>
+
+<div class="app-modal" id="captureModal">
+
+    <div class="modal-card">
+
+        <div class="modal-header">
+            <h2 id="modalMaterialName">Material</h2>
+
+            <button class="close-btn" onclick="closeModal()">
+                X
+            </button>
+        </div>
+
+        <div class="last-summary">
+
+            <div class="summary-box">
+                <div class="summary-label">Última Sec.</div>
+                <div class="summary-value" id="lastSequence">-</div>
+            </div>
+
+            <div class="summary-box">
+                <div class="summary-label">Usuario</div>
+                <div class="summary-value" id="lastUser">-</div>
+            </div>
+
+            <div class="summary-box">
+                <div class="summary-label">Turno</div>
+                <div class="summary-value" id="lastShift">-</div>
+            </div>
+
+        </div>
+
+        <div class="capture-box">
+            <label>Nueva secuencia</label>
+
+            <input
+                id="sequenceInput"
+                class="sequence-input"
+                type="text"
+                inputmode="numeric"
+                maxlength="4"
+                placeholder="0000"
+            >
+
+            <button class="save-btn" onclick="saveCapture()">
+                Guardar Secuencia
+            </button>
+        </div>
+
+    </div>
+
+</div>
+
+<div class="toast" id="toast">
+    Secuencia guardada correctamente
+</div>
+
+<script type="module">
+
+import { initializeApp }
+from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+
+import {
+    getAuth,
+    signOut
+}
+from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+
+import {
+    getFirestore,
+    collection,
+    query,
+    where,
+    getDocs,
+    addDoc,
+    serverTimestamp,
+    orderBy,
+    limit
+}
+from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyC4yHubTO4ZPn2H80I1fG7H6qeR7SavNbM",
+  authDomain: "dhl-operational-control.firebaseapp.com",
+  projectId: "dhl-operational-control",
+  storageBucket: "dhl-operational-control.firebasestorage.app",
+  messagingSenderId: "830487097530",
+  appId: "1:830487097530:web:41e01b4d396678f0819283"
+};
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+
+let currentUser=null;
+let selectedMaterial=null;
+
+const savedUser =
+    localStorage.getItem("operationalUser");
+
+if(!savedUser){
+    window.location.href="index.html";
+}
+
+currentUser =
+    JSON.parse(savedUser);
+
+document.getElementById("activeUser").innerText =
+    currentUser.name;
+
+document.getElementById("areaTitle").innerText =
+    currentUser.area==="PU"
+    ? "Punto de Uso"
+    : currentUser.area==="ZL"
+    ? "Zona Logística"
+    : "Captura Operativa";
+
+loadMaterials();
+
+async function loadMaterials(){
+
+    const materialsGrid =
+        document.getElementById("materialsGrid");
+
+    materialsGrid.innerHTML="Cargando materiales...";
+
+    const q = query(
+        collection(db,"materials"),
+        where("warehouseId","==",currentUser.warehouse),
+        where("active","==",true)
+    );
+
+    const snapshot =
+        await getDocs(q);
+
+    materialsGrid.innerHTML="";
+
+    if(snapshot.empty){
+        materialsGrid.innerHTML="No hay materiales configurados para esta nave.";
+        return;
+    }
+
+    snapshot.forEach(docSnap=>{
+
+        const material =
+            docSnap.data();
+
+        materialsGrid.innerHTML += `
+            <button
+                class="material-btn"
+                onclick="openCaptureModal('${docSnap.id}')"
+            >
+                ${material.name}
+                <span>${material.supplierName || ""}</span>
+            </button>
+        `;
+
+    });
+
+}
+
+async function openCaptureModal(materialId){
+
+    const materialRefQuery =
+        query(
+            collection(db,"materials"),
+            where("__name__","==",materialId)
+        );
+
+    const materialSnap =
+        await getDocs(materialRefQuery);
+
+    if(materialSnap.empty){
+        return;
+    }
+
+    selectedMaterial = {
+        id:materialSnap.docs[0].id,
+        ...materialSnap.docs[0].data()
+    };
+
+    document.getElementById("modalMaterialName").innerText =
+        selectedMaterial.name;
+
+    document.getElementById("sequenceInput").value="";
+
+    await loadLastCapture();
+
+    document.getElementById("captureModal")
+        .style.display="flex";
+
+    setTimeout(()=>{
+        document.getElementById("sequenceInput").focus();
+    },200);
+
+}
+
+window.openCaptureModal=openCaptureModal;
+
+async function loadLastCapture(){
+
+    document.getElementById("lastSequence").innerText="-";
+    document.getElementById("lastUser").innerText="-";
+    document.getElementById("lastShift").innerText="-";
+
+    const q = query(
+        collection(db,"captures"),
+        where("materialId","==",selectedMaterial.id),
+        where("area","==",currentUser.area),
+        where("active","==",true),
+        orderBy("createdAt","desc"),
+        limit(1)
+    );
+
+    const snapshot =
+        await getDocs(q);
+
+    if(snapshot.empty){
+        return;
+    }
+
+    const last =
+        snapshot.docs[0].data();
+
+    document.getElementById("lastSequence").innerText =
+        last.sequence || "-";
+
+    document.getElementById("lastUser").innerText =
+        last.capturedByName || "-";
+
+    document.getElementById("lastShift").innerText =
+        last.shift || "-";
+
+}
+
+function closeModal(){
+
+    document.getElementById("captureModal")
+        .style.display="none";
+
+}
+
+window.closeModal=closeModal;
+
+document.getElementById("sequenceInput")
+    .addEventListener("input",function(){
+
+        this.value =
+            this.value
+                .replace(/\D/g,"")
+                .slice(0,4);
+
+    });
+
+async function saveCapture(){
+
+    const sequenceValue =
+        document.getElementById("sequenceInput")
+            .value
+            .trim();
+
+    if(sequenceValue.length!==4){
+        alert("La secuencia debe tener 4 dígitos");
+        return;
+    }
+
+    await addDoc(
+        collection(db,"captures"),
+        {
+            materialId:selectedMaterial.id,
+            materialName:selectedMaterial.name,
+            warehouseId:selectedMaterial.warehouseId,
+            warehouseName:selectedMaterial.warehouseName,
+            supplierId:selectedMaterial.supplierId,
+            supplierName:selectedMaterial.supplierName,
+            area:currentUser.area,
+            sequence:parseInt(sequenceValue),
+            controlTime:selectedMaterial.controlTime,
+            capturedBy:currentUser.employeeId,
+            capturedByName:currentUser.name,
+            shift:"Primero",
+            createdAt:serverTimestamp(),
+            active:true
+        }
+    );
+
+    showToast();
+
+    closeModal();
+
+}
+
+window.saveCapture=saveCapture;
+
+function showToast(){
+
+    const toast =
+        document.getElementById("toast");
+
+    toast.style.display="block";
+
+    setTimeout(()=>{
+        toast.style.display="none";
+    },2500);
+
+}
+
+async function logout(){
+
+    await signOut(auth);
+
+    localStorage.removeItem("operationalUser");
+
+    window.location.href="index.html";
+
+}
+
+window.logout=logout;
+
+</script>
+
+</body>
+</html>
