@@ -524,6 +524,32 @@ document.getElementById("sequenceInput")
 
     });
 
+function getCurrentShift(){
+
+    const now = new Date();
+
+    const minutes =
+        now.getHours() * 60 +
+        now.getMinutes();
+
+    const firstStart = 6 * 60;
+    const firstEnd = 14 * 60 + 59;
+
+    const secondStart = 15 * 60;
+    const secondEnd = 23 * 60 + 30;
+
+    if(minutes >= firstStart && minutes <= firstEnd){
+        return "Primero";
+    }
+
+    if(minutes >= secondStart && minutes <= secondEnd){
+        return "Segundo";
+    }
+
+    return "Tercero";
+
+}    
+
 async function saveCapture(){
 
     const sequenceValue =
@@ -550,7 +576,7 @@ async function saveCapture(){
             controlTime:selectedMaterial.controlTime,
             capturedBy:currentUser.employeeId,
             capturedByName:currentUser.name,
-            shift:"Primero",
+            shift:getCurrentShift(),
             createdAt:serverTimestamp(),
             active:true
         }
