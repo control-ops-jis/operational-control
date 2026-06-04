@@ -1,14 +1,225 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>DHL Operational Control</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>DHL Operational Control</title>
+
+<style>
+:root{
+    --dhl-red:#D40511;
+    --dhl-yellow:#FFCC00;
+    --bg:#f5f5f5;
+}
+
+*{
+    box-sizing:border-box;
+    font-family:Arial,sans-serif;
+}
+
+body{
+    margin:0;
+    background:var(--bg);
+}
+
+.login-screen{
+    min-height:100vh;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    padding:20px;
+}
+
+.login-card{
+    width:100%;
+    max-width:420px;
+    background:white;
+    padding:35px;
+    border-radius:24px;
+    box-shadow:0 8px 30px rgba(0,0,0,.12);
+}
+
+.login-card h1{
+    color:var(--dhl-red);
+    text-align:center;
+    margin-bottom:25px;
+}
+
+.login-card input{
+    width:100%;
+    padding:14px;
+    border-radius:12px;
+    border:1px solid #ccc;
+    margin-bottom:18px;
+    font-size:16px;
+}
+
+.login-btn{
+    width:100%;
+    padding:15px;
+    border:none;
+    border-radius:12px;
+    background:var(--dhl-red);
+    color:white;
+    font-size:16px;
+    font-weight:bold;
+    cursor:pointer;
+}
+
+.login-error{
+    display:none;
+    color:var(--dhl-red);
+    text-align:center;
+    margin-top:15px;
+    font-weight:bold;
+}
+</style>
 </head>
+
 <body>
 
-    <h1>DHL Operational Control</h1>
-    <p>Aplicación conectada correctamente.</p>
+<div class="login-screen">
+    <div class="login-card">
+
+        <h1>📦 DHL Operational Control</h1>
+
+        <input 
+            type="text" 
+            id="employeeId" 
+            placeholder="Número de empleado"
+            inputmode="numeric"
+        >
+
+        <input 
+            type="password" 
+            id="password" 
+            placeholder="Contraseña"
+        >
+
+        <button class="login-btn" onclick="login()">
+            Ingresar
+        </button>
+
+        <div class="login-error" id="loginError">
+            Usuario o contraseña incorrectos
+        </div>
+
+    </div>
+</div>
+
+<script type="module">
+
+import { initializeApp }
+from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+
+import {
+    getAuth,
+    signInWithEmailAndPassword
+}
+from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+
+import {
+    getFirestore,
+    doc,
+    getDoc
+}
+from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+/* FIREBASE CONFIG */
+
+const firebaseConfig = {
+    apiKey: "AIzaSyC4yHubTO4ZPn2H80I1fG7H6qeR7SavNbM",
+    authDomain: "dhl-operational-control.firebaseapp.com",
+    projectId: "dhl-operational-control",
+    storageBucket: "dhl-operational-control.firebasestorage.app",
+    messagingSenderId: "830487097530",
+    appId: "1:830487097530:web:41e01b4d396678f0819283"
+};
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+
+/* LOGIN */
+
+async function login(){
+
+    const employeeId =
+        document.getElementById("employeeId").value.trim();
+
+    const password =
+        document.getElementById("password").value;
+
+    const loginError =
+        document.getElementById("loginError");
+
+    loginError.style.display="none";
+
+    try{
+
+        const userRef =
+            doc(db,"users",employeeId);
+
+        const userSnap =
+            await getDoc(userRef);
+
+        if(!userSnap.exists()){
+            throw new Error("Usuario no existe");
+        }
+
+        const userData =
+            userSnap.data();
+
+        if(userData.active!==true){
+            throw new Error("Usuario inactivo");
+        }
+
+        await signInWithEmailAndPassword(
+            auth,
+            userData.email,
+            password
+        );
+
+        localStorage.setItem(
+            "operationalUser",
+            JSON.stringify({
+                employeeId,
+                name:userData.name,
+                role:userData.role,
+                area:userData.area,
+                warehouse:userData.warehouse,
+                email:userData.email
+            })
+        );
+
+        if(userData.role==="admin"){
+            window.location.href="dashboard.html";
+            return;
+        }
+
+        if(
+            userData.role==="capturista_pu" ||
+            userData.role==="capturista_zl"
+        ){
+            window.location.href="capture.html";
+            return;
+        }
+
+        window.location.href="dashboard.html";
+
+    }catch(error){
+
+        console.error(error);
+        loginError.style.display="block";
+
+    }
+
+}
+
+window.login=login;
+
+</script>
 
 </body>
 </html>
