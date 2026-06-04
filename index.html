@@ -193,20 +193,28 @@ async function login(){
             })
         );
 
-        if(userData.role==="admin"){
-            window.location.href="dashboard.html";
-            return;
-        }
-
         if(
-            userData.role==="capturista_pu" ||
-            userData.role==="capturista_zl"
-        ){
-            window.location.href="capture.html";
-            return;
-        }
+    userData.area==="PU" ||
+    userData.area==="ZL"
+){
+    window.location.href="capture.html";
+    return;
+}
 
-        window.location.href="dashboard.html";
+if(userData.role==="admin"){
+    window.location.href="dashboard.html";
+    return;
+}
+
+if(
+    userData.role==="capturista_pu" ||
+    userData.role==="capturista_zl"
+){
+    window.location.href="capture.html";
+    return;
+}
+
+window.location.href="dashboard.html";
 
     }catch(error){
 
