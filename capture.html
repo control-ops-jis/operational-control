@@ -441,7 +441,16 @@ if(
 ){
     currentUser.area =
         forcedArea;
-}    
+}
+
+if(
+    currentUser.role !== "admin" &&
+    currentUser.area !== "PU" &&
+    currentUser.area !== "ZL"
+){
+    window.location.href =
+        "dashboard.html";
+}
 
 document.getElementById("activeUser").innerText =
     currentUser.name;
@@ -455,6 +464,7 @@ document.getElementById("areaTitle").innerText =
 
 loadMaterials();
 
+    
 async function getLastCaptureForMaterial(materialId){
 
     const q = query(
