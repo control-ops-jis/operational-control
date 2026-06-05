@@ -27,89 +27,75 @@ body{
 
 header{
     background:var(--dhl-yellow);
-    padding:18px 22px;
+    padding:14px 18px;
     display:flex;
     justify-content:space-between;
     align-items:center;
-    flex-wrap:wrap;
     gap:12px;
+    position:sticky;
+    top:0;
+    z-index:50;
 }
 
-header h1{
+.header-info h1{
     margin:0;
     color:var(--dhl-red);
-    font-size:24px;
+    font-size:22px;
+}
+
+.header-info span{
+    display:block;
+    margin-top:4px;
+    font-size:13px;
+    font-weight:bold;
+    color:#333;
 }
 
 .logout-btn{
     border:none;
     background:var(--dhl-red);
     color:white;
-    padding:12px 18px;
+    padding:10px 14px;
     border-radius:12px;
     font-weight:bold;
     cursor:pointer;
+    white-space:nowrap;
 }
 
 .container{
     max-width:1300px;
     margin:auto;
-    padding:22px;
+    padding:16px;
 }
 
-.user-card,
 .panel{
     background:white;
     border-radius:22px;
-    padding:20px;
+    padding:18px;
     box-shadow:0 4px 14px rgba(0,0,0,.08);
-    margin-bottom:18px;
+    margin-bottom:16px;
 }
 
-.user-card h2{
+.panel h2{
     margin-top:0;
-    color:#222;
-}
-
-.user-info{
-    display:grid;
-    grid-template-columns:repeat(auto-fit,minmax(150px,1fr));
-    gap:12px;
-}
-
-.info-box{
-    background:#fafafa;
-    border-radius:14px;
-    padding:12px;
-}
-
-.info-box span{
-    display:block;
-    font-size:12px;
-    color:#666;
-    font-weight:bold;
-}
-
-.info-box strong{
-    color:var(--dhl-red);
 }
 
 .kpi-grid{
     display:grid;
-    grid-template-columns:repeat(auto-fit,minmax(150px,1fr));
-    gap:14px;
+    grid-template-columns:repeat(3,1fr);
+    gap:12px;
 }
 
 .kpi-card{
     border-radius:18px;
-    padding:18px;
+    padding:14px;
     text-align:center;
     font-weight:bold;
 }
 
 .kpi-card strong{
     display:block;
-    font-size:36px;
+    font-size:34px;
 }
 
 .kpi-card.critical{
@@ -129,16 +115,20 @@ header h1{
 
 .dashboard-grid{
     display:grid;
-    grid-template-columns:repeat(auto-fit,minmax(280px,1fr));
-    gap:16px;
+    grid-template-columns:repeat(auto-fit,minmax(250px,1fr));
+    gap:14px;
 }
 
 .material-card{
     background:white;
-    border-radius:22px;
-    padding:18px;
+    border:none;
+    width:100%;
+    border-radius:20px;
+    padding:16px;
+    text-align:left;
     box-shadow:0 4px 14px rgba(0,0,0,.08);
     border-left:8px solid #ccc;
+    cursor:pointer;
 }
 
 .material-card.critical{
@@ -155,47 +145,50 @@ header h1{
 
 .material-card h3{
     margin:0;
-    color:#111;
+    font-size:19px;
 }
 
 .material-card small{
+    display:block;
+    margin-top:4px;
     color:#666;
     font-weight:bold;
 }
 
-.material-values{
-    display:grid;
-    grid-template-columns:repeat(2,1fr);
+.material-line{
+    display:flex;
+    justify-content:space-between;
     gap:10px;
     margin-top:14px;
 }
 
-.value-box{
+.mini-box{
     background:#fafafa;
     border-radius:14px;
     padding:10px;
+    flex:1;
     text-align:center;
 }
 
-.value-box span{
+.mini-box span{
     display:block;
     font-size:12px;
-    color:#666;
     font-weight:bold;
+    color:#666;
 }
 
-.value-box strong{
+.mini-box strong{
     font-size:22px;
     color:var(--dhl-red);
 }
 
 .coverage-box{
-    margin-top:14px;
-    padding:14px;
+    margin-top:12px;
+    padding:12px;
     border-radius:14px;
     text-align:center;
     font-weight:bold;
-    font-size:20px;
+    font-size:18px;
 }
 
 .coverage-box.critical{
@@ -232,7 +225,6 @@ th,td{
 
 th{
     background:#fff7cc;
-    color:#333;
 }
 
 td:first-child,
@@ -262,22 +254,125 @@ th:first-child{
     color:var(--ok);
 }
 
-.loading{
-    padding:18px;
+.app-modal{
+    display:none;
+    position:fixed;
+    inset:0;
+    background:rgba(0,0,0,.55);
+    z-index:999;
+    justify-content:center;
+    align-items:center;
+    padding:16px;
+}
+
+.modal-card{
+    width:100%;
+    max-width:520px;
+    background:white;
+    border-radius:24px;
+    padding:22px;
+    box-shadow:0 12px 35px rgba(0,0,0,.25);
+}
+
+.modal-header{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    gap:10px;
+}
+
+.modal-header h2{
+    margin:0;
+    color:var(--dhl-red);
+}
+
+.close-btn{
+    border:none;
+    width:38px;
+    height:38px;
+    border-radius:50%;
+    font-weight:bold;
+    cursor:pointer;
+}
+
+.modal-grid{
+    display:grid;
+    grid-template-columns:repeat(2,1fr);
+    gap:10px;
+    margin-top:18px;
+}
+
+.modal-box{
+    background:#fafafa;
+    border-radius:16px;
+    padding:12px;
+    text-align:center;
+}
+
+.modal-box span{
+    display:block;
+    font-size:12px;
+    color:#666;
     font-weight:bold;
 }
 
+.modal-box strong{
+    display:block;
+    margin-top:6px;
+    font-size:22px;
+    color:var(--dhl-red);
+}
+
+.loading{
+    font-weight:bold;
+    padding:14px;
+}
+
 @media(max-width:600px){
-    header h1{
-        font-size:20px;
+    header{
+        padding:12px;
+    }
+
+    .header-info h1{
+        font-size:18px;
+    }
+
+    .logout-btn{
+        padding:9px 12px;
+        font-size:13px;
     }
 
     .container{
+        padding:12px;
+    }
+
+    .panel{
+        padding:14px;
+        border-radius:18px;
+    }
+
+    .kpi-card{
+        padding:12px 8px;
+    }
+
+    .kpi-card strong{
+        font-size:28px;
+    }
+
+    .kpi-card span{
+        font-size:12px;
+    }
+
+    .dashboard-grid{
+        grid-template-columns:1fr;
+    }
+
+    .material-card{
         padding:14px;
     }
 
-    .material-values{
-        grid-template-columns:repeat(2,1fr);
+    .panel h2{
+        font-size:22px;
     }
 }
 </style>
@@ -286,40 +381,17 @@ th:first-child{
 <body>
 
 <header>
-    <h1>📊 DHL Operational Control</h1>
+    <div class="header-info">
+        <h1>📊 DHL Operational Control</h1>
+        <span id="headerUser">Dashboard Operativo</span>
+    </div>
 
     <button class="logout-btn" onclick="logout()">
-        Cerrar sesión
+        Salir
     </button>
 </header>
 
 <div class="container">
-
-    <div class="user-card">
-        <h2 id="welcomeTitle">Bienvenido</h2>
-
-        <div class="user-info">
-            <div class="info-box">
-                <span>Empleado</span>
-                <strong id="employeeId">-</strong>
-            </div>
-
-            <div class="info-box">
-                <span>Nombre</span>
-                <strong id="userName">-</strong>
-            </div>
-
-            <div class="info-box">
-                <span>Rol</span>
-                <strong id="userRole">-</strong>
-            </div>
-
-            <div class="info-box">
-                <span>Nave</span>
-                <strong id="userWarehouse">-</strong>
-            </div>
-        </div>
-    </div>
 
     <div class="panel">
         <div class="kpi-grid">
@@ -378,6 +450,60 @@ th:first-child{
 
 </div>
 
+<div class="app-modal" id="detailModal">
+    <div class="modal-card">
+        <div class="modal-header">
+            <h2 id="modalTitle">Material</h2>
+
+            <button class="close-btn" onclick="closeDetailModal()">
+                X
+            </button>
+        </div>
+
+        <div class="modal-grid">
+            <div class="modal-box">
+                <span>Proveedor</span>
+                <strong id="modalSupplier">-</strong>
+            </div>
+
+            <div class="modal-box">
+                <span>Estado</span>
+                <strong id="modalStatus">-</strong>
+            </div>
+
+            <div class="modal-box">
+                <span>Sec. P.U.</span>
+                <strong id="modalPU">-</strong>
+            </div>
+
+            <div class="modal-box">
+                <span>Sec. Z.L.</span>
+                <strong id="modalZL">-</strong>
+            </div>
+
+            <div class="modal-box">
+                <span>Total</span>
+                <strong id="modalTotal">-</strong>
+            </div>
+
+            <div class="modal-box">
+                <span>Alcance</span>
+                <strong id="modalXHour">-</strong>
+            </div>
+
+            <div class="modal-box">
+                <span>Tiempo Control</span>
+                <strong id="modalControl">-</strong>
+            </div>
+
+            <div class="modal-box">
+                <span>Cumplimiento</span>
+                <strong id="modalCompliance">-</strong>
+            </div>
+        </div>
+    </div>
+</div>
+
 <script type="module">
 
 import { initializeApp }
@@ -413,6 +539,8 @@ const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
 
+let dashboardMaterials = [];
+
 const savedUser =
     localStorage.getItem("operationalUser");
 
@@ -423,20 +551,8 @@ if(!savedUser){
 const currentUser =
     JSON.parse(savedUser);
 
-document.getElementById("welcomeTitle").innerText =
-    `Bienvenido ${currentUser.name}`;
-
-document.getElementById("employeeId").innerText =
-    currentUser.employeeId;
-
-document.getElementById("userName").innerText =
-    currentUser.name;
-
-document.getElementById("userRole").innerText =
-    currentUser.role;
-
-document.getElementById("userWarehouse").innerText =
-    currentUser.warehouse;
+document.getElementById("headerUser").innerText =
+    `${currentUser.name} · ${currentUser.role} · ${currentUser.warehouse}`;
 
 loadDashboard();
 
@@ -491,6 +607,20 @@ async function loadDashboard(){
         });
 
     }
+
+    materials.sort((a,b)=>{
+
+        const order = {
+            critical:1,
+            warning:2,
+            ok:3
+        };
+
+        return order[a.status] - order[b.status];
+
+    });
+
+    dashboardMaterials = materials;
 
     renderDashboard(materials);
 
@@ -640,42 +770,34 @@ function renderDashboard(materials){
         ok;
 
     dashboardGrid.innerHTML = "";
-
     dashboardTable.innerHTML = "";
 
-    materials.forEach(material=>{
+    materials.forEach((material,index)=>{
 
         dashboardGrid.innerHTML += `
-            <div class="material-card ${material.status}">
+            <button
+                class="material-card ${material.status}"
+                onclick="openDetailModal(${index})"
+            >
                 <h3>${material.name}</h3>
                 <small>${material.supplierName || "Sin proveedor"}</small>
 
-                <div class="material-values">
-                    <div class="value-box">
-                        <span>Sec. P.U.</span>
+                <div class="material-line">
+                    <div class="mini-box">
+                        <span>PU</span>
                         <strong>${material.pu}</strong>
                     </div>
 
-                    <div class="value-box">
-                        <span>Sec. Z.L.</span>
+                    <div class="mini-box">
+                        <span>ZL</span>
                         <strong>${material.zl}</strong>
-                    </div>
-
-                    <div class="value-box">
-                        <span>Total</span>
-                        <strong>${material.total}</strong>
-                    </div>
-
-                    <div class="value-box">
-                        <span>Control</span>
-                        <strong>${material.controlText}</strong>
                     </div>
                 </div>
 
                 <div class="coverage-box ${material.status}">
                     ${material.xHour} hrs · ${material.statusText}
                 </div>
-            </div>
+            </button>
         `;
 
         dashboardTable.innerHTML += `
@@ -699,6 +821,54 @@ function renderDashboard(materials){
     });
 
 }
+
+function openDetailModal(index){
+
+    const material =
+        dashboardMaterials[index];
+
+    document.getElementById("modalTitle").innerText =
+        material.name;
+
+    document.getElementById("modalSupplier").innerText =
+        material.supplierName || "-";
+
+    document.getElementById("modalStatus").innerText =
+        material.statusText;
+
+    document.getElementById("modalPU").innerText =
+        material.pu;
+
+    document.getElementById("modalZL").innerText =
+        material.zl;
+
+    document.getElementById("modalTotal").innerText =
+        material.total;
+
+    document.getElementById("modalXHour").innerText =
+        `${material.xHour} hrs`;
+
+    document.getElementById("modalControl").innerText =
+        material.controlText;
+
+    document.getElementById("modalCompliance").innerText =
+        material.compliance;
+
+    document.getElementById("detailModal").style.display =
+        "flex";
+
+}
+
+window.openDetailModal=openDetailModal;
+
+function closeDetailModal(){
+
+    document.getElementById("detailModal").style.display =
+        "none";
+
+}
+
+window.closeDetailModal=closeDetailModal;
 
 async function logout(){
 
