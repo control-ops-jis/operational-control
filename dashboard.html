@@ -397,14 +397,13 @@ th:first-child{
         Admin
     </button>
 
-    <button class="logout-btn" onclick="goCapturePU()">
+    <button class="logout-btn" id="puBtn" onclick="goCapturePU()">
     PU
 </button>
 
-<button class="logout-btn" onclick="goCaptureZL()">
+<button class="logout-btn" id="zlBtn" onclick="goCaptureZL()">
     ZL
 </button>
-
     <button class="logout-btn" onclick="logout()">
         Salir
     </button>
@@ -577,8 +576,13 @@ document.getElementById("headerUser").innerText =
 if(currentUser.role !== "admin"){
     document.getElementById("adminBtn").style.display =
         "none";
-}    
 
+    document.getElementById("puBtn").style.display =
+        "none";
+
+    document.getElementById("zlBtn").style.display =
+        "none";
+}
 loadDashboard();
 
 async function loadDashboard(){
