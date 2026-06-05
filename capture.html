@@ -295,9 +295,14 @@ header h1{
         Usuario
     </div>
 
-    <button class="logout-btn" onclick="logout()">
-        Cerrar sesión
-    </button>
+   <button class="logout-btn" id="dashboardBtn" onclick="goDashboard()">
+    Dashboard
+</button>
+
+<button class="logout-btn" onclick="logout()">
+    Cerrar sesión
+</button>    
+    
 </header>
 
 <div class="container">
@@ -420,6 +425,23 @@ if(!savedUser){
 
 currentUser =
     JSON.parse(savedUser);
+
+const urlParams =
+    new URLSearchParams(window.location.search);
+
+const forcedArea =
+    urlParams.get("area");
+
+if(
+    currentUser.role==="admin" &&
+    (
+        forcedArea==="PU" ||
+        forcedArea==="ZL"
+    )
+){
+    currentUser.area =
+        forcedArea;
+}    
 
 document.getElementById("activeUser").innerText =
     currentUser.name;
@@ -731,6 +753,15 @@ function showToast(){
 
 }
 
+function goDashboard(){
+
+    window.location.href =
+        "dashboard.html";
+
+}
+
+window.goDashboard=goDashboard;
+    
 async function logout(){
 
     await signOut(auth);
