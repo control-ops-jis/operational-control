@@ -472,10 +472,12 @@ async function getLastCaptureForMaterial(materialId){
     }
 
     return {
-        sequence:last.sequence || "-",
-        time:timeText
-    };
-
+    sequence:last.sequence
+        ? String(last.sequence).padStart(4,"0")
+        : "-",
+    user:last.capturedByName || "-",
+    time:timeText
+};
 }    
 
 async function loadMaterials(){
@@ -525,9 +527,10 @@ materialsGrid.innerHTML += `
                 </div>
             </div>
 
-            <div class="material-last-time">
-                ${lastCapture.time}
-            </div>
+           <div class="material-last-time">
+    ${lastCapture.user}<br>
+    ${lastCapture.time}
+</div>
         </div>
     </button>
 `;
@@ -600,7 +603,9 @@ document.getElementById("lastDate").innerText="-";
         snapshot.docs[0].data();
 
     document.getElementById("lastSequence").innerText =
-        last.sequence || "-";
+        last.sequence
+    ? String(last.sequence).padStart(4,"0")
+    : "-";
 
     document.getElementById("lastUser").innerText =
         last.capturedByName || "-";
@@ -703,9 +708,11 @@ async function saveCapture(){
         }
     );
 
-    showToast();
+showToast();
 
-    closeModal();
+closeModal();
+
+loadMaterials();
 
 }
 
