@@ -92,6 +92,28 @@ header h1{
     margin-top:8px;
 }
 
+.material-last{
+    margin-top:14px;
+    padding-top:10px;
+    border-top:1px solid #eee;
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    gap:8px;
+}
+
+.material-last-seq{
+    font-size:26px;
+    font-weight:bold;
+    color:#D40511;
+}
+
+.material-last-time{
+    font-size:12px;
+    color:#666;
+    font-weight:bold;
+}
+    
 /* MODAL */
 
 .app-modal{
@@ -410,6 +432,52 @@ document.getElementById("areaTitle").innerText =
 
 loadMaterials();
 
+async function getLastCaptureForMaterial(materialId){
+
+    const q = query(
+        collection(db,"captures"),
+        where("materialId","==",materialId),
+        where("area","==",currentUser.area),
+        where("active","==",true),
+        orderBy("createdAt","desc"),
+        limit(1)
+    );
+
+    const snapshot =
+        await getDocs(q);
+
+    if(snapshot.empty){
+        return {
+            sequence:"-",
+            time:"Sin captura"
+        };
+    }
+
+    const last =
+        snapshot.docs[0].data();
+
+    let timeText = "-";
+
+    if(last.createdAt){
+        const date = last.createdAt.toDate();
+
+        timeText =
+            date.toLocaleTimeString(
+                "es-MX",
+                {
+                    hour:"2-digit",
+                    minute:"2-digit"
+                }
+            );
+    }
+
+    return {
+        sequence:last.sequence || "-",
+        time:timeText
+    };
+
+}    
+
 async function loadMaterials(){
 
     const materialsGrid =
@@ -438,16 +506,31 @@ async function loadMaterials(){
         const material =
             docSnap.data();
 
-        materialsGrid.innerHTML += `
-            <button
-                class="material-btn"
-                onclick="openCaptureModal('${docSnap.id}')"
-            >
-                ${material.name}
-                <span>${material.supplierName || ""}</span>
-            </button>
-        `;
+        const lastCapture =
+    await getLastCaptureForMaterial(docSnap.id);
 
+materialsGrid.innerHTML += `
+    <button
+        class="material-btn"
+        onclick="openCaptureModal('${docSnap.id}')"
+    >
+        ${material.name}
+        <span>${material.supplierName || ""}</span>
+
+        <div class="material-last">
+            <div>
+                <small>Última</small>
+                <div class="material-last-seq">
+                    ${lastCapture.sequence}
+                </div>
+            </div>
+
+            <div class="material-last-time">
+                ${lastCapture.time}
+            </div>
+        </div>
+    </button>
+`;
     });
 
 }
