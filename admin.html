@@ -345,8 +345,9 @@ th:first-child{
     </div>
 
     <div class="header-actions">
-        <button class="header-btn" onclick="goDashboard()">Dashboard</button>
-        <button class="header-btn" onclick="logout()">Salir</button>
+        <button class="header-btn" onclick="goCapture()">Captura</button>
+<button class="header-btn" onclick="goDashboard()">Dashboard</button>
+<button class="header-btn" onclick="logout()">Salir</button>
     </div>
 </header>
 
@@ -710,6 +711,8 @@ async function loadModule(moduleKey){
 
 }
 
+window.loadModule=loadModule;
+    
 function renderTableHeader(){
 
     const module =
@@ -1201,6 +1204,15 @@ function goDashboard(){
 }
 
 window.goDashboard=goDashboard;
+
+function goCapture(){
+
+    window.location.href =
+        "capture.html";
+
+}
+
+window.goCapture=goCapture;    
 
 async function logout(){
 
