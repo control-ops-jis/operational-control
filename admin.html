@@ -1,0 +1,1221 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>DHL Operational Control | Admin</title>
+
+<style>
+:root{
+    --dhl-red:#D40511;
+    --dhl-yellow:#FFCC00;
+    --bg:#f5f5f5;
+    --ok:#1f7a1f;
+    --warning:#a67c00;
+}
+
+*{
+    box-sizing:border-box;
+    font-family:Arial,sans-serif;
+}
+
+body{
+    margin:0;
+    background:var(--bg);
+}
+
+header{
+    background:var(--dhl-yellow);
+    padding:14px 18px;
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    gap:12px;
+    position:sticky;
+    top:0;
+    z-index:50;
+}
+
+.header-info h1{
+    margin:0;
+    color:var(--dhl-red);
+    font-size:22px;
+}
+
+.header-info span{
+    display:block;
+    margin-top:4px;
+    font-size:13px;
+    font-weight:bold;
+}
+
+.header-actions{
+    display:flex;
+    gap:8px;
+}
+
+.header-btn{
+    border:none;
+    background:var(--dhl-red);
+    color:white;
+    padding:10px 14px;
+    border-radius:12px;
+    font-weight:bold;
+    cursor:pointer;
+}
+
+.container{
+    max-width:1400px;
+    margin:auto;
+    padding:16px;
+}
+
+.tabs{
+    display:flex;
+    gap:8px;
+    overflow-x:auto;
+    padding-bottom:10px;
+}
+
+.tab-btn{
+    border:none;
+    padding:12px 16px;
+    border-radius:999px;
+    background:white;
+    font-weight:bold;
+    cursor:pointer;
+    white-space:nowrap;
+    box-shadow:0 2px 8px rgba(0,0,0,.08);
+}
+
+.tab-btn.active{
+    background:var(--dhl-red);
+    color:white;
+}
+
+.panel{
+    background:white;
+    border-radius:22px;
+    padding:18px;
+    box-shadow:0 4px 14px rgba(0,0,0,.08);
+    margin-top:12px;
+}
+
+.panel-head{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    gap:12px;
+    flex-wrap:wrap;
+}
+
+.panel-head h2{
+    margin:0;
+}
+
+.add-btn{
+    border:none;
+    background:var(--dhl-red);
+    color:white;
+    padding:12px 16px;
+    border-radius:12px;
+    font-weight:bold;
+    cursor:pointer;
+}
+
+.table-wrap{
+    overflow-x:auto;
+    margin-top:16px;
+}
+
+table{
+    width:100%;
+    border-collapse:collapse;
+    min-width:950px;
+}
+
+th,td{
+    padding:11px;
+    border-bottom:1px solid #eee;
+    text-align:center;
+    font-size:14px;
+}
+
+th{
+    background:#fff7cc;
+}
+
+td:first-child,
+th:first-child{
+    text-align:left;
+}
+
+.action-btn{
+    border:none;
+    padding:8px 10px;
+    border-radius:10px;
+    font-weight:bold;
+    cursor:pointer;
+    margin:2px;
+}
+
+.view-btn{
+    background:#eee;
+}
+
+.edit-btn{
+    background:#fff4cc;
+    color:var(--warning);
+}
+
+.delete-btn{
+    background:#ffe5e5;
+    color:var(--dhl-red);
+}
+
+.save-btn{
+    background:#e8f7e8;
+    color:var(--ok);
+}
+
+.status-pill{
+    padding:6px 10px;
+    border-radius:999px;
+    font-weight:bold;
+    font-size:12px;
+}
+
+.status-pill.active{
+    background:#e8f7e8;
+    color:var(--ok);
+}
+
+.status-pill.inactive{
+    background:#ffe5e5;
+    color:var(--dhl-red);
+}
+
+.app-modal{
+    display:none;
+    position:fixed;
+    inset:0;
+    background:rgba(0,0,0,.55);
+    z-index:999;
+    justify-content:center;
+    align-items:center;
+    padding:16px;
+}
+
+.modal-card{
+    width:100%;
+    max-width:640px;
+    max-height:90vh;
+    overflow:auto;
+    background:white;
+    border-radius:24px;
+    padding:22px;
+    box-shadow:0 12px 35px rgba(0,0,0,.25);
+}
+
+.modal-header{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    gap:10px;
+    margin-bottom:16px;
+}
+
+.modal-header h2{
+    margin:0;
+    color:var(--dhl-red);
+}
+
+.close-btn{
+    border:none;
+    width:38px;
+    height:38px;
+    border-radius:50%;
+    font-weight:bold;
+    cursor:pointer;
+}
+
+.form-grid{
+    display:grid;
+    grid-template-columns:repeat(2,1fr);
+    gap:12px;
+}
+
+.form-group label{
+    display:block;
+    font-weight:bold;
+    margin-bottom:6px;
+    font-size:13px;
+}
+
+.form-group input,
+.form-group select{
+    width:100%;
+    padding:12px;
+    border-radius:12px;
+    border:1px solid #ccc;
+    font-size:15px;
+}
+
+.form-actions{
+    display:flex;
+    gap:10px;
+    margin-top:18px;
+}
+
+.primary-btn{
+    flex:1;
+    border:none;
+    background:var(--dhl-red);
+    color:white;
+    padding:14px;
+    border-radius:14px;
+    font-weight:bold;
+    cursor:pointer;
+}
+
+.secondary-btn{
+    flex:1;
+    border:none;
+    background:#eee;
+    padding:14px;
+    border-radius:14px;
+    font-weight:bold;
+    cursor:pointer;
+}
+
+.toast{
+    display:none;
+    position:fixed;
+    bottom:20px;
+    right:20px;
+    background:var(--dhl-red);
+    color:white;
+    padding:14px 22px;
+    border-radius:14px;
+    font-weight:bold;
+    z-index:1200;
+}
+
+@media(max-width:600px){
+    header{
+        padding:12px;
+    }
+
+    .header-info h1{
+        font-size:18px;
+    }
+
+    .header-btn{
+        padding:9px 11px;
+        font-size:12px;
+    }
+
+    .container{
+        padding:12px;
+    }
+
+    .panel{
+        padding:14px;
+        border-radius:18px;
+    }
+
+    .form-grid{
+        grid-template-columns:1fr;
+    }
+
+    .modal-card{
+        padding:18px;
+    }
+}
+</style>
+</head>
+
+<body>
+
+<header>
+    <div class="header-info">
+        <h1>⚙️ DHL Admin Center</h1>
+        <span id="headerUser">Administrador</span>
+    </div>
+
+    <div class="header-actions">
+        <button class="header-btn" onclick="goDashboard()">Dashboard</button>
+        <button class="header-btn" onclick="logout()">Salir</button>
+    </div>
+</header>
+
+<div class="container">
+
+    <div class="tabs" id="tabs"></div>
+
+    <div class="panel">
+        <div class="panel-head">
+            <h2 id="moduleTitle">Módulo</h2>
+            <button class="add-btn" id="addButton" onclick="openFormModal()">+ Nuevo</button>
+        </div>
+
+        <div class="table-wrap">
+            <table>
+                <thead id="tableHead"></thead>
+                <tbody id="tableBody">
+                    <tr>
+                        <td>Cargando...</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+</div>
+
+<div class="app-modal" id="formModal">
+    <div class="modal-card">
+        <div class="modal-header">
+            <h2 id="formTitle">Registro</h2>
+            <button class="close-btn" onclick="closeFormModal()">X</button>
+        </div>
+
+        <div class="form-grid" id="formFields"></div>
+
+        <div class="form-actions">
+            <button class="secondary-btn" onclick="closeFormModal()">Cancelar</button>
+            <button class="primary-btn" onclick="saveRecord()">Guardar</button>
+        </div>
+    </div>
+</div>
+
+<div class="app-modal" id="confirmModal">
+    <div class="modal-card">
+        <div class="modal-header">
+            <h2 id="confirmTitle">Confirmar</h2>
+            <button class="close-btn" onclick="closeConfirmModal()">X</button>
+        </div>
+
+        <p id="confirmText"></p>
+
+        <div class="form-actions">
+            <button class="secondary-btn" onclick="closeConfirmModal()">Cancelar</button>
+            <button class="primary-btn" onclick="executeConfirmAction()">Confirmar</button>
+        </div>
+    </div>
+</div>
+
+<div class="toast" id="toast">Guardado correctamente</div>
+
+<script type="module">
+
+import { initializeApp }
+from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+
+import {
+    getAuth,
+    signOut
+}
+from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+
+import {
+    getFirestore,
+    collection,
+    doc,
+    getDocs,
+    getDoc,
+    setDoc,
+    addDoc,
+    updateDoc,
+    deleteDoc,
+    serverTimestamp,
+    query,
+    orderBy,
+    limit
+}
+from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+const firebaseConfig = {
+    apiKey: "AIzaSyC4yHubTO4ZPn2H80I1fG7H6qeR7SavNbM",
+    authDomain: "dhl-operational-control.firebaseapp.com",
+    projectId: "dhl-operational-control",
+    storageBucket: "dhl-operational-control.firebasestorage.app",
+    messagingSenderId: "830487097530",
+    appId: "1:830487097530:web:41e01b4d396678f0819283"
+};
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+
+let currentUser = null;
+let currentModule = "users";
+let currentEditId = null;
+let confirmAction = null;
+
+let cache = {
+    areas:[],
+    roles:[],
+    suppliers:[],
+    warehouses:[],
+    materials:[],
+    users:[]
+};
+
+const modules = {
+    users:{
+        title:"Usuarios",
+        collection:"users",
+        docIdField:"employeeId",
+        softDelete:true,
+        fields:[
+            {key:"employeeId",label:"Número empleado",type:"text",required:true},
+            {key:"name",label:"Nombre",type:"text",required:true},
+            {key:"email",label:"Email",type:"email",required:true},
+            {key:"role",label:"Rol",type:"select",source:"roles",required:true},
+            {key:"area",label:"Área",type:"select",source:"areas",required:true},
+            {key:"warehouse",label:"Nave",type:"select",source:"warehouses",required:true},
+            {key:"active",label:"Activo",type:"boolean"}
+        ],
+        columns:[
+            ["employeeId","Empleado"],
+            ["name","Nombre"],
+            ["email","Email"],
+            ["role","Rol"],
+            ["area","Área"],
+            ["warehouse","Nave"],
+            ["active","Estado"]
+        ]
+    },
+    materials:{
+        title:"Materiales / Familias",
+        collection:"materials",
+        softDelete:true,
+        fields:[
+            {key:"name",label:"Familia",type:"text",required:true},
+            {key:"supplierId",label:"Proveedor",type:"select",source:"suppliers",required:true},
+            {key:"warehouseId",label:"Nave",type:"select",source:"warehouses",required:true},
+            {key:"controlTime",label:"Tiempo Control Min",type:"number",required:true},
+            {key:"active",label:"Activo",type:"boolean"}
+        ],
+        columns:[
+            ["name","Familia"],
+            ["supplierName","Proveedor"],
+            ["warehouseName","Nave"],
+            ["controlTime","Control"],
+            ["active","Estado"]
+        ]
+    },
+    suppliers:{
+        title:"Proveedores",
+        collection:"suppliers",
+        softDelete:true,
+        fields:[
+            {key:"name",label:"Nombre",type:"text",required:true},
+            {key:"active",label:"Activo",type:"boolean"}
+        ],
+        columns:[
+            ["name","Proveedor"],
+            ["active","Estado"]
+        ]
+    },
+    warehouses:{
+        title:"Naves",
+        collection:"warehouses",
+        softDelete:true,
+        fields:[
+            {key:"name",label:"Nombre",type:"text",required:true},
+            {key:"active",label:"Activo",type:"boolean"}
+        ],
+        columns:[
+            ["name","Nave"],
+            ["active","Estado"]
+        ]
+    },
+    areas:{
+        title:"Áreas",
+        collection:"areas",
+        softDelete:true,
+        fields:[
+            {key:"name",label:"Nombre",type:"text",required:true},
+            {key:"active",label:"Activo",type:"boolean"}
+        ],
+        columns:[
+            ["name","Área"],
+            ["active","Estado"]
+        ]
+    },
+    roles:{
+        title:"Roles",
+        collection:"roles",
+        softDelete:true,
+        fields:[
+            {key:"name",label:"Nombre",type:"text",required:true},
+            {key:"active",label:"Activo",type:"boolean"}
+        ],
+        columns:[
+            ["name","Rol"],
+            ["active","Estado"]
+        ]
+    },
+    captures:{
+        title:"Capturas",
+        collection:"captures",
+        softDelete:false,
+        fields:[
+            {key:"materialId",label:"Material",type:"select",source:"materials",required:true},
+            {key:"area",label:"Área",type:"select",source:"areas",required:true},
+            {key:"sequence",label:"Secuencia",type:"number",required:true},
+            {key:"capturedBy",label:"Empleado",type:"select",source:"users",required:true},
+            {key:"active",label:"Activo",type:"boolean"}
+        ],
+        columns:[
+            ["createdAt","Fecha"],
+            ["materialName","Material"],
+            ["area","Área"],
+            ["sequence","Secuencia"],
+            ["capturedByName","Usuario"],
+            ["active","Estado"]
+        ]
+    }
+};
+
+const savedUser =
+    localStorage.getItem("operationalUser");
+
+if(!savedUser){
+    window.location.href="index.html";
+}
+
+currentUser =
+    JSON.parse(savedUser);
+
+if(currentUser.role !== "admin"){
+    window.location.href="capture.html";
+}
+
+document.getElementById("headerUser").innerText =
+    `${currentUser.name} · Admin · ${currentUser.warehouse}`;
+
+init();
+
+async function init(){
+
+    renderTabs();
+
+    await loadCache();
+
+    await loadModule("users");
+
+}
+
+function renderTabs(){
+
+    const tabs =
+        document.getElementById("tabs");
+
+    tabs.innerHTML = "";
+
+    Object.keys(modules).forEach(key=>{
+
+        tabs.innerHTML += `
+            <button
+                class="tab-btn ${key===currentModule ? "active" : ""}"
+                onclick="loadModule('${key}')"
+            >
+                ${modules[key].title}
+            </button>
+        `;
+
+    });
+
+}
+
+async function loadCache(){
+
+    await Promise.all([
+        loadCacheCollection("areas"),
+        loadCacheCollection("roles"),
+        loadCacheCollection("suppliers"),
+        loadCacheCollection("warehouses"),
+        loadCacheCollection("materials"),
+        loadCacheCollection("users")
+    ]);
+
+}
+
+async function loadCacheCollection(collectionName){
+
+    const snapshot =
+        await getDocs(collection(db,collectionName));
+
+    cache[collectionName] =
+        snapshot.docs.map(docSnap=>({
+            id:docSnap.id,
+            ...docSnap.data()
+        }));
+
+}
+
+async function loadModule(moduleKey){
+
+    currentModule = moduleKey;
+    currentEditId = null;
+
+    renderTabs();
+
+    const module =
+        modules[currentModule];
+
+    document.getElementById("moduleTitle").innerText =
+        module.title;
+
+    document.getElementById("addButton").style.display =
+        currentModule==="captures" ? "none" : "inline-block";
+
+    renderTableHeader();
+
+    const tableBody =
+        document.getElementById("tableBody");
+
+    tableBody.innerHTML =
+        `<tr><td colspan="20">Cargando...</td></tr>`;
+
+    let snapshot;
+
+    if(currentModule==="captures"){
+        const q =
+            query(
+                collection(db,module.collection),
+                orderBy("createdAt","desc"),
+                limit(80)
+            );
+
+        snapshot =
+            await getDocs(q);
+
+    }else{
+        snapshot =
+            await getDocs(collection(db,module.collection));
+    }
+
+    const records =
+        snapshot.docs.map(docSnap=>({
+            id:docSnap.id,
+            ...docSnap.data()
+        }));
+
+    renderRows(records);
+
+}
+
+function renderTableHeader(){
+
+    const module =
+        modules[currentModule];
+
+    const tableHead =
+        document.getElementById("tableHead");
+
+    let html = "<tr>";
+
+    module.columns.forEach(col=>{
+        html += `<th>${col[1]}</th>`;
+    });
+
+    html += `<th>Acciones</th></tr>`;
+
+    tableHead.innerHTML = html;
+
+}
+
+function renderRows(records){
+
+    const module =
+        modules[currentModule];
+
+    const tableBody =
+        document.getElementById("tableBody");
+
+    if(records.length===0){
+        tableBody.innerHTML =
+            `<tr><td colspan="20">Sin registros.</td></tr>`;
+        return;
+    }
+
+    tableBody.innerHTML = "";
+
+    records.forEach(record=>{
+
+        let html = "<tr>";
+
+        module.columns.forEach(col=>{
+
+            const key =
+                col[0];
+
+            html += `<td>${formatValue(key,record[key],record)}</td>`;
+
+        });
+
+        if(currentModule==="captures"){
+            html += `
+                <td>
+                    <button class="action-btn view-btn" onclick="viewRecord('${record.id}')">Ver</button>
+                    <button class="action-btn edit-btn" onclick="openFormModal('${record.id}')">Editar</button>
+                    <button class="action-btn delete-btn" onclick="confirmDelete('${record.id}')">Eliminar</button>
+                </td>
+            `;
+        }else{
+            html += `
+                <td>
+                    <button class="action-btn edit-btn" onclick="openFormModal('${record.id}')">Editar</button>
+                    <button class="action-btn delete-btn" onclick="confirmSoftDelete('${record.id}')">Desactivar</button>
+                </td>
+            `;
+        }
+
+        html += "</tr>";
+
+        tableBody.innerHTML += html;
+
+    });
+
+}
+
+function formatValue(key,value,record){
+
+    if(key==="active"){
+        return value === true
+            ? `<span class="status-pill active">Activo</span>`
+            : `<span class="status-pill inactive">Inactivo</span>`;
+    }
+
+    if(key==="createdAt" && value){
+        const date =
+            value.toDate();
+
+        return date.toLocaleString("es-MX");
+    }
+
+    if(value===undefined || value===null || value===""){
+        return "-";
+    }
+
+    return value;
+
+}
+
+async function openFormModal(recordId=null){
+
+    currentEditId =
+        recordId;
+
+    const module =
+        modules[currentModule];
+
+    document.getElementById("formTitle").innerText =
+        recordId
+        ? `Editar ${module.title}`
+        : `Nuevo ${module.title}`;
+
+    let record = {};
+
+    if(recordId){
+        const ref =
+            doc(db,module.collection,recordId);
+
+        const snap =
+            await getDoc(ref);
+
+        if(snap.exists()){
+            record = {
+                id:snap.id,
+                ...snap.data()
+            };
+        }
+    }
+
+    renderFormFields(record);
+
+    document.getElementById("formModal").style.display =
+        "flex";
+
+}
+
+window.openFormModal=openFormModal;
+
+function renderFormFields(record){
+
+    const module =
+        modules[currentModule];
+
+    const formFields =
+        document.getElementById("formFields");
+
+    formFields.innerHTML = "";
+
+    module.fields.forEach(field=>{
+
+        let value =
+            record[field.key];
+
+        if(value===undefined){
+            value =
+                field.type==="boolean" ? true : "";
+        }
+
+        let input = "";
+
+        if(field.type==="select"){
+            input =
+                buildSelect(field,value);
+        }else if(field.type==="boolean"){
+            input = `
+                <select id="field_${field.key}">
+                    <option value="true" ${value===true ? "selected" : ""}>Activo</option>
+                    <option value="false" ${value===false ? "selected" : ""}>Inactivo</option>
+                </select>
+            `;
+        }else{
+            input = `
+                <input
+                    id="field_${field.key}"
+                    type="${field.type}"
+                    value="${value || ""}"
+                >
+            `;
+        }
+
+        formFields.innerHTML += `
+            <div class="form-group">
+                <label>${field.label}</label>
+                ${input}
+            </div>
+        `;
+
+    });
+
+}
+
+function buildSelect(field,value){
+
+    const items =
+        cache[field.source] || [];
+
+    let html =
+        `<select id="field_${field.key}">`;
+
+    html += `<option value="">Selecciona...</option>`;
+
+    items.forEach(item=>{
+
+        const label =
+            item.name ||
+            item.employeeId ||
+            item.id;
+
+        html += `
+            <option value="${item.id}" ${value===item.id || value===item.name ? "selected" : ""}>
+                ${label}
+            </option>
+        `;
+
+    });
+
+    html += "</select>";
+
+    return html;
+
+}
+
+async function saveRecord(){
+
+    const module =
+        modules[currentModule];
+
+    let data = {};
+
+    for(const field of module.fields){
+
+        const element =
+            document.getElementById(`field_${field.key}`);
+
+        let value =
+            element.value;
+
+        if(field.required && !value){
+            showToast(`Falta: ${field.label}`);
+            return;
+        }
+
+        if(field.type==="number"){
+            value =
+                Number(value);
+        }
+
+        if(field.type==="boolean"){
+            value =
+                value === "true";
+        }
+
+        data[field.key] =
+            value;
+
+    }
+
+    enrichData(data);
+
+    if(currentEditId){
+
+        await updateDoc(
+            doc(db,module.collection,currentEditId),
+            {
+                ...data,
+                updatedAt:serverTimestamp(),
+                updatedBy:currentUser.employeeId
+            }
+        );
+
+    }else{
+
+        data.createdAt =
+            serverTimestamp();
+
+        data.createdBy =
+            currentUser.employeeId;
+
+        if(module.docIdField){
+
+            await setDoc(
+                doc(db,module.collection,data[module.docIdField]),
+                data
+            );
+
+        }else{
+
+            await addDoc(
+                collection(db,module.collection),
+                data
+            );
+
+        }
+
+    }
+
+    closeFormModal();
+
+    await loadCache();
+
+    await loadModule(currentModule);
+
+    showToast("Guardado correctamente");
+
+}
+
+window.saveRecord=saveRecord;
+
+function enrichData(data){
+
+    if(currentModule==="materials"){
+
+        const supplier =
+            cache.suppliers.find(x=>x.id===data.supplierId);
+
+        const warehouse =
+            cache.warehouses.find(x=>x.id===data.warehouseId);
+
+        data.supplierName =
+            supplier?.name || "";
+
+        data.warehouseName =
+            warehouse?.name || "";
+
+    }
+
+    if(currentModule==="captures"){
+
+        const material =
+            cache.materials.find(x=>x.id===data.materialId);
+
+        const user =
+            cache.users.find(x=>x.id===data.capturedBy);
+
+        data.materialName =
+            material?.name || "";
+
+        data.warehouseId =
+            material?.warehouseId || "";
+
+        data.warehouseName =
+            material?.warehouseName || "";
+
+        data.supplierId =
+            material?.supplierId || "";
+
+        data.supplierName =
+            material?.supplierName || "";
+
+        data.capturedByName =
+            user?.name || "";
+
+    }
+
+}
+
+function viewRecord(recordId){
+
+    openFormModal(recordId);
+
+}
+
+window.viewRecord=viewRecord;
+
+function confirmSoftDelete(recordId){
+
+    confirmAction = async ()=>{
+
+        const module =
+            modules[currentModule];
+
+        await updateDoc(
+            doc(db,module.collection,recordId),
+            {
+                active:false,
+                updatedAt:serverTimestamp(),
+                updatedBy:currentUser.employeeId
+            }
+        );
+
+        closeConfirmModal();
+
+        await loadCache();
+
+        await loadModule(currentModule);
+
+        showToast("Registro desactivado");
+
+    };
+
+    document.getElementById("confirmTitle").innerText =
+        "Desactivar registro";
+
+    document.getElementById("confirmText").innerText =
+        "¿Seguro que deseas desactivar este registro?";
+
+    document.getElementById("confirmModal").style.display =
+        "flex";
+
+}
+
+window.confirmSoftDelete=confirmSoftDelete;
+
+function confirmDelete(recordId){
+
+    confirmAction = async ()=>{
+
+        const module =
+            modules[currentModule];
+
+        await deleteDoc(
+            doc(db,module.collection,recordId)
+        );
+
+        closeConfirmModal();
+
+        await loadModule(currentModule);
+
+        showToast("Captura eliminada");
+
+    };
+
+    document.getElementById("confirmTitle").innerText =
+        "Eliminar captura";
+
+    document.getElementById("confirmText").innerText =
+        "¿Seguro que deseas eliminar esta captura? Esta acción no se puede deshacer.";
+
+    document.getElementById("confirmModal").style.display =
+        "flex";
+
+}
+
+window.confirmDelete=confirmDelete;
+
+async function executeConfirmAction(){
+
+    if(confirmAction){
+        await confirmAction();
+    }
+
+}
+
+window.executeConfirmAction=executeConfirmAction;
+
+function closeFormModal(){
+
+    document.getElementById("formModal").style.display =
+        "none";
+
+    currentEditId = null;
+
+}
+
+window.closeFormModal=closeFormModal;
+
+function closeConfirmModal(){
+
+    document.getElementById("confirmModal").style.display =
+        "none";
+
+    confirmAction = null;
+
+}
+
+window.closeConfirmModal=closeConfirmModal;
+
+function showToast(message){
+
+    const toast =
+        document.getElementById("toast");
+
+    toast.innerText =
+        message;
+
+    toast.style.display =
+        "block";
+
+    setTimeout(()=>{
+        toast.style.display =
+            "none";
+    },2500);
+
+}
+
+function goDashboard(){
+
+    window.location.href =
+        "dashboard.html";
+
+}
+
+window.goDashboard=goDashboard;
+
+async function logout(){
+
+    await signOut(auth);
+
+    localStorage.removeItem("operationalUser");
+
+    window.location.href =
+        "index.html";
+
+}
+
+window.logout=logout;
+
+</script>
+
+</body>
+</html>
