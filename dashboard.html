@@ -51,6 +51,12 @@ header{
     color:#333;
 }
 
+.header-actions{
+    display:flex;
+    gap:8px;
+    flex-wrap:wrap;
+}
+    
 .logout-btn{
     border:none;
     background:var(--dhl-red);
@@ -386,9 +392,19 @@ th:first-child{
         <span id="headerUser">Dashboard Operativo</span>
     </div>
 
+    <div class="header-actions">
+    <button class="logout-btn" id="adminBtn" onclick="goAdmin()">
+        Admin
+    </button>
+
+    <button class="logout-btn" onclick="goCapture()">
+        Captura
+    </button>
+
     <button class="logout-btn" onclick="logout()">
         Salir
     </button>
+</div>
 </header>
 
 <div class="container">
@@ -553,6 +569,11 @@ const currentUser =
 
 document.getElementById("headerUser").innerText =
     `${currentUser.name} · ${currentUser.role} · ${currentUser.warehouse}`;
+
+if(currentUser.role !== "admin"){
+    document.getElementById("adminBtn").style.display =
+        "none";
+}    
 
 loadDashboard();
 
@@ -869,6 +890,24 @@ function closeDetailModal(){
 }
 
 window.closeDetailModal=closeDetailModal;
+
+function goAdmin(){
+
+    window.location.href =
+        "admin.html";
+
+}
+
+window.goAdmin=goAdmin;
+
+function goCapture(){
+
+    window.location.href =
+        "capture.html";
+
+}
+
+window.goCapture=goCapture;    
 
 async function logout(){
 
