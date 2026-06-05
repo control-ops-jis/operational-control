@@ -397,9 +397,13 @@ th:first-child{
         Admin
     </button>
 
-    <button class="logout-btn" onclick="goCapture()">
-        Captura
-    </button>
+    <button class="logout-btn" onclick="goCapturePU()">
+    PU
+</button>
+
+<button class="logout-btn" onclick="goCaptureZL()">
+    ZL
+</button>
 
     <button class="logout-btn" onclick="logout()">
         Salir
@@ -900,14 +904,23 @@ function goAdmin(){
 
 window.goAdmin=goAdmin;
 
-function goCapture(){
+function goCapturePU(){
 
     window.location.href =
-        "capture.html";
+        "capture.html?area=PU";
 
 }
 
-window.goCapture=goCapture;    
+window.goCapturePU=goCapturePU;
+
+function goCaptureZL(){
+
+    window.location.href =
+        "capture.html?area=ZL";
+
+}
+
+window.goCaptureZL=goCaptureZL;    
 
 async function logout(){
 
