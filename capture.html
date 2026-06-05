@@ -114,29 +114,6 @@ header h1{
     font-weight:bold;
 }
 
-.material-coverage{
-    margin-top:10px;
-    padding:10px;
-    border-radius:12px;
-    text-align:center;
-    font-weight:bold;
-    font-size:18px;
-}
-
-.material-coverage.ok{
-    background:#e8f7e8;
-    color:#1f7a1f;
-}
-
-.material-coverage.critical{
-    background:#ffe5e5;
-    color:#D40511;
-}
-
-.material-coverage.warning{
-    background:#fff4cc;
-    color:#a67c00;
-}    
     
 /* MODAL */
 
@@ -504,95 +481,7 @@ async function getLastCaptureForMaterial(materialId){
 };
 }    
 
-async function getCoverageForMaterial(material){
-
-    const puCapture =
-        await getLastCaptureByArea(material.id,"PU");
-
-    const zlCapture =
-        await getLastCaptureByArea(material.id,"ZL");
-
-    if(
-        !puCapture.sequence ||
-        !zlCapture.sequence
-    ){
-        return {
-            pu:"-",
-            zl:"-",
-            total:"-",
-            hours:"-",
-            controlHours:"-",
-            compliance:"-",
-            status:"neutral"
-        };
-    }
-
-    const pu =
-        Number(puCapture.sequence);
-
-    const zl =
-        Number(zlCapture.sequence);
-
-    const total =
-        zl - pu;
-
-    const hours =
-        total / 60;
-
-    const controlHours =
-        Number(material.controlTime || 0) / 60;
-
-    let compliance = 0;
-
-    if(controlHours > 0){
-        compliance =
-            (hours / controlHours) * 100;
-    }
-
-    let status="ok";
-
-    if(hours < 0){
-        status="warning";
-    }else if(hours < 1){
-        status="critical";
-    }
-
-    return {
-        pu:String(pu).padStart(4,"0"),
-        zl:String(zl).padStart(4,"0"),
-        total,
-        hours:hours.toFixed(2),
-        controlHours:controlHours.toFixed(2),
-        compliance:compliance.toFixed(0),
-        status
-    };
-
-}
-async function getLastCaptureByArea(materialId,area){
-
-    const q = query(
-        collection(db,"captures"),
-        where("materialId","==",materialId),
-        where("area","==",area),
-        where("active","==",true),
-        orderBy("createdAt","desc"),
-        limit(1)
-    );
-
-    const snapshot =
-        await getDocs(q);
-
-    if(snapshot.empty){
-        return {
-            sequence:null
-        };
-    }
-
-    return snapshot.docs[0].data();
-
-}    
-
-    async function loadMaterials(){
+async function loadMaterials(){
 
     const materialsGrid =
         document.getElementById("materialsGrid");
@@ -617,18 +506,11 @@ async function getLastCaptureByArea(materialId,area){
 
     for(const docSnap of snapshot.docs){
 
-        const material = {
-    id:docSnap.id,
-    ...docSnap.data()
-};
+        const material =
+    docSnap.data();
 
-        const lastCapture =
-    await getLastCaptureForMaterial(docSnap.id);
-    
-    const coverage =
-    await getCoverageForMaterial(
-        material
-    );    
+const lastCapture =
+    await getLastCaptureForMaterial(docSnap.id);  
 
 materialsGrid.innerHTML += `
     <button
@@ -639,26 +521,18 @@ materialsGrid.innerHTML += `
         <span>${material.supplierName || ""}</span>
 
         <div class="material-last">
-
     <div>
-        <small>PU</small>
+        <small>Última</small>
         <div class="material-last-seq">
-            ${coverage.pu}
+            ${lastCapture.sequence}
         </div>
     </div>
 
-    <div>
-        <small>ZL</small>
-        <div class="material-last-seq">
-            ${coverage.zl}
-        </div>
+    <div class="material-last-time">
+        ${lastCapture.time}
     </div>
-
 </div>
 
-<div class="material-coverage ${coverage.status}">
-    ${coverage.hours} hrs
-</div>
 </button>
 `;
  }
