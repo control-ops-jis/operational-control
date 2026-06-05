@@ -11,6 +11,8 @@
     --dhl-red:#D40511;
     --dhl-yellow:#FFCC00;
     --bg:#f5f5f5;
+    --ok:#1f7a1f;
+    --warning:#a67c00;
 }
 
 *{
@@ -25,16 +27,18 @@ body{
 
 header{
     background:var(--dhl-yellow);
-    padding:20px;
+    padding:18px 22px;
     display:flex;
     justify-content:space-between;
     align-items:center;
     flex-wrap:wrap;
+    gap:12px;
 }
 
 header h1{
     margin:0;
     color:var(--dhl-red);
+    font-size:24px;
 }
 
 .logout-btn{
@@ -48,41 +52,233 @@ header h1{
 }
 
 .container{
-    max-width:900px;
+    max-width:1300px;
     margin:auto;
-    padding:25px;
+    padding:22px;
 }
 
-.card{
+.user-card,
+.panel{
     background:white;
-    padding:25px;
     border-radius:22px;
+    padding:20px;
     box-shadow:0 4px 14px rgba(0,0,0,.08);
+    margin-bottom:18px;
 }
 
-.info-row{
-    display:flex;
-    justify-content:space-between;
-    border-bottom:1px solid #eee;
-    padding:14px 0;
-    gap:20px;
+.user-card h2{
+    margin-top:0;
+    color:#222;
 }
 
-.info-row strong{
-    color:#555;
+.user-info{
+    display:grid;
+    grid-template-columns:repeat(auto-fit,minmax(150px,1fr));
+    gap:12px;
 }
 
-.info-row span{
+.info-box{
+    background:#fafafa;
+    border-radius:14px;
+    padding:12px;
+}
+
+.info-box span{
+    display:block;
+    font-size:12px;
+    color:#666;
     font-weight:bold;
+}
+
+.info-box strong{
     color:var(--dhl-red);
 }
 
-.status{
-    margin-top:25px;
+.kpi-grid{
+    display:grid;
+    grid-template-columns:repeat(auto-fit,minmax(150px,1fr));
+    gap:14px;
+}
+
+.kpi-card{
+    border-radius:18px;
     padding:18px;
-    border-radius:16px;
-    background:#fff7cc;
+    text-align:center;
     font-weight:bold;
+}
+
+.kpi-card strong{
+    display:block;
+    font-size:36px;
+}
+
+.kpi-card.critical{
+    background:#ffe5e5;
+    color:var(--dhl-red);
+}
+
+.kpi-card.warning{
+    background:#fff4cc;
+    color:var(--warning);
+}
+
+.kpi-card.ok{
+    background:#e8f7e8;
+    color:var(--ok);
+}
+
+.dashboard-grid{
+    display:grid;
+    grid-template-columns:repeat(auto-fit,minmax(280px,1fr));
+    gap:16px;
+}
+
+.material-card{
+    background:white;
+    border-radius:22px;
+    padding:18px;
+    box-shadow:0 4px 14px rgba(0,0,0,.08);
+    border-left:8px solid #ccc;
+}
+
+.material-card.critical{
+    border-left-color:var(--dhl-red);
+}
+
+.material-card.warning{
+    border-left-color:var(--warning);
+}
+
+.material-card.ok{
+    border-left-color:var(--ok);
+}
+
+.material-card h3{
+    margin:0;
+    color:#111;
+}
+
+.material-card small{
+    color:#666;
+    font-weight:bold;
+}
+
+.material-values{
+    display:grid;
+    grid-template-columns:repeat(2,1fr);
+    gap:10px;
+    margin-top:14px;
+}
+
+.value-box{
+    background:#fafafa;
+    border-radius:14px;
+    padding:10px;
+    text-align:center;
+}
+
+.value-box span{
+    display:block;
+    font-size:12px;
+    color:#666;
+    font-weight:bold;
+}
+
+.value-box strong{
+    font-size:22px;
+    color:var(--dhl-red);
+}
+
+.coverage-box{
+    margin-top:14px;
+    padding:14px;
+    border-radius:14px;
+    text-align:center;
+    font-weight:bold;
+    font-size:20px;
+}
+
+.coverage-box.critical{
+    background:#ffe5e5;
+    color:var(--dhl-red);
+}
+
+.coverage-box.warning{
+    background:#fff4cc;
+    color:var(--warning);
+}
+
+.coverage-box.ok{
+    background:#e8f7e8;
+    color:var(--ok);
+}
+
+.table-wrap{
+    overflow-x:auto;
+}
+
+table{
+    width:100%;
+    border-collapse:collapse;
+    min-width:900px;
+}
+
+th,td{
+    padding:12px;
+    border-bottom:1px solid #eee;
+    text-align:center;
+    font-size:14px;
+}
+
+th{
+    background:#fff7cc;
+    color:#333;
+}
+
+td:first-child,
+th:first-child{
+    text-align:left;
+}
+
+.badge{
+    padding:6px 10px;
+    border-radius:999px;
+    font-weight:bold;
+    font-size:12px;
+}
+
+.badge.critical{
+    background:#ffe5e5;
+    color:var(--dhl-red);
+}
+
+.badge.warning{
+    background:#fff4cc;
+    color:var(--warning);
+}
+
+.badge.ok{
+    background:#e8f7e8;
+    color:var(--ok);
+}
+
+.loading{
+    padding:18px;
+    font-weight:bold;
+}
+
+@media(max-width:600px){
+    header h1{
+        font-size:20px;
+    }
+
+    .container{
+        padding:14px;
+    }
+
+    .material-values{
+        grid-template-columns:repeat(2,1fr);
+    }
 }
 </style>
 </head>
@@ -99,39 +295,85 @@ header h1{
 
 <div class="container">
 
-    <div class="card">
-
+    <div class="user-card">
         <h2 id="welcomeTitle">Bienvenido</h2>
 
-        <div class="info-row">
-            <strong>Empleado</strong>
-            <span id="employeeId">-</span>
-        </div>
+        <div class="user-info">
+            <div class="info-box">
+                <span>Empleado</span>
+                <strong id="employeeId">-</strong>
+            </div>
 
-        <div class="info-row">
-            <strong>Nombre</strong>
-            <span id="userName">-</span>
-        </div>
+            <div class="info-box">
+                <span>Nombre</span>
+                <strong id="userName">-</strong>
+            </div>
 
-        <div class="info-row">
-            <strong>Rol</strong>
-            <span id="userRole">-</span>
-        </div>
+            <div class="info-box">
+                <span>Rol</span>
+                <strong id="userRole">-</strong>
+            </div>
 
-        <div class="info-row">
-            <strong>Área</strong>
-            <span id="userArea">-</span>
+            <div class="info-box">
+                <span>Nave</span>
+                <strong id="userWarehouse">-</strong>
+            </div>
         </div>
+    </div>
 
-        <div class="info-row">
-            <strong>Nave</strong>
-            <span id="userWarehouse">-</span>
+    <div class="panel">
+        <div class="kpi-grid">
+            <div class="kpi-card critical">
+                <strong id="criticalCount">0</strong>
+                <span>Críticos</span>
+            </div>
+
+            <div class="kpi-card warning">
+                <strong id="warningCount">0</strong>
+                <span>Riesgo</span>
+            </div>
+
+            <div class="kpi-card ok">
+                <strong id="okCount">0</strong>
+                <span>OK</span>
+            </div>
         </div>
+    </div>
 
-        <div class="status">
-            ✅ Sesión validada correctamente. Dashboard temporal activo.
+    <div class="panel">
+        <h2>Vista Operativa</h2>
+
+        <div class="dashboard-grid" id="dashboardGrid">
+            <div class="loading">Cargando información operativa...</div>
         </div>
+    </div>
 
+    <div class="panel">
+        <h2>Detalle tipo Excel</h2>
+
+        <div class="table-wrap">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Familia</th>
+                        <th>Proveedor</th>
+                        <th>Sec. P.U.</th>
+                        <th>Sec. Z.L.</th>
+                        <th>Total</th>
+                        <th>Alcance XHora</th>
+                        <th>Tiempo Control</th>
+                        <th>Cumplimiento</th>
+                        <th>Estado</th>
+                    </tr>
+                </thead>
+
+                <tbody id="dashboardTable">
+                    <tr>
+                        <td colspan="9">Cargando información...</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
     </div>
 
 </div>
@@ -147,18 +389,29 @@ import {
 }
 from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
-const firebaseConfig = {
-  apiKey: "AIzaSyC4yHubTO4ZPn2H80I1fG7H6qeR7SavNbM",
-  authDomain: "dhl-operational-control.firebaseapp.com",
-  projectId: "dhl-operational-control",
-  storageBucket: "dhl-operational-control.firebasestorage.app",
-  messagingSenderId: "830487097530",
-  appId: "1:830487097530:web:41e01b4d396678f0819283"
-};
+import {
+    getFirestore,
+    collection,
+    query,
+    where,
+    getDocs,
+    orderBy,
+    limit
+}
+from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
+const firebaseConfig = {
+    apiKey: "AIzaSyC4yHubTO4ZPn2H80I1fG7H6qeR7SavNbM",
+    authDomain: "dhl-operational-control.firebaseapp.com",
+    projectId: "dhl-operational-control",
+    storageBucket: "dhl-operational-control.firebasestorage.app",
+    messagingSenderId: "830487097530",
+    appId: "1:830487097530:web:41e01b4d396678f0819283"
+};
 
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
+const db = getFirestore(app);
 
 const savedUser =
     localStorage.getItem("operationalUser");
@@ -182,11 +435,270 @@ document.getElementById("userName").innerText =
 document.getElementById("userRole").innerText =
     currentUser.role;
 
-document.getElementById("userArea").innerText =
-    currentUser.area;
-
 document.getElementById("userWarehouse").innerText =
     currentUser.warehouse;
+
+loadDashboard();
+
+async function loadDashboard(){
+
+    const dashboardGrid =
+        document.getElementById("dashboardGrid");
+
+    const dashboardTable =
+        document.getElementById("dashboardTable");
+
+    dashboardGrid.innerHTML =
+        `<div class="loading">Cargando información operativa...</div>`;
+
+    dashboardTable.innerHTML =
+        `<tr><td colspan="9">Cargando información...</td></tr>`;
+
+    const q = query(
+        collection(db,"materials"),
+        where("warehouseId","==",currentUser.warehouse),
+        where("active","==",true)
+    );
+
+    const snapshot =
+        await getDocs(q);
+
+    if(snapshot.empty){
+        dashboardGrid.innerHTML =
+            `<div class="loading">No hay materiales configurados para esta nave.</div>`;
+
+        dashboardTable.innerHTML =
+            `<tr><td colspan="9">No hay materiales configurados.</td></tr>`;
+
+        return;
+    }
+
+    let materials = [];
+
+    for(const docSnap of snapshot.docs){
+
+        const material = {
+            id:docSnap.id,
+            ...docSnap.data()
+        };
+
+        const coverage =
+            await calculateCoverage(material);
+
+        materials.push({
+            ...material,
+            ...coverage
+        });
+
+    }
+
+    renderDashboard(materials);
+
+}
+
+async function calculateCoverage(material){
+
+    const puCapture =
+        await getLastCaptureByArea(material.id,"PU");
+
+    const zlCapture =
+        await getLastCaptureByArea(material.id,"ZL");
+
+    if(
+        !puCapture.sequence ||
+        !zlCapture.sequence
+    ){
+        return {
+            pu:"-",
+            zl:"-",
+            total:"-",
+            xHour:"-",
+            controlText:formatControlTime(material.controlTime),
+            compliance:"-",
+            status:"warning",
+            statusText:"Sin datos"
+        };
+    }
+
+    const pu =
+        Number(puCapture.sequence);
+
+    const zl =
+        Number(zlCapture.sequence);
+
+    const total =
+        zl - pu;
+
+    const xHour =
+        total / 60;
+
+    const controlHours =
+        Number(material.controlTime || 0) / 60;
+
+    let compliance = 0;
+
+    if(controlHours > 0){
+        compliance =
+            (xHour / controlHours) * 100;
+    }
+
+    let status = "ok";
+    let statusText = "OK";
+
+    if(xHour < 0){
+        status = "warning";
+        statusText = "Anomalía";
+    }else if(xHour < 1){
+        status = "critical";
+        statusText = "Crítico";
+    }
+
+    return {
+        pu:String(pu).padStart(4,"0"),
+        zl:String(zl).padStart(4,"0"),
+        total,
+        xHour:xHour.toFixed(2),
+        controlText:formatControlTime(material.controlTime),
+        compliance:compliance.toFixed(0) + "%",
+        status,
+        statusText
+    };
+
+}
+
+async function getLastCaptureByArea(materialId,area){
+
+    const q = query(
+        collection(db,"captures"),
+        where("materialId","==",materialId),
+        where("area","==",area),
+        where("active","==",true),
+        orderBy("createdAt","desc"),
+        limit(1)
+    );
+
+    const snapshot =
+        await getDocs(q);
+
+    if(snapshot.empty){
+        return {
+            sequence:null
+        };
+    }
+
+    return snapshot.docs[0].data();
+
+}
+
+function formatControlTime(minutes){
+
+    if(!minutes){
+        return "-";
+    }
+
+    const value =
+        Number(minutes);
+
+    const hours =
+        value / 60;
+
+    return `${value} min / ${hours.toFixed(2)} hrs`;
+
+}
+
+function renderDashboard(materials){
+
+    const dashboardGrid =
+        document.getElementById("dashboardGrid");
+
+    const dashboardTable =
+        document.getElementById("dashboardTable");
+
+    let critical = 0;
+    let warning = 0;
+    let ok = 0;
+
+    materials.forEach(material=>{
+
+        if(material.status==="critical"){
+            critical++;
+        }else if(material.status==="warning"){
+            warning++;
+        }else{
+            ok++;
+        }
+
+    });
+
+    document.getElementById("criticalCount").innerText =
+        critical;
+
+    document.getElementById("warningCount").innerText =
+        warning;
+
+    document.getElementById("okCount").innerText =
+        ok;
+
+    dashboardGrid.innerHTML = "";
+
+    dashboardTable.innerHTML = "";
+
+    materials.forEach(material=>{
+
+        dashboardGrid.innerHTML += `
+            <div class="material-card ${material.status}">
+                <h3>${material.name}</h3>
+                <small>${material.supplierName || "Sin proveedor"}</small>
+
+                <div class="material-values">
+                    <div class="value-box">
+                        <span>Sec. P.U.</span>
+                        <strong>${material.pu}</strong>
+                    </div>
+
+                    <div class="value-box">
+                        <span>Sec. Z.L.</span>
+                        <strong>${material.zl}</strong>
+                    </div>
+
+                    <div class="value-box">
+                        <span>Total</span>
+                        <strong>${material.total}</strong>
+                    </div>
+
+                    <div class="value-box">
+                        <span>Control</span>
+                        <strong>${material.controlText}</strong>
+                    </div>
+                </div>
+
+                <div class="coverage-box ${material.status}">
+                    ${material.xHour} hrs · ${material.statusText}
+                </div>
+            </div>
+        `;
+
+        dashboardTable.innerHTML += `
+            <tr>
+                <td>${material.name}</td>
+                <td>${material.supplierName || "-"}</td>
+                <td>${material.pu}</td>
+                <td>${material.zl}</td>
+                <td>${material.total}</td>
+                <td>${material.xHour}</td>
+                <td>${material.controlText}</td>
+                <td>${material.compliance}</td>
+                <td>
+                    <span class="badge ${material.status}">
+                        ${material.statusText}
+                    </span>
+                </td>
+            </tr>
+        `;
+
+    });
+
+}
 
 async function logout(){
 
