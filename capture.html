@@ -501,7 +501,7 @@ async function loadMaterials(){
         return;
     }
 
-    snapshot.forEach(docSnap=>{
+    for(const docSnap of snapshot.docs){
 
         const material =
             docSnap.data();
@@ -531,7 +531,7 @@ materialsGrid.innerHTML += `
         </div>
     </button>
 `;
-    });
+ }
 
 }
 
