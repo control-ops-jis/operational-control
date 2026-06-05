@@ -507,30 +507,25 @@ async function getLastCaptureForMaterial(materialId){
 async function getCoverageForMaterial(material){
 
     const puCapture =
-        await getLastCaptureByArea(
-    material.id,
-    "PU"
-);
+        await getLastCaptureByArea(material.id,"PU");
 
     const zlCapture =
-        await getLastCaptureByArea(
-    material.id,
-    "ZL"
-);
+        await getLastCaptureByArea(material.id,"ZL");
 
     if(
         !puCapture.sequence ||
         !zlCapture.sequence
     ){
         return {
-    pu:"-",
-    zl:"-",
-    total:"-",
-    hours:"-",
-    controlHours:"-",
-    compliance:"-",
-    status:"neutral"
-};
+            pu:"-",
+            zl:"-",
+            total:"-",
+            hours:"-",
+            controlHours:"-",
+            compliance:"-",
+            status:"neutral"
+        };
+    }
 
     const pu =
         Number(puCapture.sequence);
@@ -545,17 +540,14 @@ async function getCoverageForMaterial(material){
         total / 60;
 
     const controlHours =
-    Number(material.controlTime || 0)
-    / 60;
+        Number(material.controlTime || 0) / 60;
 
-let compliance = 0;
+    let compliance = 0;
 
-if(controlHours > 0){
-
-    compliance =
-        (hours / controlHours) * 100;
-
-}
+    if(controlHours > 0){
+        compliance =
+            (hours / controlHours) * 100;
+    }
 
     let status="ok";
 
@@ -566,17 +558,16 @@ if(controlHours > 0){
     }
 
     return {
-    pu:String(pu).padStart(4,"0"),
-    zl:String(zl).padStart(4,"0"),
-    total,
-    hours:hours.toFixed(2),
-    controlHours:controlHours.toFixed(2),
-    compliance:compliance.toFixed(0),
-    status
-};
+        pu:String(pu).padStart(4,"0"),
+        zl:String(zl).padStart(4,"0"),
+        total,
+        hours:hours.toFixed(2),
+        controlHours:controlHours.toFixed(2),
+        compliance:compliance.toFixed(0),
+        status
+    };
 
 }
-
 async function getLastCaptureByArea(materialId,area){
 
     const q = query(
