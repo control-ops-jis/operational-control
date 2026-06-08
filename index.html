@@ -181,18 +181,25 @@ async function login(){
             password
         );
 
-        localStorage.setItem(
-            "operationalUser",
-            JSON.stringify({
-                employeeId,
-                name:userData.name,
-                role:userData.role,
-                area:userData.area,
-                warehouse:userData.warehouse,
-                email:userData.email
-            })
-        );
+        const userRole =
+    String(userData.role || "")
+        .toLowerCase();
 
+const userArea =
+    String(userData.area || "")
+        .toUpperCase();
+
+localStorage.setItem(
+    "operationalUser",
+    JSON.stringify({
+        employeeId,
+        name:userData.name,
+        role:userRole,
+        area:userArea,
+        warehouse:userData.warehouse,
+        email:userData.email
+    })
+);
        const userRole =
     String(userData.role || "")
         .toLowerCase();
