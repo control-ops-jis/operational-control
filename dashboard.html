@@ -113,10 +113,16 @@ header{
 }
 
 .kpi-card{
+    border:none;
     border-radius:18px;
     padding:14px;
     text-align:center;
     font-weight:bold;
+    cursor:pointer;
+}
+
+.kpi-card:hover{
+    transform:translateY(-2px);
 }
 
 .kpi-card strong{
@@ -354,6 +360,70 @@ th:first-child{
     padding:14px;
 }
 
+.status-detail-list{
+    display:grid;
+    gap:10px;
+    margin-top:14px;
+}
+
+.status-detail-item{
+    background:#fafafa;
+    border-radius:16px;
+    padding:12px;
+    border-left:6px solid #ccc;
+}
+
+.status-detail-item.critical{
+    border-left-color:var(--dhl-red);
+}
+
+.status-detail-item.warning{
+    border-left-color:var(--warning);
+}
+
+.status-detail-item.ok{
+    border-left-color:var(--ok);
+}
+
+.status-detail-item h3{
+    margin:0;
+    font-size:18px;
+}
+
+.status-detail-item small{
+    display:block;
+    margin-top:4px;
+    color:#666;
+    font-weight:bold;
+}
+
+.status-detail-grid{
+    display:grid;
+    grid-template-columns:repeat(4,1fr);
+    gap:8px;
+    margin-top:10px;
+}
+
+.status-detail-box{
+    background:white;
+    border-radius:12px;
+    padding:8px;
+    text-align:center;
+}
+
+.status-detail-box span{
+    display:block;
+    font-size:11px;
+    color:#666;
+    font-weight:bold;
+}
+
+.status-detail-box strong{
+    display:block;
+    margin-top:4px;
+    color:var(--dhl-red);
+}    
+
 @media(max-width:600px){
     header{
         padding:12px;
@@ -444,20 +514,20 @@ th:first-child{
     
     <div class="panel">
         <div class="kpi-grid">
-            <div class="kpi-card critical">
-                <strong id="criticalCount">0</strong>
-                <span>Críticos</span>
-            </div>
+            <button class="kpi-card critical" onclick="openStatusModal('critical')">
+    <strong id="criticalCount">0</strong>
+    <span>Críticos</span>
+</button>
 
-            <div class="kpi-card warning">
-                <strong id="warningCount">0</strong>
-                <span>Riesgo</span>
-            </div>
+<button class="kpi-card warning" onclick="openStatusModal('warning')">
+    <strong id="warningCount">0</strong>
+    <span>Riesgo</span>
+</button>
 
-            <div class="kpi-card ok">
-                <strong id="okCount">0</strong>
-                <span>OK</span>
-            </div>
+<button class="kpi-card ok" onclick="openStatusModal('ok')">
+    <strong id="okCount">0</strong>
+    <span>OK</span>
+</button>
         </div>
     </div>
 
@@ -554,6 +624,20 @@ th:first-child{
     </div>
 </div>
 
+<div class="app-modal" id="statusModal">
+    <div class="modal-card">
+        <div class="modal-header">
+            <h2 id="statusModalTitle">Detalle</h2>
+
+            <button class="close-btn" onclick="closeStatusModal()">
+                X
+            </button>
+        </div>
+
+        <div id="statusModalBody"></div>
+    </div>
+</div>
+    
 <script type="module">
 
 import { initializeApp }
@@ -973,6 +1057,86 @@ function renderDashboard(materials){
 
 }
 
+function openStatusModal(status){
+
+    const modalTitle =
+        document.getElementById("statusModalTitle");
+
+    const modalBody =
+        document.getElementById("statusModalBody");
+
+    const filtered =
+        dashboardMaterials.filter(material=>material.status===status);
+
+    const titleMap = {
+        critical:"🔴 Materiales Críticos",
+        warning:"🟡 Materiales en Riesgo",
+        ok:"🟢 Materiales OK"
+    };
+
+    modalTitle.innerText =
+        titleMap[status] || "Detalle";
+
+    if(filtered.length===0){
+
+        modalBody.innerHTML =
+            `<div class="loading">No hay materiales en este estado.</div>`;
+
+    }else{
+
+        modalBody.innerHTML =
+            `<div class="status-detail-list">
+                ${filtered.map(material=>`
+                    <div class="status-detail-item ${material.status}">
+                        <h3>${material.name}</h3>
+                        <small>
+                            ${material.supplierName || "Sin proveedor"} ·
+                            ${material.warehouseName || material.warehouseId || "-"}
+                        </small>
+
+                        <div class="status-detail-grid">
+                            <div class="status-detail-box">
+                                <span>PU</span>
+                                <strong>${material.pu}</strong>
+                            </div>
+
+                            <div class="status-detail-box">
+                                <span>ZL</span>
+                                <strong>${material.zl}</strong>
+                            </div>
+
+                            <div class="status-detail-box">
+                                <span>Total</span>
+                                <strong>${material.total}</strong>
+                            </div>
+
+                            <div class="status-detail-box">
+                                <span>Alcance</span>
+                                <strong>${material.xHour} hrs</strong>
+                            </div>
+                        </div>
+                    </div>
+                `).join("")}
+            </div>`;
+
+    }
+
+    document.getElementById("statusModal").style.display =
+        "flex";
+
+}
+
+window.openStatusModal=openStatusModal;
+
+function closeStatusModal(){
+
+    document.getElementById("statusModal").style.display =
+        "none";
+
+}
+
+window.closeStatusModal=closeStatusModal;
+    
 function openDetailModal(index){
 
     const material =
