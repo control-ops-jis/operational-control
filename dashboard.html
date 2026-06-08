@@ -43,6 +43,23 @@ header{
     font-size:22px;
 }
 
+.title-row{
+    display:flex;
+    align-items:center;
+    gap:10px;
+}
+
+.shot-btn{
+    border:none;
+    background:white;
+    width:38px;
+    height:38px;
+    border-radius:12px;
+    font-size:20px;
+    cursor:pointer;
+    box-shadow:0 2px 8px rgba(0,0,0,.12);
+}    
+
 .header-info span{
     display:block;
     margin-top:4px;
@@ -362,6 +379,108 @@ th:first-child{
     padding:14px;
 }
 
+.share-card{
+    width:96vw;
+    max-width:1000px;
+    background:white;
+    border-radius:24px;
+    padding:20px;
+    box-shadow:0 12px 35px rgba(0,0,0,.25);
+}
+
+.share-header{
+    display:flex;
+    justify-content:space-between;
+    align-items:flex-start;
+    gap:12px;
+    border-bottom:2px solid #eee;
+    padding-bottom:10px;
+}
+
+.share-header h2{
+    margin:0;
+    color:var(--dhl-red);
+}
+
+.share-header p{
+    margin:3px 0;
+    font-weight:bold;
+    color:#444;
+}
+
+.share-kpis{
+    display:grid;
+    grid-template-columns:repeat(3,1fr);
+    gap:10px;
+    margin:12px 0;
+}
+
+.share-kpi{
+    border-radius:14px;
+    padding:10px;
+    text-align:center;
+    font-weight:bold;
+}
+
+.share-kpi strong{
+    display:block;
+    font-size:26px;
+}
+
+.share-kpi.critical{
+    background:#ffe5e5;
+    color:var(--dhl-red);
+}
+
+.share-kpi.warning{
+    background:#fff4cc;
+    color:var(--warning);
+}
+
+.share-kpi.ok{
+    background:#e8f7e8;
+    color:var(--ok);
+}
+
+.share-table{
+    width:100%;
+    border-collapse:collapse;
+    min-width:0;
+}
+
+.share-table th,
+.share-table td{
+    padding:7px;
+    border:1px solid #ddd;
+    text-align:center;
+    font-size:13px;
+    font-weight:bold;
+}
+
+.share-table th{
+    background:#fff7cc;
+}
+
+.share-table td:first-child,
+.share-table th:first-child{
+    text-align:left;
+}
+
+.share-row.critical{
+    background:#ffe5e5;
+    color:#9b0000;
+}
+
+.share-row.warning{
+    background:#fff4cc;
+    color:#6d5200;
+}
+
+.share-row.ok{
+    background:#e8f7e8;
+    color:#145c14;
+}
+    
 .status-detail-list{
     display:grid;
     gap:10px;
@@ -481,9 +600,16 @@ th:first-child{
 
 <header>
     <div class="header-info">
+    <div class="title-row">
         <h1>📊 DHL Operational Control</h1>
-        <span id="headerUser">Dashboard Operativo</span>
+
+        <button class="shot-btn" onclick="openShareModal()" title="Reporte compartible">
+            📸
+        </button>
     </div>
+
+    <span id="headerUser">Dashboard Operativo</span>
+</div>
 
     <div class="header-actions">
     <button class="logout-btn" id="adminBtn" onclick="goAdmin()">
@@ -627,6 +753,52 @@ th:first-child{
     </div>
 </div>
 
+<div class="app-modal" id="shareModal">
+    <div class="share-card">
+        <div class="share-header">
+            <div>
+                <h2>DHL Operational Control</h2>
+                <p id="shareSubtitle">Nave</p>
+                <p id="shareDate">Fecha</p>
+            </div>
+
+            <button class="close-btn" onclick="closeShareModal()">
+                X
+            </button>
+        </div>
+
+        <div class="share-kpis">
+            <div class="share-kpi critical">
+                <strong id="shareCritical">0</strong>
+                <span>Críticos</span>
+            </div>
+
+            <div class="share-kpi warning">
+                <strong id="shareWarning">0</strong>
+                <span>Riesgo</span>
+            </div>
+
+            <div class="share-kpi ok">
+                <strong id="shareOk">0</strong>
+                <span>OK</span>
+            </div>
+        </div>
+
+        <table class="share-table">
+            <thead>
+                <tr>
+                    <th>Familia</th>
+                    <th>PU</th>
+                    <th>ZL</th>
+                    <th>Alcance</th>
+                </tr>
+            </thead>
+
+            <tbody id="shareTableBody"></tbody>
+        </table>
+    </div>
+</div>
+    
 <div class="app-modal" id="statusModal">
     <div class="modal-card">
         <div class="modal-header">
@@ -1060,6 +1232,89 @@ function renderDashboard(materials){
 
 }
 
+function openShareModal(){
+
+    const selectedWarehouse =
+        document.getElementById("warehouseFilter")?.value || "ALL";
+
+    let warehouseText = "Todas las naves";
+
+    if(selectedWarehouse !== "ALL"){
+
+        const selectedOption =
+            document.getElementById("warehouseFilter")
+                ?.selectedOptions[0];
+
+        warehouseText =
+            selectedOption?.text || selectedWarehouse;
+
+    }else if(currentUser.warehouse){
+
+        warehouseText =
+            currentUser.warehouse;
+    }
+
+    const now =
+        new Date();
+
+    document.getElementById("shareSubtitle").innerText =
+        warehouseText;
+
+    document.getElementById("shareDate").innerText =
+        now.toLocaleString("es-MX");
+
+    const critical =
+        dashboardMaterials.filter(x=>x.status==="critical").length;
+
+    const warning =
+        dashboardMaterials.filter(x=>x.status==="warning").length;
+
+    const ok =
+        dashboardMaterials.filter(x=>x.status==="ok").length;
+
+    document.getElementById("shareCritical").innerText =
+        critical;
+
+    document.getElementById("shareWarning").innerText =
+        warning;
+
+    document.getElementById("shareOk").innerText =
+        ok;
+
+    const shareTableBody =
+        document.getElementById("shareTableBody");
+
+    shareTableBody.innerHTML = "";
+
+    dashboardMaterials.forEach(material=>{
+
+        shareTableBody.innerHTML += `
+            <tr class="share-row ${material.status}">
+                <td>${material.name}</td>
+                <td>${material.pu}</td>
+                <td>${material.zl}</td>
+                <td>${material.xHour}h</td>
+            </tr>
+        `;
+
+    });
+
+    document.getElementById("shareModal").style.display =
+        "flex";
+
+}
+
+window.openShareModal=openShareModal;
+
+function closeShareModal(){
+
+    document.getElementById("shareModal").style.display =
+        "none";
+
+}
+
+window.closeShareModal=closeShareModal;
+    
 function openStatusModal(status){
 
     const modalTitle =
