@@ -394,6 +394,8 @@ import {
     where,
     getDocs,
     addDoc,
+    setDoc,
+    doc,
     serverTimestamp,
     orderBy,
     limit
@@ -729,9 +731,7 @@ async function saveCapture(){
         return;
     }
 
-    await addDoc(
-        collection(db,"captures"),
-        {
+   const captureData = {
             materialId:selectedMaterial.id,
             materialName:selectedMaterial.name,
             warehouseId:selectedMaterial.warehouseId,
@@ -745,7 +745,23 @@ async function saveCapture(){
             capturedByName:currentUser.name,
             shift:getCurrentShift(),
             createdAt:serverTimestamp(),
-            active:true
+                        active:true
+        };
+
+    await addDoc(
+        collection(db,"captures"),
+        captureData
+    );
+
+    await setDoc(
+        doc(
+            db,
+            "latestCaptures",
+            `${selectedMaterial.id}_${currentUser.area}`
+        ),
+        {
+            ...captureData,
+            updatedAt:serverTimestamp()
         }
     );
 
