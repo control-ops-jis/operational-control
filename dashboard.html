@@ -911,8 +911,9 @@ const auth = getAuth(app);
 const db = getFirestore(app);
 
 let dashboardMaterials = [];
-let warehousesCache = [];    
-
+let warehousesCache = [];
+let latestCapturesCache = {};
+    
 const savedUser =
     localStorage.getItem("operationalUser");
 
@@ -1059,24 +1060,26 @@ const snapshot =
         return;
     }
 
-    let materials = [];
+    await loadLatestCaptures();
 
-    for(const docSnap of snapshot.docs){
+let materials = [];
 
-        const material = {
-            id:docSnap.id,
-            ...docSnap.data()
-        };
+for(const docSnap of snapshot.docs){
 
-        const coverage =
-            await calculateCoverage(material);
+    const material = {
+        id:docSnap.id,
+        ...docSnap.data()
+    };
 
-        materials.push({
-            ...material,
-            ...coverage
-        });
+    const coverage =
+        calculateCoverage(material);
 
-    }
+    materials.push({
+        ...material,
+        ...coverage
+    });
+
+}
 
     materials.sort((a,b)=>{
 
@@ -1096,13 +1099,31 @@ const snapshot =
 
 }
 
-async function calculateCoverage(material){
+async function loadLatestCaptures(){
+
+    const snapshot =
+        await getDocs(
+            collection(db,"latestCaptures")
+        );
+
+    latestCapturesCache = {};
+
+    snapshot.docs.forEach(docSnap=>{
+
+        latestCapturesCache[docSnap.id] =
+            docSnap.data();
+
+    });
+
+}
+
+function calculateCoverage(material){
 
     const puCapture =
-        await getLastCaptureByArea(material.id,"PU");
+        latestCapturesCache[`${material.id}_PU`] || {};
 
     const zlCapture =
-        await getLastCaptureByArea(material.id,"ZL");
+        latestCapturesCache[`${material.id}_ZL`] || {};
 
     if(
         !puCapture.sequence ||
@@ -1163,30 +1184,6 @@ async function calculateCoverage(material){
         status,
         statusText
     };
-
-}
-
-async function getLastCaptureByArea(materialId,area){
-
-    const q = query(
-        collection(db,"captures"),
-        where("materialId","==",materialId),
-        where("area","==",area),
-        where("active","==",true),
-        orderBy("createdAt","desc"),
-        limit(1)
-    );
-
-    const snapshot =
-        await getDocs(q);
-
-    if(snapshot.empty){
-        return {
-            sequence:null
-        };
-    }
-
-    return snapshot.docs[0].data();
 
 }
 
