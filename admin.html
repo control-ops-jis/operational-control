@@ -494,19 +494,33 @@ const modules = {
         collection:"materials",
         softDelete:true,
         fields:[
-            {key:"name",label:"Familia",type:"text",required:true},
-            {key:"supplierId",label:"Proveedor",type:"select",source:"suppliers",required:true},
-            {key:"warehouseId",label:"Nave",type:"select",source:"warehouses",required:true},
-            {key:"controlTime",label:"Tiempo Control Min",type:"number",required:true},
-            {key:"active",label:"Activo",type:"boolean"}
-        ],
+    {key:"name",label:"Familia",type:"text",required:true},
+
+    {key:"supplierId",label:"Proveedor",type:"select",source:"suppliers",required:true},
+
+    {key:"warehouseId",label:"Nave",type:"select",source:"warehouses",required:true},
+
+    {key:"controlTime",label:"Tiempo Control Min",type:"number",required:true},
+
+    {key:"autoUpdate",label:"Actualización automática",type:"boolean"},
+
+    {key:"manualFallback",label:"Respaldo manual",type:"boolean"},
+
+    {key:"autoSource",label:"Fuente automática",type:"text"},
+
+    {key:"externalCode",label:"Código externo",type:"text"},
+
+    {key:"active",label:"Activo",type:"boolean"}
+],
         columns:[
-            ["name","Familia"],
-            ["supplierName","Proveedor"],
-            ["warehouseName","Nave"],
-            ["controlTime","Control"],
-            ["active","Estado"]
-        ]
+    ["name","Familia"],
+    ["supplierName","Proveedor"],
+    ["warehouseName","Nave"],
+    ["controlTime","Control"],
+    ["autoUpdate","Auto"],
+    ["manualFallback","Fallback"],
+    ["active","Estado"]
+]
     },
     suppliers:{
         title:"Proveedores",
@@ -789,11 +803,15 @@ function renderRows(records){
 
 function formatValue(key,value,record){
 
-    if(key==="active"){
-        return value === true
-            ? `<span class="status-pill active">Activo</span>`
-            : `<span class="status-pill inactive">Inactivo</span>`;
-    }
+    if(
+    key==="active" ||
+    key==="autoUpdate" ||
+    key==="manualFallback"
+){
+    return value === true
+        ? `<span class="status-pill active">Sí</span>`
+        : `<span class="status-pill inactive">No</span>`;
+}
 
     if(key==="createdAt" && value){
         const date =
