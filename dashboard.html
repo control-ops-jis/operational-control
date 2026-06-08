@@ -299,7 +299,9 @@ th:first-child{
 
 .modal-card{
     width:100%;
-    max-width:520px;
+    max-width:620px;
+    max-height:88vh;
+    overflow:auto;
     background:white;
     border-radius:24px;
     padding:22px;
@@ -368,8 +370,8 @@ th:first-child{
 
 .status-detail-item{
     background:#fafafa;
-    border-radius:16px;
-    padding:12px;
+    border-radius:14px;
+    padding:10px;
     border-left:6px solid #ccc;
 }
 
@@ -387,7 +389,7 @@ th:first-child{
 
 .status-detail-item h3{
     margin:0;
-    font-size:18px;
+    font-size:15px;
 }
 
 .status-detail-item small{
@@ -400,14 +402,14 @@ th:first-child{
 .status-detail-grid{
     display:grid;
     grid-template-columns:repeat(4,1fr);
-    gap:8px;
-    margin-top:10px;
+    gap:6px;
+    margin-top:8px;
 }
 
 .status-detail-box{
     background:white;
-    border-radius:12px;
-    padding:8px;
+    border-radius:10px;
+    padding:6px;
     text-align:center;
 }
 
@@ -420,9 +422,10 @@ th:first-child{
 
 .status-detail-box strong{
     display:block;
-    margin-top:4px;
+    margin-top:3px;
     color:var(--dhl-red);
-}    
+    font-size:13px;
+}     
 
 @media(max-width:600px){
     header{
