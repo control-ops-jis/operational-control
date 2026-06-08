@@ -462,6 +462,14 @@ document.getElementById("areaTitle").innerText =
     ? "Zona Logística"
     : "Captura Operativa";
 
+if(
+    currentUser.role==="capturista_pu" ||
+    currentUser.role==="capturista_zl"
+){
+    document.getElementById("dashboardBtn").style.display =
+        "none";
+}
+
 loadMaterials();
 
     
