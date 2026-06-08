@@ -86,6 +86,26 @@ header{
     margin-top:0;
 }
 
+.warehouse-filter{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    gap:12px;
+    flex-wrap:wrap;
+}
+
+.warehouse-filter strong{
+    color:#333;
+}
+
+.warehouse-filter select{
+    padding:12px 14px;
+    border-radius:12px;
+    border:1px solid #ccc;
+    font-weight:bold;
+    min-width:220px;
+}    
+    
 .kpi-grid{
     display:grid;
     grid-template-columns:repeat(3,1fr);
@@ -412,6 +432,16 @@ th:first-child{
 
 <div class="container">
 
+<div class="panel" id="warehousePanel">
+    <div class="warehouse-filter">
+        <strong>Vista de nave</strong>
+
+        <select id="warehouseFilter" onchange="loadDashboard()">
+            <option value="ALL">Todas las naves</option>
+        </select>
+    </div>
+</div>
+    
     <div class="panel">
         <div class="kpi-grid">
             <div class="kpi-card critical">
@@ -448,6 +478,7 @@ th:first-child{
                     <tr>
                         <th>Familia</th>
                         <th>Proveedor</th>
+                        <th>Nave</th>
                         <th>Sec. P.U.</th>
                         <th>Sec. Z.L.</th>
                         <th>Total</th>
@@ -460,7 +491,7 @@ th:first-child{
 
                 <tbody id="dashboardTable">
                     <tr>
-                        <td colspan="9">Cargando información...</td>
+                        <td colspan="10">Cargando información...</td>
                     </tr>
                 </tbody>
             </table>
@@ -559,6 +590,7 @@ const auth = getAuth(app);
 const db = getFirestore(app);
 
 let dashboardMaterials = [];
+let warehousesCache = [];    
 
 const savedUser =
     localStorage.getItem("operationalUser");
@@ -583,8 +615,71 @@ if(currentUser.role !== "admin"){
     document.getElementById("zlBtn").style.display =
         "none";
 }
-loadDashboard();
+    
+initDashboard();
 
+async function initDashboard(){
+
+    await loadWarehouseFilter();
+
+    loadDashboard();
+
+}
+
+async function loadWarehouseFilter(){
+
+    const warehouseFilter =
+        document.getElementById("warehouseFilter");
+
+    const warehousePanel =
+        document.getElementById("warehousePanel");
+
+    const canViewMultipleWarehouses =
+        currentUser.role==="admin" ||
+        currentUser.role==="gerente" ||
+        currentUser.role==="manager";
+
+    if(!canViewMultipleWarehouses){
+
+        warehousePanel.style.display =
+            "none";
+
+        return;
+
+    }
+
+    const snapshot =
+        await getDocs(
+            collection(db,"warehouses")
+        );
+
+    warehousesCache =
+        snapshot.docs.map(docSnap=>({
+            id:docSnap.id,
+            ...docSnap.data()
+        }));
+
+    warehouseFilter.innerHTML =
+        `<option value="ALL">Todas las naves</option>`;
+
+    warehousesCache.forEach(warehouse=>{
+
+        if(warehouse.active===false){
+            return;
+        }
+
+        warehouseFilter.innerHTML += `
+            <option value="${warehouse.id}">
+                ${warehouse.name || warehouse.id}
+            </option>
+        `;
+
+    });
+
+}
+
+window.loadDashboard=loadDashboard;    
+    
 async function loadDashboard(){
 
     const dashboardGrid =
@@ -597,23 +692,48 @@ async function loadDashboard(){
         `<div class="loading">Cargando información operativa...</div>`;
 
     dashboardTable.innerHTML =
-        `<tr><td colspan="9">Cargando información...</td></tr>`;
+        `<tr><td colspan="10">Cargando información...</td></tr>`;
 
-    const q = query(
+    const canViewMultipleWarehouses =
+    currentUser.role==="admin" ||
+    currentUser.role==="gerente" ||
+    currentUser.role==="manager";
+
+const selectedWarehouse =
+    canViewMultipleWarehouses
+    ? document.getElementById("warehouseFilter")?.value
+    : currentUser.warehouse;
+
+let materialsQuery;
+
+if(
+    selectedWarehouse==="ALL" &&
+    (
+        currentUser.role==="admin" ||
+        currentUser.role==="gerente" ||
+        currentUser.role==="manager"
+    )
+){
+    materialsQuery = query(
         collection(db,"materials"),
-        where("warehouseId","==",currentUser.warehouse),
         where("active","==",true)
     );
+}else{
+    materialsQuery = query(
+        collection(db,"materials"),
+        where("warehouseId","==",selectedWarehouse),
+        where("active","==",true)
+    );
+}
 
-    const snapshot =
-        await getDocs(q);
-
+const snapshot =
+    await getDocs(materialsQuery);
     if(snapshot.empty){
         dashboardGrid.innerHTML =
             `<div class="loading">No hay materiales configurados para esta nave.</div>`;
 
         dashboardTable.innerHTML =
-            `<tr><td colspan="9">No hay materiales configurados.</td></tr>`;
+            `<tr><td colspan="10">No hay materiales configurados.</td></tr>`;
 
         return;
     }
@@ -809,8 +929,9 @@ function renderDashboard(materials){
                 onclick="openDetailModal(${index})"
             >
                 <h3>${material.name}</h3>
-                <small>${material.supplierName || "Sin proveedor"}</small>
-
+               <small>
+    ${material.supplierName || "Sin proveedor"} · ${material.warehouseName || material.warehouseId || "-"}
+</small>
                 <div class="material-line">
                     <div class="mini-box">
                         <span>PU</span>
@@ -833,6 +954,7 @@ function renderDashboard(materials){
             <tr>
                 <td>${material.name}</td>
                 <td>${material.supplierName || "-"}</td>
+                <td>${material.warehouseName || material.warehouseId || "-"}</td>
                 <td>${material.pu}</td>
                 <td>${material.zl}</td>
                 <td>${material.total}</td>
