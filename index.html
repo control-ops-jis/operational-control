@@ -181,7 +181,7 @@ async function login(){
             password
         );
 
-        const userRole =
+       const userRole =
     String(userData.role || "")
         .toLowerCase();
 
@@ -200,13 +200,6 @@ localStorage.setItem(
         email:userData.email
     })
 );
-       const userRole =
-    String(userData.role || "")
-        .toLowerCase();
-
-const userArea =
-    String(userData.area || "")
-        .toUpperCase();
 
 if(
     userRole==="capturista_pu" ||
@@ -217,7 +210,6 @@ if(
     window.location.href="capture.html";
     return;
 }
-
 if(
     userRole==="admin" ||
     userRole==="gerente" ||
