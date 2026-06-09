@@ -374,6 +374,14 @@ th:first-child{
     color:var(--dhl-red);
 }
 
+.modal-time{
+    display:block;
+    margin-top:4px;
+    font-size:11px;
+    font-weight:bold;
+    color:#666;
+}    
+
 .loading{
     font-weight:bold;
     padding:14px;
@@ -785,11 +793,13 @@ th:first-child{
             <div class="modal-box">
                 <span>Sec. P.U.</span>
                 <strong id="modalPU">-</strong>
+                <small class="modal-time" id="modalPUTime">-</small>
             </div>
 
             <div class="modal-box">
                 <span>Sec. Z.L.</span>
                 <strong id="modalZL">-</strong>
+                <small class="modal-time" id="modalZLTime">-</small>
             </div>
 
             <div class="modal-box">
@@ -1193,6 +1203,8 @@ if(
     return {
         pu:String(pu).padStart(4,"0"),
         zl:String(zl).padStart(4,"0"),
+        puTime:formatCaptureTime(puCapture.createdAt),
+        zlTime:formatCaptureTime(zlCapture.createdAt),
         total,
         xHour:xHour.toFixed(2),
         controlText:formatControlTime(material.controlTime),
@@ -1224,7 +1236,27 @@ async function getLastCaptureByArea(materialId,area){
     return snapshot.docs[0].data();
 
 }
-    
+
+function formatCaptureTime(timestamp){
+
+    if(!timestamp){
+        return "-";
+    }
+
+    const date =
+        timestamp.toDate
+        ? timestamp.toDate()
+        : new Date(timestamp);
+
+    return date.toLocaleTimeString(
+        "es-MX",
+        {
+            hour:"2-digit",
+            minute:"2-digit"
+        }
+    );
+
+}    
 
 function formatControlTime(minutes){
 
@@ -1508,10 +1540,16 @@ function openDetailModal(index){
         material.statusText;
 
     document.getElementById("modalPU").innerText =
-        material.pu;
+    material.pu;
 
-    document.getElementById("modalZL").innerText =
-        material.zl;
+document.getElementById("modalPUTime").innerText =
+    material.puTime || "-";
+
+document.getElementById("modalZL").innerText =
+    material.zl;
+
+document.getElementById("modalZLTime").innerText =
+    material.zlTime || "-";
 
     document.getElementById("modalTotal").innerText =
         material.total;
