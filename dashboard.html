@@ -1082,7 +1082,7 @@ for(const docSnap of snapshot.docs){
     };
 
     const coverage =
-    await calculateCoverage(material);
+    calculateCoverage(material);
 
     materials.push({
         ...material,
@@ -1127,7 +1127,7 @@ async function loadLatestCaptures(){
 
 }
 
-async function calculateCoverage(material){
+function calculateCoverage(material){
 
     let puCapture =
     latestCapturesCache[`${material.id}_PU`] || {};
@@ -1135,26 +1135,13 @@ async function calculateCoverage(material){
 let zlCapture =
     latestCapturesCache[`${material.id}_ZL`] || {};
 
-if(
-    puCapture.sequence === undefined ||
-    puCapture.sequence === null
-){
-    puCapture =
-        await getLastCaptureByArea(material.id,"PU");
-}
 
-if(
+   if(
+    puCapture.sequence === undefined ||
+    puCapture.sequence === null ||
     zlCapture.sequence === undefined ||
     zlCapture.sequence === null
 ){
-    zlCapture =
-        await getLastCaptureByArea(material.id,"ZL");
-}
-
-    if(
-        !puCapture.sequence ||
-        !zlCapture.sequence
-    ){
         return {
             pu:"-",
             zl:"-",
@@ -1215,27 +1202,6 @@ if(
 
 }
 
-async function getLastCaptureByArea(materialId,area){
-
-    const q = query(
-        collection(db,"captures"),
-        where("materialId","==",materialId),
-        where("area","==",area),
-        where("active","==",true),
-        orderBy("createdAt","desc"),
-        limit(1)
-    );
-
-    const snapshot =
-        await getDocs(q);
-
-    if(snapshot.empty){
-        return {};
-    }
-
-    return snapshot.docs[0].data();
-
-}
 
 function formatCaptureTime(timestamp){
 
