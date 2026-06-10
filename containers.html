@@ -683,17 +683,30 @@ function renderContainers(){
     const containersGrid =
         document.getElementById("containersGrid");
 
-    const visibleContainers =
-        containersCache.filter(container=>{
+let visibleContainers =
+    containersCache.filter(container=>
+        container.status==="available"
+    );
 
-            if(currentUser.area==="PU"){
-                return container.status==="available";
-            }
+visibleContainers =
+    visibleContainers.sort((a,b)=>
+        Number(a.containerId) - Number(b.containerId)
+    );
 
-            return container.status==="available" ||
-                   container.status==="created";
+if(currentUser.area==="ZL"){
 
-        });
+    visibleContainers =
+        visibleContainers
+            .slice(-5)
+            .reverse();
+
+}else{
+
+    visibleContainers =
+        visibleContainers
+            .slice(0,5);
+
+}
 
     if(visibleContainers.length===0){
         containersGrid.innerHTML =
@@ -704,7 +717,9 @@ function renderContainers(){
     }
 
     const suggestedId =
-        getSuggestedContainerToConsume(visibleContainers);
+    currentUser.area==="PU"
+    ? getSuggestedContainerToConsume(visibleContainers)
+    : null;
 
     containersGrid.innerHTML = "";
 
@@ -727,7 +742,13 @@ function renderContainers(){
                 <span>${container.sequenceCount || 0} secuencias</span>
                 <span>${container.componentName || "Familia completa"}</span>
                 <span>Última: ${container.lastSequence || "-"}</span>
-                <span>${isSuggested ? "Sugerido" : "Disponible"}</span>
+                <span>
+                ${
+                currentUser.area==="PU" && isSuggested
+                ? "Sugerido"
+                : "Disponible"
+    }
+</span>
             </button>
         `;
 
