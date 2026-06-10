@@ -907,7 +907,16 @@ function loadComponentSelector(){
         return;
     }
 
-    if(components.length===0){
+    if(
+        !selectedMaterial.componentsEnabled ||
+        components.length===0
+    ){
+        componentGroup.style.display = "none";
+        componentInput.innerHTML = "";
+        return;
+    }
+
+    if(selectedMaterial.massiveComponents){
         componentGroup.style.display = "none";
         componentInput.innerHTML = "";
         return;
@@ -926,8 +935,7 @@ function loadComponentSelector(){
         `;
     });
 
-}
-    
+}    
 window.enableContainerEdit = function(){
 
     const input =
@@ -1170,28 +1178,54 @@ window.confirmCreateContainer = async function(){
             .padStart(3,"0");
 
     const componentInput =
-    document.getElementById("componentInput");
+        document.getElementById("componentInput");
 
-const componentName =
-    componentInput
-    ? componentInput.value.trim()
-    : "";
+    const selectedComponentName =
+        componentInput
+        ? componentInput.value.trim()
+        : "";
+
+    const components =
+        selectedMaterial.components || [];
+
+    const hasComponents =
+        selectedMaterial.componentsEnabled === true &&
+        components.length > 0;
+
+    const isMassive =
+        hasComponents &&
+        selectedMaterial.massiveComponents === true;
 
     if(containerId.length !== 3){
         showToast("ID de contenedor inválido");
         return;
     }
 
-    const duplicated =
-    containersCache.some(container=>
-        container.containerId === containerId &&
-        container.active === true
-    );
+    if(hasComponents && !isMassive && !selectedComponentName){
+        showToast("Selecciona una subfamilia");
+        return;
+    }
 
-if(duplicated){
-    showToast("Este contenedor ya existe para esta familia");
-    return;
-}
+    const componentsToCreate =
+        hasComponents
+        ? (
+            isMassive
+            ? components
+            : [selectedComponentName]
+        )
+        : [""];
+
+    const duplicated =
+        containersCache.some(container=>
+            container.containerId === containerId &&
+            container.active === true &&
+            componentsToCreate.includes(container.componentName || "")
+        );
+
+    if(duplicated){
+        showToast("Este contenedor ya existe para esta familia/subfamilia");
+        return;
+    }
 
     if(parsedSequences.length===0){
         previewContainer();
@@ -1205,55 +1239,60 @@ if(duplicated){
         parsedSequences[parsedSequences.length-1];
 
     const validation =
-    prompt(`Confirma la última secuencia del contenedor ${containerId}`);
+        prompt(`Confirma la última secuencia del contenedor ${containerId}`);
 
     const cleanValidation =
-    String(validation || "")
-        .trim()
-        .padStart(4,"0");
+        String(validation || "")
+            .trim()
+            .padStart(4,"0");
 
     if(cleanValidation !== last.sequence){
-    showToast("Validación incorrecta");
-    return;
-}
+        showToast("Validación incorrecta");
+        return;
+    }
 
     const first =
         parsedSequences[0];
 
-    const containerData = {
-        containerId,
-        componentName,
-        materialId:selectedMaterial.id,
-        materialName:selectedMaterial.name,
-        supplierId:selectedMaterial.supplierId || "",
-        supplierName:selectedMaterial.supplierName || "",
-        warehouseId:selectedMaterial.warehouseId,
-        warehouseName:selectedMaterial.warehouseName || "",
+    for(const componentName of componentsToCreate){
 
-        status:"available",
-        captureMode:captureMode || "manual",
+        const containerData = {
+            containerId,
+            componentName,
+            materialId:selectedMaterial.id,
+            materialName:selectedMaterial.name,
+            supplierId:selectedMaterial.supplierId || "",
+            supplierName:selectedMaterial.supplierName || "",
+            warehouseId:selectedMaterial.warehouseId,
+            warehouseName:selectedMaterial.warehouseName || "",
 
-        firstSequence:first.sequence,
-        lastSequence:last.sequence,
-        sequenceCount:parsedSequences.length,
-        sequences:parsedSequences,
+            status:"available",
+            captureMode:captureMode || "manual",
+            creationMode:isMassive ? "massive" : "individual",
 
-        createdBy:currentUser.employeeId,
-        createdByName:currentUser.name,
-        createdAt:serverTimestamp(),
+            firstSequence:first.sequence,
+            lastSequence:last.sequence,
+            sequenceCount:parsedSequences.length,
+            sequences:parsedSequences,
 
-        consumedBy:null,
-        consumedByName:null,
-        consumedAt:null,
+            createdBy:currentUser.employeeId,
+            createdByName:currentUser.name,
+            createdAt:serverTimestamp(),
 
-        version:1,
-        active:true
-    };
+            consumedBy:null,
+            consumedByName:null,
+            consumedAt:null,
 
-    await addDoc(
-        collection(db,"containers"),
-        containerData
-    );
+            version:1,
+            active:true
+        };
+
+        await addDoc(
+            collection(db,"containers"),
+            containerData
+        );
+
+    }
 
     await setDoc(
         doc(
@@ -1277,7 +1316,7 @@ if(duplicated){
             source:"container",
             captureMode:captureMode || "manual",
             containerId,
-            componentName,
+            componentName:isMassive ? "Paquete completo" : selectedComponentName,
             createdAt:serverTimestamp(),
             updatedAt:serverTimestamp(),
             active:true
@@ -1288,7 +1327,11 @@ if(duplicated){
 
     await loadContainers();
 
-    showToast("Contenedor creado");
+    showToast(
+        isMassive
+        ? "Paquete de subfamilias creado"
+        : "Contenedor creado"
+    );
 
 };
 
