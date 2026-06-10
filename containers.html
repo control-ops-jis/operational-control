@@ -342,10 +342,10 @@ textarea{
         </div>
 
         <div class="form-group">
-            <label>ID Contenedor</label>
-            <input id="containerIdInput" maxlength="3" inputmode="numeric" placeholder="713">
-            <div class="help">El sistema sugiere uno, pero puedes editarlo.</div>
-        </div>
+    <label>Componente / Subfamilia</label>
+    <input id="componentInput" placeholder="Ej. Delantero IZQ, Delantero DER, Trasero IZQ">
+    <div class="help">Opcional. Úsalo solo si la familia se divide físicamente.</div>
+</div>
 
         <div class="form-group">
             <label>Secuencias</label>
@@ -634,6 +634,7 @@ function renderContainers(){
             >
                 ${container.containerId}
                 <span>${container.sequenceCount || 0} secuencias</span>
+                <span>${container.componentName || "Familia completa"}</span>
                 <span>Última: ${container.lastSequence || "-"}</span>
                 <span>${isSuggested ? "Sugerido" : "Disponible"}</span>
             </button>
@@ -668,7 +669,9 @@ window.openCreateModal = function(){
     parsedSequences = [];
 
     document.getElementById("containerIdInput").value =
-        suggestNextContainerId();
+    suggestNextContainerId();
+
+    document.getElementById("componentInput").value = "";
 
     document.getElementById("sequencesInput").value = "";
     document.getElementById("createSummary").style.display = "none";
@@ -809,6 +812,11 @@ window.confirmCreateContainer = async function(){
             .trim()
             .padStart(3,"0");
 
+    const componentName =
+    document.getElementById("componentInput")
+        .value
+        .trim();
+
     if(containerId.length !== 3){
         showToast("ID de contenedor inválido");
         return;
@@ -838,6 +846,7 @@ window.confirmCreateContainer = async function(){
 
     const containerData = {
         containerId,
+        componentName,
         materialId:selectedMaterial.id,
         materialName:selectedMaterial.name,
         supplierId:selectedMaterial.supplierId || "",
