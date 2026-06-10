@@ -378,13 +378,69 @@ textarea{
 </div>
 
         <div class="form-group">
-            <label>Secuencias</label>
-            <textarea id="sequencesInput" placeholder="Pega o escribe así:
-1,3112,57N 971 161 AB
-2,3113,57N 971 161 AL
-3,3126,57N 971 161 AB"></textarea>
-            <div class="help">Formato: posición, secuencia, número de parte.</div>
+    <label>Secuencias</label>
+
+    <div style="display:flex;gap:10px;margin-bottom:10px;">
+        <button
+            type="button"
+            class="secondary-btn"
+            onclick="showOcrMode()"
+        >
+            📷 OCR
+        </button>
+
+        <button
+            type="button"
+            class="secondary-btn"
+            onclick="showManualMode()"
+        >
+            ✍️ Manual
+        </button>
+    </div>
+
+    <div id="ocrModeBox" class="summary-box" style="display:none;">
+        <strong>Modo OCR</strong>
+        <p class="help">
+            Próximamente abrirá cámara para leer etiqueta.
+        </p>
+
+        <button
+            type="button"
+            class="primary-btn"
+            onclick="mockOcrRead()"
+        >
+            Simular lectura OCR
+        </button>
+    </div>
+
+    <div id="manualModeBox" class="summary-box" style="display:none;">
+        <strong>Modo manual de emergencia</strong>
+
+        <div class="form-group">
+            <label>Posición inicial</label>
+            <input id="manualFirstPosition" inputmode="numeric" placeholder="1">
         </div>
+
+        <div class="form-group">
+            <label>Secuencia inicial</label>
+            <input id="manualFirstSequence" maxlength="4" inputmode="numeric" placeholder="3112">
+        </div>
+
+        <div class="form-group">
+            <label>Posición final</label>
+            <input id="manualLastPosition" inputmode="numeric" placeholder="6">
+        </div>
+
+        <div class="form-group">
+            <label>Secuencia final</label>
+            <input id="manualLastSequence" maxlength="4" inputmode="numeric" placeholder="3130">
+        </div>
+    </div>
+
+    <div class="help">
+        OCR será el flujo principal. Manual solo se usa como respaldo.
+    </div>
+</div>
 
         <button class="secondary-btn" onclick="previewContainer()">
             Generar resumen
@@ -747,6 +803,7 @@ window.openCreateModal = function(){
     }
 
     parsedSequences = [];
+    captureMode = null;
 
     containerIdInput.value =
         suggestNextContainerId();
@@ -758,7 +815,8 @@ window.openCreateModal = function(){
     componentInput.value = "";
 
     sequencesInput.value = "";
-
+    document.getElementById("ocrModeBox").style.display = "none";
+    document.getElementById("manualModeBox").style.display = "none";
     createSummary.style.display = "none";
     createSummary.innerHTML = "";
 
@@ -872,20 +930,130 @@ window.closeCreateModal = function(){
 
 };
 
-window.previewContainer = function(){
+let captureMode = null;
 
-    const raw =
-        document.getElementById("sequencesInput").value.trim();
+window.showOcrMode = function(){
 
-    parsedSequences =
-        parseSequences(raw);
+    captureMode = "ocr";
 
-    if(parsedSequences.length===0){
-        showToast("No hay secuencias válidas");
-        return;
-    }
+    document.getElementById("ocrModeBox").style.display =
+        "block";
+
+    document.getElementById("manualModeBox").style.display =
+        "none";
+
+};
+
+window.showManualMode = function(){
+
+    captureMode = "manual";
+
+    document.getElementById("ocrModeBox").style.display =
+        "none";
+
+    document.getElementById("manualModeBox").style.display =
+        "block";
+
+};
+
+window.mockOcrRead = function(){
+
+    captureMode = "ocr";
+
+    parsedSequences = [
+        {
+            position:1,
+            sequence:"3112",
+            partNumber:"57N 971 161 AB"
+        },
+        {
+            position:2,
+            sequence:"3113",
+            partNumber:"57N 971 161 AL"
+        },
+        {
+            position:3,
+            sequence:"3126",
+            partNumber:"57N 971 161 AB"
+        },
+        {
+            position:4,
+            sequence:"3128",
+            partNumber:"57N 971 161 AB"
+        },
+        {
+            position:5,
+            sequence:"3129",
+            partNumber:"57N 971 161 AB"
+        },
+        {
+            position:6,
+            sequence:"3130",
+            partNumber:"57N 971 161 AL"
+        }
+    ];
 
     renderCreateSummary();
+
+};    
+
+window.previewContainer = function(){
+
+    if(captureMode==="ocr"){
+
+        if(parsedSequences.length===0){
+            showToast("Primero realiza lectura OCR");
+            return;
+        }
+
+        renderCreateSummary();
+        return;
+
+    }
+
+    if(captureMode==="manual"){
+
+        const firstPosition =
+            document.getElementById("manualFirstPosition").value.trim();
+
+        const firstSequence =
+            document.getElementById("manualFirstSequence").value.trim();
+
+        const lastPosition =
+            document.getElementById("manualLastPosition").value.trim();
+
+        const lastSequence =
+            document.getElementById("manualLastSequence").value.trim();
+
+        if(
+            !firstPosition ||
+            !firstSequence ||
+            !lastPosition ||
+            !lastSequence
+        ){
+            showToast("Completa datos manuales");
+            return;
+        }
+
+        parsedSequences = [
+            {
+                position:Number(firstPosition),
+                sequence:firstSequence.padStart(4,"0"),
+                partNumber:"MANUAL"
+            },
+            {
+                position:Number(lastPosition),
+                sequence:lastSequence.padStart(4,"0"),
+                partNumber:"MANUAL"
+            }
+        ];
+
+        renderCreateSummary();
+        return;
+
+    }
+
+    showToast("Selecciona OCR o Manual");
 
 };
 
@@ -1018,12 +1186,17 @@ if(duplicated){
         parsedSequences[parsedSequences.length-1];
 
     const validation =
-        prompt(`Confirma la última secuencia del contenedor ${containerId}`);
+    prompt(`Confirma la última secuencia del contenedor ${containerId}`);
 
-    if(validation !== last.sequence){
-        showToast("Validación incorrecta");
-        return;
-    }
+    const cleanValidation =
+    String(validation || "")
+        .trim()
+        .padStart(4,"0");
+
+    if(cleanValidation !== last.sequence){
+    showToast("Validación incorrecta");
+    return;
+}
 
     const first =
         parsedSequences[0];
@@ -1039,6 +1212,7 @@ if(duplicated){
         warehouseName:selectedMaterial.warehouseName || "",
 
         status:"available",
+        captureMode:captureMode || "manual",
 
         firstSequence:first.sequence,
         lastSequence:last.sequence,
@@ -1082,6 +1256,7 @@ if(duplicated){
             capturedByName:currentUser.name,
             shift:getCurrentShift(),
             source:"container",
+            captureMode:captureMode || "manual",
             containerId,
             componentName,
             createdAt:serverTimestamp(),
@@ -1246,6 +1421,7 @@ window.confirmConsumeContainer = async function(){
             capturedByName:currentUser.name,
             shift:getCurrentShift(),
             source:"container",
+            captureMode:selectedContainer.captureMode || "manual",
             containerId:selectedContainer.containerId,
             createdAt:serverTimestamp(),
             updatedAt:serverTimestamp(),
