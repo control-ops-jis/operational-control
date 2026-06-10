@@ -698,6 +698,7 @@ function getSuggestedContainerToConsume(containers){
     return ordered[0].containerId;
 
 }
+
 window.openCreateModal = function(){
 
     if(!selectedMaterial){
@@ -705,40 +706,48 @@ window.openCreateModal = function(){
         return;
     }
 
-    parsedSequences = [];
-
     const containerIdInput =
-    document.getElementById("containerIdInput");
-
-if(containerIdInput){
-    containerIdInput.value =
-        suggestNextContainerId();
-}else{
-    showToast("No se encontró el campo ID Contenedor");
-    return;
-}
+        document.getElementById("containerIdInput");
 
     const componentInput =
         document.getElementById("componentInput");
 
-    const componentName =
-        componentInput
-        ? componentInput.value.trim()
-        : "";
+    const sequencesInput =
+        document.getElementById("sequencesInput");
 
-    if(componentInput){
-    componentInput.value = "";
+    const createSummary =
+        document.getElementById("createSummary");
+
+    const createModal =
+        document.getElementById("createModal");
+
+    if(
+        !containerIdInput ||
+        !componentInput ||
+        !sequencesInput ||
+        !createSummary ||
+        !createModal
+    ){
+        showToast("Error: campos del modal no encontrados");
+        return;
     }
 
-    document.getElementById("sequencesInput").value = "";
-    document.getElementById("createSummary").style.display = "none";
-    document.getElementById("createSummary").innerHTML = "";
+    parsedSequences = [];
 
-    document.getElementById("createModal").style.display =
+    containerIdInput.value =
+        suggestNextContainerId();
+
+    componentInput.value = "";
+
+    sequencesInput.value = "";
+
+    createSummary.style.display = "none";
+    createSummary.innerHTML = "";
+
+    createModal.style.display =
         "flex";
 
 };
-
 function suggestNextContainerId(){
 
     const createdOrAvailable =
