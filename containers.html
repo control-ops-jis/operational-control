@@ -110,6 +110,11 @@ header h1{
     background:#e8f7e8;
 }
 
+.container-btn.zl-suggested{
+    border-left-color:#999;
+    background:#f0f0f0;
+}    
+
 .container-btn.available{
     border-left-color:var(--warning);
 }
@@ -627,9 +632,14 @@ function renderContainers(){
         const isSuggested =
             container.containerId === suggestedId;
 
+        const visualClass =
+        currentUser.area==="PU"
+        ? (isSuggested ? "suggested" : "available")
+        : (isSuggested ? "zl-suggested" : "available");
+
         containersGrid.innerHTML += `
             <button
-                class="container-btn ${isSuggested ? "suggested" : "available"}"
+                class="container-btn ${visualClass}"
                 onclick="openContainerAction('${container.id}')"
             >
                 ${container.containerId}
@@ -650,6 +660,25 @@ function getSuggestedContainerToConsume(containers){
         return null;
     }
 
+    const consumed =
+        containersCache
+            .filter(container=>container.status==="consumed")
+            .map(container=>Number(container.containerId || 0));
+
+    if(consumed.length>0){
+
+        const lastConsumed =
+            Math.max(...consumed);
+
+        const suggested =
+            lastConsumed + 1 > 999
+            ? 1
+            : lastConsumed + 1;
+
+        return String(suggested).padStart(3,"0");
+
+    }
+
     const ordered =
         [...containers].sort((a,b)=>
             Number(a.containerId) - Number(b.containerId)
@@ -658,7 +687,6 @@ function getSuggestedContainerToConsume(containers){
     return ordered[0].containerId;
 
 }
-
 window.openCreateModal = function(){
 
     if(!selectedMaterial){
@@ -684,23 +712,47 @@ window.openCreateModal = function(){
 
 function suggestNextContainerId(){
 
-    if(containersCache.length===0){
-        return "001";
+    const createdOrAvailable =
+        containersCache
+            .filter(container=>
+                container.status==="available" ||
+                container.status==="created" ||
+                container.status==="consumed"
+            )
+            .map(container=>Number(container.containerId || 0));
+
+    if(createdOrAvailable.length>0){
+
+        let next =
+            Math.max(...createdOrAvailable) + 1;
+
+        if(next > 999){
+            next = 1;
+        }
+
+        return String(next).padStart(3,"0");
+
     }
 
-    const maxValue =
-        Math.max(
-            ...containersCache.map(x=>Number(x.containerId || 0))
-        );
+    const consumed =
+        containersCache
+            .filter(container=>container.status==="consumed")
+            .map(container=>Number(container.containerId || 0));
 
-    let next =
-        maxValue + 1;
+    if(consumed.length>0){
 
-    if(next > 999){
-        next = 1;
+        let next =
+            Math.max(...consumed) + 1;
+
+        if(next > 999){
+            next = 1;
+        }
+
+        return String(next).padStart(3,"0");
+
     }
 
-    return String(next).padStart(3,"0");
+    return "001";
 
 }
 
@@ -769,9 +821,13 @@ function renderCreateSummary(){
     summary.style.display =
         "block";
 
+    const componentName =
+        document.getElementById("componentInput").value.trim();
+
     summary.innerHTML = `
         <strong>Resumen</strong>
         <p>
+            Componente: <b>${componentName || "Familia completa"}</b><br>
             Primera secuencia: <b>${first.sequence}</b><br>
             Última secuencia: <b>${last.sequence}</b><br>
             Total: <b>${parsedSequences.length}</b>
@@ -938,6 +994,7 @@ function openConsumeModal(){
     document.getElementById("consumeInfo").innerHTML = `
         <p>
             Familia: <b>${selectedContainer.materialName}</b><br>
+            Componente: <b>${selectedContainer.componentName || "Familia completa"}</b><br>
             Secuencias: <b>${selectedContainer.sequenceCount}</b><br>
             Última secuencia: <b>${selectedContainer.lastSequence}</b>
         </p>
@@ -1047,6 +1104,7 @@ window.confirmConsumeContainer = async function(){
         {
             materialId:selectedContainer.materialId,
             materialName:selectedContainer.materialName,
+            componentName:selectedContainer.componentName || "",
             warehouseId:selectedContainer.warehouseId,
             warehouseName:selectedContainer.warehouseName,
             supplierId:selectedContainer.supplierId || "",
