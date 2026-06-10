@@ -443,26 +443,34 @@ textarea{
 
         <div class="form-group">
             <label>Secuencia inicial</label>
-            <input id="manualFirstSequence" maxlength="4" inputmode="numeric" placeholder="3112">
+            <input
+            id="manualFirstSequence"
+            maxlength="4"
+            inputmode="numeric"
+            placeholder="3112"
+            oninput="calculateManualPosition()"
+            >
         </div>
 
         <div class="form-group compact-position">
     <label>Posición final</label>
     <input
-        id="manualLastPosition"
-        type="number"
-        inputmode="numeric"
-        pattern="[0-9]*"
-        min="1"
-        max="99"
-        maxlength="2"
-        placeholder="6"
-    >
+    id="manualLastPosition"
+    inputmode="numeric"
+    placeholder="Calculado"
+    disabled
+>
 </div>
 
         <div class="form-group">
             <label>Secuencia final</label>
-            <input id="manualLastSequence" maxlength="4" inputmode="numeric" placeholder="3130">
+            <input
+            id="manualLastSequence"
+            maxlength="4"
+            inputmode="numeric"
+            placeholder="3130"
+            oninput="calculateManualPosition()"
+>
         </div>
     </div>
 
@@ -877,6 +885,7 @@ window.openCreateModal = function(){
     document.getElementById("manualFirstPosition").value = "1";
     document.getElementById("manualFirstPosition").disabled = true;
     document.getElementById("manualLastPosition").value = "";
+    document.getElementById("manualLastPosition").disabled = true;
 
     containerIdInput.value =
         suggestNextContainerId();
@@ -1065,6 +1074,42 @@ window.showManualMode = function(){
 
 };
 
+window.calculateManualPosition = function(){
+
+    const firstSequence =
+        document.getElementById("manualFirstSequence").value.trim();
+
+    const lastSequence =
+        document.getElementById("manualLastSequence").value.trim();
+
+    const lastPositionInput =
+        document.getElementById("manualLastPosition");
+
+    if(!firstSequence || !lastSequence){
+        lastPositionInput.value = "";
+        return;
+    }
+
+    const first =
+        Number(firstSequence);
+
+    const last =
+        Number(lastSequence);
+
+    if(
+        isNaN(first) ||
+        isNaN(last) ||
+        last < first
+    ){
+        lastPositionInput.value = "";
+        return;
+    }
+
+    lastPositionInput.value =
+        last - first;
+
+};    
+
 window.mockOcrRead = function(){
 
     captureMode = "ocr";
@@ -1144,18 +1189,29 @@ window.previewContainer = function(){
             return;
         }
 
-        parsedSequences = [
-            {
-                position:Number(firstPosition),
-                sequence:firstSequence.padStart(4,"0"),
-                partNumber:"MANUAL"
-            },
-            {
-                position:Number(lastPosition),
-                sequence:lastSequence.padStart(4,"0"),
-                partNumber:"MANUAL"
-            }
-        ];
+        const calculatedCount =
+    Number(lastSequence) - Number(firstSequence);
+
+if(calculatedCount <= 0){
+    showToast("La secuencia final debe ser mayor a la inicial");
+    return;
+}
+
+document.getElementById("manualLastPosition").value =
+    calculatedCount;
+
+parsedSequences = [
+    {
+        position:1,
+        sequence:firstSequence.padStart(4,"0"),
+        partNumber:"MANUAL"
+    },
+    {
+        position:calculatedCount,
+        sequence:lastSequence.padStart(4,"0"),
+        partNumber:"MANUAL"
+    }
+];
 
         renderCreateSummary();
         return;
@@ -1354,7 +1410,7 @@ window.confirmCreateContainer = async function(){
 
             firstSequence:first.sequence,
             lastSequence:last.sequence,
-            sequenceCount:parsedSequences.length,
+            sequenceCount:Number(last.sequence) - Number(first.sequence),
             sequences:parsedSequences,
 
             createdBy:currentUser.employeeId,
