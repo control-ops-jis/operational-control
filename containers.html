@@ -1,1 +1,1128 @@
-Hello
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>DHL Operational Control | Contenedores Beta</title>
+
+<style>
+:root{
+    --dhl-red:#D40511;
+    --dhl-yellow:#FFCC00;
+    --bg:#f5f5f5;
+    --ok:#1f7a1f;
+    --warning:#a67c00;
+}
+
+*{
+    box-sizing:border-box;
+    font-family:Arial,sans-serif;
+}
+
+body{
+    margin:0;
+    background:var(--bg);
+}
+
+header{
+    background:var(--dhl-yellow);
+    padding:16px;
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    gap:12px;
+    flex-wrap:wrap;
+}
+
+header h1{
+    margin:0;
+    color:var(--dhl-red);
+    font-size:22px;
+}
+
+.header-user{
+    background:white;
+    padding:10px 14px;
+    border-radius:12px;
+    font-weight:bold;
+}
+
+.header-actions{
+    display:flex;
+    gap:8px;
+}
+
+.header-btn{
+    border:none;
+    background:var(--dhl-red);
+    color:white;
+    padding:10px 14px;
+    border-radius:12px;
+    font-weight:bold;
+    cursor:pointer;
+}
+
+.container{
+    max-width:1200px;
+    margin:auto;
+    padding:16px;
+}
+
+.panel{
+    background:white;
+    border-radius:22px;
+    padding:18px;
+    box-shadow:0 4px 14px rgba(0,0,0,.08);
+    margin-bottom:16px;
+}
+
+.materials-grid,
+.containers-grid{
+    display:grid;
+    grid-template-columns:repeat(auto-fit,minmax(180px,1fr));
+    gap:14px;
+}
+
+.material-btn,
+.container-btn{
+    border:none;
+    background:white;
+    border-left:8px solid var(--dhl-red);
+    border-radius:18px;
+    padding:18px;
+    font-weight:bold;
+    cursor:pointer;
+    text-align:left;
+    box-shadow:0 4px 14px rgba(0,0,0,.08);
+}
+
+.material-btn span,
+.container-btn span{
+    display:block;
+    margin-top:6px;
+    font-size:12px;
+    color:#666;
+}
+
+.container-btn.suggested{
+    border-left-color:var(--ok);
+    background:#e8f7e8;
+}
+
+.container-btn.available{
+    border-left-color:var(--warning);
+}
+
+.container-btn.consumed{
+    opacity:.55;
+}
+
+.add-btn{
+    border:none;
+    width:58px;
+    height:58px;
+    border-radius:50%;
+    background:var(--dhl-red);
+    color:white;
+    font-size:32px;
+    font-weight:bold;
+    cursor:pointer;
+    position:fixed;
+    right:22px;
+    bottom:22px;
+    box-shadow:0 8px 20px rgba(0,0,0,.25);
+    display:none;
+}
+
+.app-modal{
+    display:none;
+    position:fixed;
+    inset:0;
+    background:rgba(0,0,0,.55);
+    z-index:999;
+    justify-content:center;
+    align-items:center;
+    padding:16px;
+}
+
+.modal-card{
+    width:100%;
+    max-width:680px;
+    max-height:90vh;
+    overflow:auto;
+    background:white;
+    border-radius:24px;
+    padding:22px;
+    box-shadow:0 12px 35px rgba(0,0,0,.25);
+}
+
+.modal-header{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    gap:10px;
+    margin-bottom:16px;
+}
+
+.modal-header h2{
+    margin:0;
+    color:var(--dhl-red);
+}
+
+.close-btn{
+    border:none;
+    width:38px;
+    height:38px;
+    border-radius:50%;
+    font-weight:bold;
+    cursor:pointer;
+}
+
+.form-group{
+    margin-bottom:12px;
+}
+
+.form-group label{
+    display:block;
+    font-weight:bold;
+    margin-bottom:6px;
+    font-size:13px;
+}
+
+.form-group input,
+.form-group textarea,
+.form-group select{
+    width:100%;
+    padding:12px;
+    border-radius:12px;
+    border:1px solid #ccc;
+    font-size:15px;
+}
+
+textarea{
+    min-height:120px;
+    resize:vertical;
+}
+
+.help{
+    font-size:12px;
+    color:#666;
+    font-weight:bold;
+    margin-top:4px;
+}
+
+.summary-box{
+    background:#fafafa;
+    border-radius:16px;
+    padding:12px;
+    margin-top:12px;
+    border:1px solid #eee;
+}
+
+.summary-table{
+    width:100%;
+    border-collapse:collapse;
+    margin-top:10px;
+}
+
+.summary-table th,
+.summary-table td{
+    border-bottom:1px solid #eee;
+    padding:8px;
+    text-align:center;
+    font-size:13px;
+}
+
+.summary-table th{
+    background:#fff7cc;
+}
+
+.form-actions{
+    display:flex;
+    gap:10px;
+    margin-top:16px;
+}
+
+.primary-btn{
+    flex:1;
+    border:none;
+    background:var(--dhl-red);
+    color:white;
+    padding:14px;
+    border-radius:14px;
+    font-weight:bold;
+    cursor:pointer;
+}
+
+.secondary-btn{
+    flex:1;
+    border:none;
+    background:#eee;
+    padding:14px;
+    border-radius:14px;
+    font-weight:bold;
+    cursor:pointer;
+}
+
+.toast{
+    display:none;
+    position:fixed;
+    bottom:20px;
+    right:20px;
+    background:var(--dhl-red);
+    color:white;
+    padding:14px 22px;
+    border-radius:14px;
+    font-weight:bold;
+    z-index:1200;
+}
+
+@media(max-width:600px){
+    header h1{
+        font-size:18px;
+    }
+
+    .container{
+        padding:12px;
+    }
+
+    .panel{
+        padding:14px;
+        border-radius:18px;
+    }
+
+    .form-actions{
+        flex-direction:column;
+    }
+}
+</style>
+</head>
+
+<body>
+
+<header>
+    <div>
+        <h1>📦 Contenedores Beta</h1>
+        <div class="header-user" id="activeUser">Usuario</div>
+    </div>
+
+    <div class="header-actions">
+        <button class="header-btn" onclick="goCapture()">Captura</button>
+        <button class="header-btn" onclick="goDashboard()">Dashboard</button>
+        <button class="header-btn" onclick="logout()">Salir</button>
+    </div>
+</header>
+
+<div class="container">
+
+    <div class="panel">
+        <h2 id="areaTitle">Selecciona familia</h2>
+        <div class="materials-grid" id="materialsGrid">
+            Cargando familias...
+        </div>
+    </div>
+
+    <div class="panel" id="containersPanel" style="display:none;">
+        <h2 id="selectedMaterialTitle">Contenedores</h2>
+        <div class="containers-grid" id="containersGrid">
+            Selecciona una familia.
+        </div>
+    </div>
+
+</div>
+
+<button class="add-btn" id="addContainerBtn" onclick="openCreateModal()">+</button>
+
+<div class="app-modal" id="createModal">
+    <div class="modal-card">
+        <div class="modal-header">
+            <h2>Crear contenedor</h2>
+            <button class="close-btn" onclick="closeCreateModal()">X</button>
+        </div>
+
+        <div class="form-group">
+            <label>ID Contenedor</label>
+            <input id="containerIdInput" maxlength="3" inputmode="numeric" placeholder="713">
+            <div class="help">El sistema sugiere uno, pero puedes editarlo.</div>
+        </div>
+
+        <div class="form-group">
+            <label>Secuencias</label>
+            <textarea id="sequencesInput" placeholder="Pega o escribe así:
+1,3112,57N 971 161 AB
+2,3113,57N 971 161 AL
+3,3126,57N 971 161 AB"></textarea>
+            <div class="help">Formato: posición, secuencia, número de parte.</div>
+        </div>
+
+        <button class="secondary-btn" onclick="previewContainer()">
+            Generar resumen
+        </button>
+
+        <div class="summary-box" id="createSummary" style="display:none;"></div>
+
+        <div class="form-actions">
+            <button class="secondary-btn" onclick="closeCreateModal()">Cancelar</button>
+            <button class="primary-btn" onclick="confirmCreateContainer()">Guardar</button>
+        </div>
+    </div>
+</div>
+
+<div class="app-modal" id="consumeModal">
+    <div class="modal-card">
+        <div class="modal-header">
+            <h2 id="consumeTitle">Consumir contenedor</h2>
+            <button class="close-btn" onclick="closeConsumeModal()">X</button>
+        </div>
+
+        <div id="consumeInfo"></div>
+
+        <div class="summary-box" id="consumeValidationBox"></div>
+
+        <div class="form-actions">
+            <button class="secondary-btn" onclick="closeConsumeModal()">Cancelar</button>
+            <button class="primary-btn" onclick="confirmConsumeContainer()">Confirmar consumo</button>
+        </div>
+    </div>
+</div>
+
+<div class="toast" id="toast">Listo</div>
+
+<script type="module">
+
+import { initializeApp }
+from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+
+import {
+    getAuth,
+    signOut
+}
+from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+
+import {
+    getFirestore,
+    collection,
+    query,
+    where,
+    getDocs,
+    addDoc,
+    updateDoc,
+    doc,
+    setDoc,
+    serverTimestamp,
+    orderBy
+}
+from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+const firebaseConfig = {
+    apiKey: "AIzaSyC4yHubTO4ZPn2H80I1fG7H6qeR7SavNbM",
+    authDomain: "dhl-operational-control.firebaseapp.com",
+    projectId: "dhl-operational-control",
+    storageBucket: "dhl-operational-control.firebasestorage.app",
+    messagingSenderId: "830487097530",
+    appId: "1:830487097530:web:41e01b4d396678f0819283"
+};
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+
+let currentUser = null;
+let selectedMaterial = null;
+let selectedContainer = null;
+let containersCache = [];
+let parsedSequences = [];
+let consumeValidation = null;
+
+const savedUser =
+    localStorage.getItem("operationalUser");
+
+if(!savedUser){
+    window.location.href="index.html";
+}
+
+currentUser =
+    JSON.parse(savedUser);
+
+const urlParams =
+    new URLSearchParams(window.location.search);
+
+const forcedArea =
+    urlParams.get("area");
+
+if(
+    currentUser.role==="admin" &&
+    (
+        forcedArea==="PU" ||
+        forcedArea==="ZL"
+    )
+){
+    currentUser.area =
+        forcedArea;
+}
+
+if(
+    currentUser.role !== "admin" &&
+    currentUser.area !== "PU" &&
+    currentUser.area !== "ZL"
+){
+    window.location.href="dashboard.html";
+}
+
+document.getElementById("activeUser").innerText =
+    `${currentUser.name} · ${currentUser.area}`;
+
+document.getElementById("areaTitle").innerText =
+    currentUser.area==="ZL"
+    ? "Zona Logística · Selecciona familia"
+    : "Punto de Uso · Selecciona familia";
+
+loadMaterials();
+
+async function loadMaterials(){
+
+    const materialsGrid =
+        document.getElementById("materialsGrid");
+
+    materialsGrid.innerHTML =
+        "Cargando familias...";
+
+    const q =
+        query(
+            collection(db,"materials"),
+            where("warehouseId","==",currentUser.warehouse),
+            where("active","==",true)
+        );
+
+    const snapshot =
+        await getDocs(q);
+
+    materialsGrid.innerHTML = "";
+
+    if(snapshot.empty){
+        materialsGrid.innerHTML =
+            "No hay familias configuradas para esta nave.";
+        return;
+    }
+
+    snapshot.docs.forEach(docSnap=>{
+
+        const material = {
+            id:docSnap.id,
+            ...docSnap.data()
+        };
+
+        materialsGrid.innerHTML += `
+            <button
+                class="material-btn"
+                onclick="selectMaterial('${material.id}')"
+            >
+                ${material.name}
+                <span>${material.supplierName || ""}</span>
+            </button>
+        `;
+
+    });
+
+}
+
+window.selectMaterial = async function(materialId){
+
+    const q =
+        query(
+            collection(db,"materials"),
+            where("__name__","==",materialId)
+        );
+
+    const snapshot =
+        await getDocs(q);
+
+    if(snapshot.empty){
+        return;
+    }
+
+    selectedMaterial = {
+        id:snapshot.docs[0].id,
+        ...snapshot.docs[0].data()
+    };
+
+    document.getElementById("containersPanel").style.display =
+        "block";
+
+    document.getElementById("selectedMaterialTitle").innerText =
+        `${selectedMaterial.name} · Contenedores`;
+
+    document.getElementById("addContainerBtn").style.display =
+        currentUser.area==="ZL" || currentUser.role==="admin"
+        ? "block"
+        : "none";
+
+    await loadContainers();
+
+};
+
+async function loadContainers(){
+
+    const containersGrid =
+        document.getElementById("containersGrid");
+
+    containersGrid.innerHTML =
+        "Cargando contenedores...";
+
+    const q =
+        query(
+            collection(db,"containers"),
+            where("materialId","==",selectedMaterial.id),
+            where("warehouseId","==",selectedMaterial.warehouseId),
+            where("active","==",true),
+            orderBy("containerId","asc")
+        );
+
+    const snapshot =
+        await getDocs(q);
+
+    containersCache =
+        snapshot.docs.map(docSnap=>({
+            id:docSnap.id,
+            ...docSnap.data()
+        }));
+
+    renderContainers();
+
+}
+
+function renderContainers(){
+
+    const containersGrid =
+        document.getElementById("containersGrid");
+
+    const visibleContainers =
+        containersCache.filter(container=>{
+
+            if(currentUser.area==="PU"){
+                return container.status==="available";
+            }
+
+            return container.status==="available" ||
+                   container.status==="created";
+
+        });
+
+    if(visibleContainers.length===0){
+        containersGrid.innerHTML =
+            currentUser.area==="PU"
+            ? "No hay contenedores disponibles para consumo."
+            : "No hay contenedores disponibles. Usa + para crear uno.";
+        return;
+    }
+
+    const suggestedId =
+        getSuggestedContainerToConsume(visibleContainers);
+
+    containersGrid.innerHTML = "";
+
+    visibleContainers.forEach(container=>{
+
+        const isSuggested =
+            container.containerId === suggestedId;
+
+        containersGrid.innerHTML += `
+            <button
+                class="container-btn ${isSuggested ? "suggested" : "available"}"
+                onclick="openContainerAction('${container.id}')"
+            >
+                ${container.containerId}
+                <span>${container.sequenceCount || 0} secuencias</span>
+                <span>Última: ${container.lastSequence || "-"}</span>
+                <span>${isSuggested ? "Sugerido" : "Disponible"}</span>
+            </button>
+        `;
+
+    });
+
+}
+
+function getSuggestedContainerToConsume(containers){
+
+    if(containers.length===0){
+        return null;
+    }
+
+    const ordered =
+        [...containers].sort((a,b)=>
+            Number(a.containerId) - Number(b.containerId)
+        );
+
+    return ordered[0].containerId;
+
+}
+
+window.openCreateModal = function(){
+
+    if(!selectedMaterial){
+        showToast("Selecciona una familia");
+        return;
+    }
+
+    parsedSequences = [];
+
+    document.getElementById("containerIdInput").value =
+        suggestNextContainerId();
+
+    document.getElementById("sequencesInput").value = "";
+    document.getElementById("createSummary").style.display = "none";
+    document.getElementById("createSummary").innerHTML = "";
+
+    document.getElementById("createModal").style.display =
+        "flex";
+
+};
+
+function suggestNextContainerId(){
+
+    if(containersCache.length===0){
+        return "001";
+    }
+
+    const maxValue =
+        Math.max(
+            ...containersCache.map(x=>Number(x.containerId || 0))
+        );
+
+    let next =
+        maxValue + 1;
+
+    if(next > 999){
+        next = 1;
+    }
+
+    return String(next).padStart(3,"0");
+
+}
+
+window.closeCreateModal = function(){
+
+    document.getElementById("createModal").style.display =
+        "none";
+
+};
+
+window.previewContainer = function(){
+
+    const raw =
+        document.getElementById("sequencesInput").value.trim();
+
+    parsedSequences =
+        parseSequences(raw);
+
+    if(parsedSequences.length===0){
+        showToast("No hay secuencias válidas");
+        return;
+    }
+
+    renderCreateSummary();
+
+};
+
+function parseSequences(raw){
+
+    return raw
+        .split("\n")
+        .map(line=>line.trim())
+        .filter(line=>line)
+        .map(line=>{
+
+            const parts =
+                line.split(",").map(x=>x.trim());
+
+            return {
+                position:Number(parts[0]),
+                sequence:String(parts[1] || "").padStart(4,"0"),
+                partNumber:parts[2] || ""
+            };
+
+        })
+        .filter(item=>
+            item.position &&
+            item.sequence &&
+            item.sequence !== "0000"
+        )
+        .sort((a,b)=>a.position-b.position);
+
+}
+
+function renderCreateSummary(){
+
+    const summary =
+        document.getElementById("createSummary");
+
+    const first =
+        parsedSequences[0];
+
+    const last =
+        parsedSequences[parsedSequences.length-1];
+
+    summary.style.display =
+        "block";
+
+    summary.innerHTML = `
+        <strong>Resumen</strong>
+        <p>
+            Primera secuencia: <b>${first.sequence}</b><br>
+            Última secuencia: <b>${last.sequence}</b><br>
+            Total: <b>${parsedSequences.length}</b>
+        </p>
+
+        <table class="summary-table">
+            <thead>
+                <tr>
+                    <th>Pos.</th>
+                    <th>Sec.</th>
+                    <th>Núm. Parte</th>
+                </tr>
+            </thead>
+            <tbody>
+                ${parsedSequences.map(item=>`
+                    <tr>
+                        <td>${item.position}</td>
+                        <td>${item.sequence}</td>
+                        <td>${item.partNumber}</td>
+                    </tr>
+                `).join("")}
+            </tbody>
+        </table>
+    `;
+
+}
+
+window.confirmCreateContainer = async function(){
+
+    if(currentUser.area !== "ZL" && currentUser.role !== "admin"){
+        showToast("Solo ZL puede crear contenedores");
+        return;
+    }
+
+    const containerId =
+        document.getElementById("containerIdInput")
+            .value
+            .trim()
+            .padStart(3,"0");
+
+    if(containerId.length !== 3){
+        showToast("ID de contenedor inválido");
+        return;
+    }
+
+    if(parsedSequences.length===0){
+        previewContainer();
+    }
+
+    if(parsedSequences.length===0){
+        return;
+    }
+
+    const last =
+        parsedSequences[parsedSequences.length-1];
+
+    const validation =
+        prompt(`Confirma la última secuencia del contenedor ${containerId}`);
+
+    if(validation !== last.sequence){
+        showToast("Validación incorrecta");
+        return;
+    }
+
+    const first =
+        parsedSequences[0];
+
+    const containerData = {
+        containerId,
+        materialId:selectedMaterial.id,
+        materialName:selectedMaterial.name,
+        supplierId:selectedMaterial.supplierId || "",
+        supplierName:selectedMaterial.supplierName || "",
+        warehouseId:selectedMaterial.warehouseId,
+        warehouseName:selectedMaterial.warehouseName || "",
+
+        status:"available",
+
+        firstSequence:first.sequence,
+        lastSequence:last.sequence,
+        sequenceCount:parsedSequences.length,
+        sequences:parsedSequences,
+
+        createdBy:currentUser.employeeId,
+        createdByName:currentUser.name,
+        createdAt:serverTimestamp(),
+
+        consumedBy:null,
+        consumedByName:null,
+        consumedAt:null,
+
+        active:true
+    };
+
+    await addDoc(
+        collection(db,"containers"),
+        containerData
+    );
+
+    await setDoc(
+        doc(
+            db,
+            "latestCaptures",
+            `${selectedMaterial.id}_ZL`
+        ),
+        {
+            materialId:selectedMaterial.id,
+            materialName:selectedMaterial.name,
+            warehouseId:selectedMaterial.warehouseId,
+            warehouseName:selectedMaterial.warehouseName,
+            supplierId:selectedMaterial.supplierId || "",
+            supplierName:selectedMaterial.supplierName || "",
+            area:"ZL",
+            sequence:Number(last.sequence),
+            controlTime:selectedMaterial.controlTime,
+            capturedBy:currentUser.employeeId,
+            capturedByName:currentUser.name,
+            shift:getCurrentShift(),
+            source:"container",
+            containerId,
+            createdAt:serverTimestamp(),
+            updatedAt:serverTimestamp(),
+            active:true
+        }
+    );
+
+    closeCreateModal();
+
+    await loadContainers();
+
+    showToast("Contenedor creado");
+
+};
+
+window.openContainerAction = function(containerDocId){
+
+    selectedContainer =
+        containersCache.find(x=>x.id===containerDocId);
+
+    if(!selectedContainer){
+        return;
+    }
+
+    if(currentUser.area==="PU"){
+        openConsumeModal();
+        return;
+    }
+
+    showToast("Contenedor disponible");
+
+};
+
+function openConsumeModal(){
+
+    document.getElementById("consumeTitle").innerText =
+        `Consumir contenedor ${selectedContainer.containerId}`;
+
+    document.getElementById("consumeInfo").innerHTML = `
+        <p>
+            Familia: <b>${selectedContainer.materialName}</b><br>
+            Secuencias: <b>${selectedContainer.sequenceCount}</b><br>
+            Última secuencia: <b>${selectedContainer.lastSequence}</b>
+        </p>
+    `;
+
+    consumeValidation =
+        buildRandomValidation(selectedContainer);
+
+    document.getElementById("consumeValidationBox").innerHTML =
+        consumeValidation.html;
+
+    document.getElementById("consumeModal").style.display =
+        "flex";
+
+}
+
+function buildRandomValidation(container){
+
+    const sequences =
+        container.sequences || [];
+
+    const item =
+        sequences[
+            Math.floor(Math.random()*sequences.length)
+        ];
+
+    const mode =
+        Math.floor(Math.random()*3);
+
+    if(mode===0){
+        return {
+            type:"positionToSequence",
+            answer:item.sequence,
+            html:`
+                <label><b>¿Qué secuencia es la posición ${item.position}?</b></label>
+                <input id="consumeValidationInput" inputmode="numeric" maxlength="4">
+            `
+        };
+    }
+
+    if(mode===1){
+        return {
+            type:"sequenceToPosition",
+            answer:String(item.position),
+            html:`
+                <label><b>¿Qué posición tiene la secuencia ${item.sequence}?</b></label>
+                <input id="consumeValidationInput" inputmode="numeric">
+            `
+        };
+    }
+
+    const options =
+        [...new Set(sequences.map(x=>x.partNumber).filter(x=>x))];
+
+    return {
+        type:"partNumber",
+        answer:item.partNumber,
+        html:`
+            <label><b>¿Qué número de parte corresponde a la secuencia ${item.sequence}?</b></label>
+            <select id="consumeValidationInput">
+                <option value="">Selecciona...</option>
+                ${options.map(option=>`
+                    <option value="${option}">${option}</option>
+                `).join("")}
+            </select>
+        `
+    };
+
+}
+
+window.closeConsumeModal = function(){
+
+    document.getElementById("consumeModal").style.display =
+        "none";
+
+};
+
+window.confirmConsumeContainer = async function(){
+
+    const input =
+        document.getElementById("consumeValidationInput");
+
+    const value =
+        String(input.value || "").trim();
+
+    if(value !== String(consumeValidation.answer)){
+        showToast("Validación incorrecta");
+        return;
+    }
+
+    await updateDoc(
+        doc(db,"containers",selectedContainer.id),
+        {
+            status:"consumed",
+            consumedBy:currentUser.employeeId,
+            consumedByName:currentUser.name,
+            consumedAt:serverTimestamp()
+        }
+    );
+
+    await setDoc(
+        doc(
+            db,
+            "latestCaptures",
+            `${selectedContainer.materialId}_PU`
+        ),
+        {
+            materialId:selectedContainer.materialId,
+            materialName:selectedContainer.materialName,
+            warehouseId:selectedContainer.warehouseId,
+            warehouseName:selectedContainer.warehouseName,
+            supplierId:selectedContainer.supplierId || "",
+            supplierName:selectedContainer.supplierName || "",
+            area:"PU",
+            sequence:Number(selectedContainer.lastSequence),
+            controlTime:selectedMaterial.controlTime,
+            capturedBy:currentUser.employeeId,
+            capturedByName:currentUser.name,
+            shift:getCurrentShift(),
+            source:"container",
+            containerId:selectedContainer.containerId,
+            createdAt:serverTimestamp(),
+            updatedAt:serverTimestamp(),
+            active:true
+        }
+    );
+
+    closeConsumeModal();
+
+    await loadContainers();
+
+    showToast("Contenedor consumido");
+
+};
+
+function getCurrentShift(){
+
+    const now = new Date();
+
+    const minutes =
+        now.getHours() * 60 +
+        now.getMinutes();
+
+    if(minutes >= 360 && minutes <= 899){
+        return "Primero";
+    }
+
+    if(minutes >= 900 && minutes <= 1410){
+        return "Segundo";
+    }
+
+    return "Tercero";
+
+}
+
+function showToast(message){
+
+    const toast =
+        document.getElementById("toast");
+
+    toast.innerText =
+        message;
+
+    toast.style.display =
+        "block";
+
+    setTimeout(()=>{
+        toast.style.display="none";
+    },2500);
+
+}
+
+window.goCapture = function(){
+    window.location.href =
+        `capture.html?area=${currentUser.area}`;
+};
+
+window.goDashboard = function(){
+    window.location.href =
+        "dashboard.html";
+};
+
+window.logout = async function(){
+
+    await signOut(auth);
+
+    localStorage.removeItem("operationalUser");
+
+    window.location.href =
+        "index.html";
+
+};
+
+</script>
+
+</body>
+</html>
