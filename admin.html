@@ -346,8 +346,9 @@ th:first-child{
 
     <div class="header-actions">
         <button class="header-btn" onclick="goCapture()">Captura</button>
-<button class="header-btn" onclick="goDashboard()">Dashboard</button>
-<button class="header-btn" onclick="logout()">Salir</button>
+        <button class="header-btn" onclick="goDashboard()">Dashboard</button>
+        <button class="header-btn" onclick="goContainers()">Contenedores Beta</button>
+        <button class="header-btn" onclick="logout()">Salir</button>
     </div>
 </header>
 
@@ -494,24 +495,6 @@ const modules = {
         collection:"materials",
         softDelete:true,
         fields:[
-    {key:"name",label:"Familia",type:"text",required:true},
-
-    {key:"supplierId",label:"Proveedor",type:"select",source:"suppliers",required:true},
-
-    {key:"warehouseId",label:"Nave",type:"select",source:"warehouses",required:true},
-
-    {key:"controlTime",label:"Tiempo Control Min",type:"number",required:true},
-
-    {key:"autoUpdate",label:"Actualización automática",type:"boolean"},
-
-    {key:"manualFallback",label:"Respaldo manual",type:"boolean"},
-
-    {key:"autoSource",label:"Fuente automática",type:"text"},
-
-    {key:"externalCode",label:"Código externo",type:"text"},
-
-    {key:"active",label:"Activo",type:"boolean"}
-],
         columns:[
     ["name","Familia"],
     ["supplierName","Proveedor"],
@@ -880,12 +863,21 @@ function renderFormFields(record){
     module.fields.forEach(field=>{
 
         let value =
-            record[field.key];
+    record[field.key];
 
-        if(value===undefined){
-            value =
-                field.type==="boolean" ? true : "";
-        }
+if(
+    field.key==="componentsText" &&
+    value===undefined &&
+    Array.isArray(record.components)
+){
+    value =
+        record.components.join(", ");
+}
+
+if(value===undefined){
+    value =
+        field.type==="boolean" ? true : "";
+}
 
         let input = "";
 
@@ -899,15 +891,19 @@ function renderFormFields(record){
                     <option value="false" ${value===false ? "selected" : ""}>Inactivo</option>
                 </select>
             `;
-        }else{
-            input = `
-                <input
-                    id="field_${field.key}"
-                    type="${field.type}"
-                    value="${value || ""}"
-                >
-            `;
-        }
+        }else if(field.type==="textarea"){
+    input = `
+        <textarea id="field_${field.key}">${value || ""}</textarea>
+    `;
+}else{
+    input = `
+        <input
+            id="field_${field.key}"
+            type="${field.type}"
+            value="${value || ""}"
+        >
+    `;
+}
 
         formFields.innerHTML += `
             <div class="form-group">
@@ -1052,6 +1048,21 @@ function enrichData(data){
 
         data.warehouseName =
             warehouse?.name || "";
+
+                if(data.componentsEnabled){
+
+            data.components =
+                String(data.componentsText || "")
+                    .split(",")
+                    .map(x=>x.trim())
+                    .filter(x=>x);
+
+        }else{
+
+            data.components = [];
+            data.massiveComponents = false;
+
+        }
 
     }
 
@@ -1230,7 +1241,17 @@ function goCapture(){
 
 }
 
-window.goCapture=goCapture;    
+window.goCapture=goCapture;  
+
+function goContainers(){
+
+    window.location.href =
+        "containers.html?area=ZL";
+
+}
+
+window.goContainers=goContainers;
+    
 
 async function logout(){
 
