@@ -899,6 +899,52 @@ window.openCreateModal = function(){
 };
 function suggestNextContainerId(){
 
+    const components =
+        selectedMaterial.components || [];
+
+    const hasIndividualComponents =
+        selectedMaterial.componentsEnabled === true &&
+        selectedMaterial.massiveComponents !== true &&
+        components.length > 0;
+
+    if(hasIndividualComponents){
+
+        const availableOrCreated =
+            containersCache
+                .filter(container=>
+                    container.status==="available" ||
+                    container.status==="created"
+                )
+                .sort((a,b)=>
+                    Number(a.containerId) - Number(b.containerId)
+                );
+
+        for(const container of availableOrCreated){
+
+            const sameContainer =
+                containersCache.filter(item=>
+                    item.containerId === container.containerId &&
+                    item.active === true
+                );
+
+            const existingComponents =
+                sameContainer
+                    .map(item=>item.componentName || "")
+                    .filter(x=>x);
+
+            const missingComponent =
+                components.some(component=>
+                    !existingComponents.includes(component)
+                );
+
+            if(missingComponent){
+                return container.containerId;
+            }
+
+        }
+
+    }
+
     const createdOrAvailable =
         containersCache
             .filter(container=>
@@ -912,24 +958,6 @@ function suggestNextContainerId(){
 
         let next =
             Math.max(...createdOrAvailable) + 1;
-
-        if(next > 999){
-            next = 1;
-        }
-
-        return String(next).padStart(3,"0");
-
-    }
-
-    const consumed =
-        containersCache
-            .filter(container=>container.status==="consumed")
-            .map(container=>Number(container.containerId || 0));
-
-    if(consumed.length>0){
-
-        let next =
-            Math.max(...consumed) + 1;
 
         if(next > 999){
             next = 1;
