@@ -803,8 +803,6 @@ window.openCreateModal = function(){
     const componentInput =
         document.getElementById("componentInput");
 
-    const sequencesInput =
-        document.getElementById("sequencesInput");
 
     const createSummary =
         document.getElementById("createSummary");
@@ -815,7 +813,7 @@ window.openCreateModal = function(){
     if(
         !containerIdInput ||
         !componentInput ||
-        !sequencesInput ||
+        
         !createSummary ||
         !createModal
     ){
@@ -835,7 +833,7 @@ window.openCreateModal = function(){
 
     componentInput.value = "";
 
-    sequencesInput.value = "";
+    
     document.getElementById("ocrModeBox").style.display = "none";
     document.getElementById("manualModeBox").style.display = "none";
     createSummary.style.display = "none";
