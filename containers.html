@@ -707,8 +707,16 @@ window.openCreateModal = function(){
 
     parsedSequences = [];
 
-    document.getElementById("containerIdInput").value =
-    suggestNextContainerId();
+    const containerIdInput =
+    document.getElementById("containerIdInput");
+
+if(containerIdInput){
+    containerIdInput.value =
+        suggestNextContainerId();
+}else{
+    showToast("No se encontró el campo ID Contenedor");
+    return;
+}
 
     const componentInput =
         document.getElementById("componentInput");
@@ -842,8 +850,13 @@ function renderCreateSummary(){
     summary.style.display =
         "block";
 
-    const componentName =
-        document.getElementById("componentInput").value.trim();
+   const componentInput =
+    document.getElementById("componentInput");
+
+const componentName =
+    componentInput
+    ? componentInput.value.trim()
+    : "";
 
     summary.innerHTML = `
         <strong>Resumen</strong>
