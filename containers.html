@@ -1427,83 +1427,31 @@ window.confirmCreateContainer = async function(){
         return;
     }
 
+    const first =
+        parsedSequences[0];
+
     const last =
         parsedSequences[parsedSequences.length-1];
 
     pendingCreateData = {
-    containerId,
-    selectedComponentName,
-    componentsToCreate,
-    isMassive,
-    first,
-    last
+        containerId,
+        selectedComponentName,
+        componentsToCreate,
+        isMassive,
+        first,
+        last
+    };
+
+    document.getElementById("zlConfirmText").innerHTML =
+        `Confirma la última secuencia del contenedor <b>${containerId}</b>`;
+
+    document.getElementById("zlConfirmInput").value = "";
+
+    document.getElementById("zlConfirmModal").style.display =
+        "flex";
+
 };
-
-document.getElementById("zlConfirmText").innerHTML =
-    `Confirma la última secuencia del contenedor <b>${containerId}</b>`;
-
-document.getElementById("zlConfirmInput").value = "";
-
-document.getElementById("zlConfirmModal").style.display =
-    "flex";
-
-return;
-
     
-    const first =
-        parsedSequences[0];
-
-    await savePendingContainer();
-        };
-
-        await addDoc(
-            collection(db,"containers"),
-            containerData
-        );
-
-    }
-
-    await setDoc(
-        doc(
-            db,
-            "latestCaptures",
-            `${selectedMaterial.id}_ZL`
-        ),
-        {
-            materialId:selectedMaterial.id,
-            materialName:selectedMaterial.name,
-            warehouseId:selectedMaterial.warehouseId,
-            warehouseName:selectedMaterial.warehouseName,
-            supplierId:selectedMaterial.supplierId || "",
-            supplierName:selectedMaterial.supplierName || "",
-            area:"ZL",
-            sequence:Number(last.sequence),
-            controlTime:selectedMaterial.controlTime,
-            capturedBy:currentUser.employeeId,
-            capturedByName:currentUser.name,
-            shift:getCurrentShift(),
-            source:"container",
-            captureMode:captureMode || "manual",
-            containerId,
-            componentName:isMassive ? "Paquete completo" : selectedComponentName,
-            createdAt:serverTimestamp(),
-            updatedAt:serverTimestamp(),
-            active:true
-        }
-    );
-
-    closeCreateModal();
-
-    await loadContainers();
-
-    showToast(
-        isMassive
-        ? "Paquete de subfamilias creado"
-        : "Contenedor creado"
-    );
-
-};
-
 window.closeZlConfirmModal = function(){
 
     document.getElementById("zlConfirmModal").style.display =
