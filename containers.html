@@ -428,13 +428,13 @@ textarea{
         <div class="form-group">
     <label>Secuencias</label>
 
-    <div style="display:flex;gap:10px;margin-bottom:10px;">
+   <div style="display:flex;gap:10px;margin-bottom:10px;">
         <button
             type="button"
-            class="secondary-btn"
-            onclick="showOcrMode()"
+            class="primary-btn"
+            onclick="startOcrFlow()"
         >
-            📷 OCR
+            📷 Leer etiqueta
         </button>
 
         <button
@@ -446,42 +446,23 @@ textarea{
         </button>
     </div>
 
-    <div id="ocrModeBox" class="summary-box" style="display:none;">
-        <strong>Modo OCR</strong>
-        <p class="help">
-            Próximamente abrirá cámara para leer etiqueta.
-        </p>
+            
+<div id="ocrModeBox" class="summary-box" style="display:none;">
+    <strong>Modo OCR</strong>
 
-<input
-    id="ocrImageInput"
-    type="file"
-    accept="image/*"
-    capture="environment"
-    style="display:none;"
-    onchange="processOcrImage(event)"
->
+    <input
+        id="ocrImageInput"
+        type="file"
+        accept="image/*"
+        capture="environment"
+        style="display:none;"
+        onchange="processOcrImage(event)"
+    >
 
-<button
-    type="button"
-    class="primary-btn"
-    onclick="openOcrCamera()"
->
-    📷 Leer etiqueta
-</button>
-
-<button
-    type="button"
-    class="secondary-btn"
-    onclick="mockOcrRead()"
->
-    Simular lectura OCR
-</button>
-
-<div class="help" id="ocrStatus">
-    Selecciona una imagen clara de la etiqueta.
-</div>
-        
+    <div class="help" id="ocrStatus">
+        Recorta solo las columnas Pos. y Sec. No uses zoom.
     </div>
+</div>
 
     <div id="manualModeBox" class="summary-box" style="display:none;">
         <strong>Modo manual de emergencia</strong>
@@ -534,9 +515,14 @@ textarea{
     </div>
 </div>
 
-        <button class="secondary-btn" onclick="previewContainer()">
-            Generar resumen
-        </button>
+        <button
+    class="secondary-btn"
+    id="previewContainerBtn"
+    onclick="previewContainer()"
+    style="display:none;"
+>
+    Generar resumen
+</button>
 
         <div class="summary-box" id="createSummary" style="display:none;"></div>
 
@@ -615,7 +601,7 @@ textarea{
 </div>
     
 <div class="app-version">
-    DHL Operational Control · Containers Beta · V.2.7.4
+    DHL Operational Control · Containers Beta · V.2.7.5
 </div>
 
 <div class="toast" id="toast">Listo</div>
@@ -1171,6 +1157,23 @@ window.closeCreateModal = function(){
 
 let captureMode = null;
 
+window.startOcrFlow = function(){
+
+    captureMode = "ocr";
+
+    document.getElementById("ocrModeBox").style.display =
+        "block";
+
+    document.getElementById("manualModeBox").style.display =
+        "none";
+
+    document.getElementById("previewContainerBtn").style.display =
+        "none";
+
+    openOcrCamera();
+
+};
+    
 window.showOcrMode = function(){
 
     captureMode = "ocr";
@@ -1191,6 +1194,9 @@ window.showManualMode = function(){
         "none";
 
     document.getElementById("manualModeBox").style.display =
+        "block";
+
+    document.getElementById("previewContainerBtn").style.display =
         "block";
 
 };
