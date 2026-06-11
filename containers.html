@@ -577,6 +577,29 @@ textarea{
         </div>
     </div>
 </div>
+
+<div class="app-modal" id="cropModal">
+    <div class="modal-card">
+        <div class="modal-header">
+            <h2>Selecciona tabla OCR</h2>
+            <button class="close-btn" onclick="closeCropModal()">X</button>
+        </div>
+
+        <p class="help">
+            Marca con el dedo solo la tabla de posiciones, secuencias y números de parte.
+        </p>
+
+        <canvas
+            id="ocrCanvas"
+            style="width:100%;border:1px solid #ddd;border-radius:14px;"
+        ></canvas>
+
+        <div class="form-actions">
+            <button class="secondary-btn" onclick="closeCropModal()">Cancelar</button>
+            <button class="primary-btn" onclick="processSelectedCrop()">Leer área</button>
+        </div>
+    </div>
+</div>
     
 <div class="toast" id="toast">Listo</div>
 <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
@@ -627,7 +650,11 @@ let selectedContainerGroup = [];
 let containersCache = [];
 let parsedSequences = [];
 let consumeValidation = null;
-let pendingCreateData = null;    
+let pendingCreateData = null;
+let ocrImage = null;
+let cropStart = null;
+let cropEnd = null;
+let cropCanvasReady = false;    
 
 const savedUser =
     localStorage.getItem("operationalUser");
@@ -1267,19 +1294,255 @@ window.processOcrImage = async function(event){
         return;
     }
 
-    captureMode = "ocr";
+    const imageUrl =
+        URL.createObjectURL(file);
+
+    ocrImage =
+        new Image();
+
+    ocrImage.onload = function(){
+
+        openCropModal();
+
+        URL.revokeObjectURL(imageUrl);
+
+    };
+
+    ocrImage.src =
+        imageUrl;
+
+    event.target.value = "";
+
+};
+
+function openCropModal(){
+
+    const modal =
+        document.getElementById("cropModal");
+
+    const canvas =
+        document.getElementById("ocrCanvas");
+
+    const ctx =
+        canvas.getContext("2d");
+
+    const maxWidth = 900;
+
+    const scale =
+        Math.min(
+            1,
+            maxWidth / ocrImage.width
+        );
+
+    canvas.width =
+        ocrImage.width * scale;
+
+    canvas.height =
+        ocrImage.height * scale;
+
+    canvas.dataset.scale =
+        scale;
+
+    ctx.clearRect(
+        0,
+        0,
+        canvas.width,
+        canvas.height
+    );
+
+    ctx.drawImage(
+        ocrImage,
+        0,
+        0,
+        canvas.width,
+        canvas.height
+    );
+
+    cropStart = null;
+    cropEnd = null;
+    cropCanvasReady = true;
+
+    modal.style.display =
+        "flex";
+
+}
+
+window.closeCropModal = function(){
+
+    document.getElementById("cropModal").style.display =
+        "none";
+
+    cropStart = null;
+    cropEnd = null;
+    cropCanvasReady = false;
+
+};
+
+function getCanvasPoint(event){
+
+    const canvas =
+        document.getElementById("ocrCanvas");
+
+    const rect =
+        canvas.getBoundingClientRect();
+
+    const touch =
+        event.touches
+        ? event.touches[0]
+        : event;
+
+    return {
+        x:(touch.clientX - rect.left) * (canvas.width / rect.width),
+        y:(touch.clientY - rect.top) * (canvas.height / rect.height)
+    };
+
+}
+
+function redrawCropCanvas(){
+
+    const canvas =
+        document.getElementById("ocrCanvas");
+
+    const ctx =
+        canvas.getContext("2d");
+
+    ctx.clearRect(
+        0,
+        0,
+        canvas.width,
+        canvas.height
+    );
+
+    ctx.drawImage(
+        ocrImage,
+        0,
+        0,
+        canvas.width,
+        canvas.height
+    );
+
+    if(!cropStart || !cropEnd){
+        return;
+    }
+
+    const x =
+        Math.min(cropStart.x,cropEnd.x);
+
+    const y =
+        Math.min(cropStart.y,cropEnd.y);
+
+    const w =
+        Math.abs(cropEnd.x-cropStart.x);
+
+    const h =
+        Math.abs(cropEnd.y-cropStart.y);
+
+    ctx.lineWidth = 3;
+    ctx.strokeStyle = "#D40511";
+    ctx.strokeRect(x,y,w,h);
+
+} 
+
+const ocrCanvas =
+    document.getElementById("ocrCanvas");
+
+ocrCanvas.addEventListener("mousedown",event=>{
+    if(!cropCanvasReady){ return; }
+    cropStart = getCanvasPoint(event);
+    cropEnd = cropStart;
+    redrawCropCanvas();
+});
+
+ocrCanvas.addEventListener("mousemove",event=>{
+    if(!cropStart){ return; }
+    cropEnd = getCanvasPoint(event);
+    redrawCropCanvas();
+});
+
+ocrCanvas.addEventListener("mouseup",event=>{
+    cropEnd = getCanvasPoint(event);
+    redrawCropCanvas();
+});
+
+ocrCanvas.addEventListener("touchstart",event=>{
+    event.preventDefault();
+    if(!cropCanvasReady){ return; }
+    cropStart = getCanvasPoint(event);
+    cropEnd = cropStart;
+    redrawCropCanvas();
+},{passive:false});
+
+ocrCanvas.addEventListener("touchmove",event=>{
+    event.preventDefault();
+    if(!cropStart){ return; }
+    cropEnd = getCanvasPoint(event);
+    redrawCropCanvas();
+},{passive:false});
+
+ocrCanvas.addEventListener("touchend",event=>{
+    event.preventDefault();
+    redrawCropCanvas();
+},{passive:false});
+
+window.processSelectedCrop = async function(){
+
+    if(!cropStart || !cropEnd){
+        showToast("Selecciona el área de la tabla");
+        return;
+    }
+
+    const canvas =
+        document.getElementById("ocrCanvas");
+
+    const x =
+        Math.min(cropStart.x,cropEnd.x);
+
+    const y =
+        Math.min(cropStart.y,cropEnd.y);
+
+    const w =
+        Math.abs(cropEnd.x-cropStart.x);
+
+    const h =
+        Math.abs(cropEnd.y-cropStart.y);
+
+    if(w < 50 || h < 50){
+        showToast("Área seleccionada muy pequeña");
+        return;
+    }
+
+    const cropCanvas =
+        document.createElement("canvas");
+
+    cropCanvas.width = w;
+    cropCanvas.height = h;
+
+    const cropCtx =
+        cropCanvas.getContext("2d");
+
+    cropCtx.drawImage(
+        canvas,
+        x,
+        y,
+        w,
+        h,
+        0,
+        0,
+        w,
+        h
+    );
 
     const status =
         document.getElementById("ocrStatus");
 
     status.innerText =
-        "Leyendo etiqueta...";
+        "Leyendo área seleccionada...";
 
     try{
 
         const result =
             await Tesseract.recognize(
-                file,
+                cropCanvas,
                 "eng",
                 {
                     logger:m=>{
@@ -1294,18 +1557,23 @@ window.processOcrImage = async function(event){
         const rawText =
             result.data.text || "";
 
+        document.getElementById("ocrStatus").innerText =
+    rawText;
+
         const parsed =
             parseOcrTable(rawText);
 
         if(parsed.length < 2){
-            status.innerText =
-                "No se detectó tabla suficiente. Intenta con otra foto.";
             showToast("OCR sin datos suficientes");
+            status.innerText =
+                "No se detectó tabla suficiente.";
             return;
         }
 
         parsedSequences =
             parsed;
+
+        closeCropModal();
 
         status.innerText =
             `OCR listo: ${parsedSequences.length} renglones leídos`;
@@ -1316,19 +1584,16 @@ window.processOcrImage = async function(event){
 
         console.error(error);
 
+        showToast("Error OCR");
+
         status.innerText =
             "Error al procesar OCR";
 
-        showToast("Error OCR");
-
-    }finally{
-
-        event.target.value = "";
-
     }
 
-};
-
+};    
+    
+    
 function parseOcrTable(rawText){
 
     const lines =
