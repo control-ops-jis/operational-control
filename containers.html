@@ -448,7 +448,7 @@ textarea{
 
             
 <div id="ocrModeBox" class="summary-box" style="display:none;">
-    <strong>Modo OCR</strong>
+    <strong>Captura segura ZL</strong>
 
     <input
         id="ocrImageInput"
@@ -460,7 +460,45 @@ textarea{
     >
 
     <div class="help" id="ocrStatus">
-        Recorta solo las columnas Pos. y Sec. No uses zoom.
+        Toma foto como apoyo. El contenedor se liberará solo con datos confirmados por ZL.
+    </div>
+
+    <div class="form-group compact-position">
+        <label>Posición inicial confirmada</label>
+        <input
+            id="safeFirstPosition"
+            inputmode="numeric"
+            value="1"
+        >
+    </div>
+
+    <div class="form-group">
+        <label>Secuencia inicial confirmada</label>
+        <input
+            id="safeFirstSequence"
+            maxlength="4"
+            inputmode="numeric"
+            placeholder="3081"
+        >
+    </div>
+
+    <div class="form-group compact-position">
+        <label>Posición final confirmada</label>
+        <input
+            id="safeLastPosition"
+            inputmode="numeric"
+            placeholder="12"
+        >
+    </div>
+
+    <div class="form-group">
+        <label>Secuencia final confirmada</label>
+        <input
+            id="safeLastSequence"
+            maxlength="4"
+            inputmode="numeric"
+            placeholder="3092"
+        >
     </div>
 </div>
 
@@ -601,7 +639,7 @@ textarea{
 </div>
     
 <div class="app-version">
-    DHL Operational Control · Containers Beta · V.2.8.0
+    DHL Operational Control · Containers Beta · V.2.9.0
 </div>
 
 <div class="toast" id="toast">Listo</div>
@@ -998,6 +1036,11 @@ window.openCreateModal = function(){
     document.getElementById("manualFirstPosition").disabled = true;
     document.getElementById("manualLastPosition").value = "";
     document.getElementById("manualLastPosition").disabled = true;
+    document.getElementById("safeFirstPosition").value = "1";
+    document.getElementById("safeFirstSequence").value = "";
+    document.getElementById("safeLastPosition").value = "";
+    document.getElementById("safeLastSequence").value = "";
+    
 
     containerIdInput.value =
         suggestNextContainerId();
@@ -1992,10 +2035,15 @@ window.processSelectedCrop = async function(){
                 )
                 .sort((a,b)=>a.position-b.position);
 
+        applyOcrSuggestionToSafeFields();
+
         closeCropModal();
 
         status.innerText =
-            `OCR listo: ${parsedSequences.length} renglones confirmados`;
+            `OCR sugerido: ${parsedSequences.length} renglones leídos. Confirma inicial y final.`;
+
+        parsedSequences =
+            buildSafeSequencesFromZl();
 
         renderCreateSummary();
 
@@ -2012,6 +2060,87 @@ window.processSelectedCrop = async function(){
 
 };
 
+
+function applyOcrSuggestionToSafeFields(){
+
+    if(parsedSequences.length < 2){
+        return;
+    }
+
+    const first =
+        parsedSequences[0];
+
+    const last =
+        parsedSequences[parsedSequences.length-1];
+
+    document.getElementById("safeFirstPosition").value =
+        first.position;
+
+    document.getElementById("safeFirstSequence").value =
+        first.sequence;
+
+    document.getElementById("safeLastPosition").value =
+        last.position;
+
+    document.getElementById("safeLastSequence").value =
+        last.sequence;
+
+}
+
+function buildSafeSequencesFromZl(){
+
+    const firstPosition =
+        Number(
+            document.getElementById("safeFirstPosition").value.trim()
+        );
+
+    const firstSequence =
+        document.getElementById("safeFirstSequence")
+            .value
+            .trim()
+            .padStart(4,"0");
+
+    const lastPosition =
+        Number(
+            document.getElementById("safeLastPosition").value.trim()
+        );
+
+    const lastSequence =
+        document.getElementById("safeLastSequence")
+            .value
+            .trim()
+            .padStart(4,"0");
+
+    if(
+        !firstPosition ||
+        !lastPosition ||
+        !/^\d{4}$/.test(firstSequence) ||
+        !/^\d{4}$/.test(lastSequence)
+    ){
+        return [];
+    }
+
+    if(lastPosition <= firstPosition){
+        return [];
+    }
+
+    return [
+        {
+            position:firstPosition,
+            sequence:firstSequence,
+            partNumber:"",
+            source:"zl_confirmed"
+        },
+        {
+            position:lastPosition,
+            sequence:lastSequence,
+            partNumber:"",
+            source:"zl_confirmed"
+        }
+    ];
+
+}
+    
 function parseOcrColumn(rawText){
 
     return rawText
@@ -2029,8 +2158,11 @@ window.previewContainer = function(){
 
     if(captureMode==="ocr"){
 
-        if(parsedSequences.length===0){
-            showToast("Primero realiza lectura OCR");
+        parsedSequences =
+            buildSafeSequencesFromZl();
+
+        if(parsedSequences.length < 2){
+            showToast("Confirma posición y secuencia inicial/final");
             return;
         }
 
@@ -2336,6 +2468,9 @@ async function savePendingContainer(){
             sequenceCount:
                 (Number(last.sequence) - Number(first.sequence)) + 1,
             sequences:parsedSequences,
+            sequencesConfirmed:parsedSequences,
+            dataQuality:"basic_confirmed",
+            ocrStatus:"zl_confirmed",
 
             createdBy:currentUser.employeeId,
             createdByName:currentUser.name,
@@ -2459,7 +2594,9 @@ document.getElementById("consumeInfo").innerHTML = `
 function buildRandomValidation(container){
 
     const sequences =
-        container.sequences || [];
+        container.sequencesConfirmed?.length
+        ? container.sequencesConfirmed
+        : container.sequences || [];
 
     const item =
         sequences[
