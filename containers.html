@@ -585,7 +585,7 @@ textarea{
         </div>
 
         <p class="help">
-            Marca desde Posición hasta Número de parte. Puedes volver a arrastrar el cuadro si no queda bien antes de leer.
+            Primero selecciona solo la columna POS. Después selecciona solo la columna SEC. No incluyas número de parte.
         </p>
 
         <canvas
@@ -601,7 +601,7 @@ textarea{
 </div>
     
 <div class="app-version">
-    DHL Operational Control · Containers Beta · V.2.7.7
+    DHL Operational Control · Containers Beta · V.2.8.0
 </div>
 
 <div class="toast" id="toast">Listo</div>
@@ -660,6 +660,9 @@ let cropEnd = null;
 let cropCanvasReady = false;
 let activeCropHandle = null;
 let cropBox = null;
+let ocrStep = null;
+let ocrPositions = [];
+let ocrSequences = [];    
 
 const savedUser =
     localStorage.getItem("operationalUser");
@@ -1487,7 +1490,16 @@ function openCropModal(){
 
     cropStart = null;
     cropEnd = null;
+    activeCropHandle = null;
+    cropBox = null;
     cropCanvasReady = true;
+
+    ocrStep = "positions";
+    ocrPositions = [];
+    ocrSequences = [];
+
+document.querySelector("#cropModal h2").innerText =
+    "Selecciona columna POS.";
 
     modal.style.display =
         "flex";
@@ -1794,8 +1806,8 @@ ocrCanvas.addEventListener("mouseup",event=>{
     
 window.processSelectedCrop = async function(){
 
-   if(!cropBox){
-        showToast("Selecciona el área de la tabla");
+    if(!cropBox){
+        showToast("Selecciona la columna");
         return;
     }
 
@@ -1807,7 +1819,7 @@ window.processSelectedCrop = async function(){
     const w = cropBox.w;
     const h = cropBox.h;
 
-    if(w < 50 || h < 50){
+    if(w < 15 || h < 50){
         showToast("Área seleccionada muy pequeña");
         return;
     }
@@ -1821,70 +1833,68 @@ window.processSelectedCrop = async function(){
     const cropCtx =
         cropCanvas.getContext("2d");
 
-    const scaleFactor = 1;
-
-cropCanvas.width = w * scaleFactor;
-cropCanvas.height = h * scaleFactor;
-
-cropCtx.drawImage(
-    canvas,
-    x,
-    y,
-    w,
-    h,
-    0,
-    0,
-    cropCanvas.width,
-    cropCanvas.height
-);
-
-const imageData =
-    cropCtx.getImageData(
+    cropCtx.drawImage(
+        canvas,
+        x,
+        y,
+        w,
+        h,
         0,
         0,
         cropCanvas.width,
         cropCanvas.height
     );
 
-const data =
-    imageData.data;
+    const imageData =
+        cropCtx.getImageData(
+            0,
+            0,
+            cropCanvas.width,
+            cropCanvas.height
+        );
 
-for(let i=0;i<data.length;i+=4){
+    const data =
+        imageData.data;
 
-    const gray =
-        data[i] * 0.299 +
-        data[i+1] * 0.587 +
-        data[i+2] * 0.114;
+    for(let i=0;i<data.length;i+=4){
 
-    const value =
-        gray > 150 ? 255 : 0;
+        const gray =
+            data[i] * 0.299 +
+            data[i+1] * 0.587 +
+            data[i+2] * 0.114;
 
-    data[i] = value;
-    data[i+1] = value;
-    data[i+2] = value;
+        const value =
+            gray > 150 ? 255 : 0;
 
-}
+        data[i] = value;
+        data[i+1] = value;
+        data[i+2] = value;
 
-cropCtx.putImageData(
-    imageData,
-    0,
-    0
-);
+    }
+
+    cropCtx.putImageData(
+        imageData,
+        0,
+        0
+    );
+
     const status =
         document.getElementById("ocrStatus");
 
     status.innerText =
-        "Leyendo área seleccionada...";
+        ocrStep==="positions"
+        ? "Leyendo columna POS..."
+        : "Leyendo columna SEC...";
 
     try{
 
         const result =
             await Tesseract.recognize(
-    cropCanvas,
-    "eng",
-    {
-        tessedit_char_whitelist:"0123456789 ",
-        logger:m=>{
+                cropCanvas,
+                "eng",
+                {
+                    tessedit_char_whitelist:"0123456789 ",
+                    logger:m=>{
                         if(m.status){
                             status.innerText =
                                 `OCR: ${m.status}`;
@@ -1896,26 +1906,96 @@ cropCtx.putImageData(
         const rawText =
             result.data.text || "";
 
-        document.getElementById("ocrStatus").innerText =
-    rawText;
+        const numbers =
+            parseOcrColumn(rawText);
 
-        const parsed =
-            parseOcrTable(rawText);
-
-        if(parsed.length < 2){
+        if(numbers.length < 2){
             showToast("OCR sin datos suficientes");
             status.innerText =
-                "No se detectó tabla suficiente.";
+                "No se detectaron suficientes números.";
             return;
         }
 
+        if(ocrStep==="positions"){
+
+            ocrPositions =
+                numbers
+                    .map(num=>Number(num))
+                    .filter(num=>
+                        num >= 1 &&
+                        num <= 999
+                    );
+
+            if(ocrPositions.length < 2){
+                showToast("No se detectaron posiciones");
+                return;
+            }
+
+            ocrStep = "sequences";
+
+            cropBox = null;
+            cropStart = null;
+            cropEnd = null;
+            activeCropHandle = null;
+
+            redrawCropCanvas();
+
+            document.querySelector("#cropModal h2").innerText =
+                "Selecciona columna SEC.";
+
+            status.innerText =
+                `POS listo: ${ocrPositions.length}. Ahora selecciona SEC.`;
+
+            return;
+
+        }
+
+        ocrSequences =
+            numbers
+                .map(num=>String(num).padStart(4,"0"))
+                .filter(num=>
+                    /^\d{4}$/.test(num) &&
+                    num !== "0000"
+                );
+
+        if(ocrSequences.length < 2){
+            showToast("No se detectaron secuencias");
+            return;
+        }
+
+        const total =
+            Math.min(
+                ocrPositions.length,
+                ocrSequences.length
+            );
+
         parsedSequences =
-            parsed;
+            [];
+
+        for(let i=0;i<total;i++){
+
+            parsedSequences.push({
+                position:ocrPositions[i],
+                sequence:ocrSequences[i],
+                partNumber:""
+            });
+
+        }
+
+        parsedSequences =
+            parsedSequences
+                .filter((row,index,self)=>
+                    index === self.findIndex(x=>
+                        x.position === row.position &&
+                        x.sequence === row.sequence
+                    )
+                )
+                .sort((a,b)=>a.position-b.position);
 
         closeCropModal();
 
         status.innerText =
-            `OCR listo: ${parsedSequences.length} renglones leídos`;
+            `OCR listo: ${parsedSequences.length} renglones confirmados`;
 
         renderCreateSummary();
 
@@ -1930,126 +2010,21 @@ cropCtx.putImageData(
 
     }
 
-};    
+};
+
+function parseOcrColumn(rawText){
+
+    return rawText
+        .split(/\n|\s+/)
+        .map(text=>
+            text
+                .replace(/[^\d]/g,"")
+                .trim()
+        )
+        .filter(text=>text);
+
+}    
     
-    
-function parseOcrTable(rawText){
-
-    const lines =
-        rawText
-            .split("\n")
-            .map(line=>
-                line
-                    .replace(/\|/g," ")
-                    .replace(/[^\d\s]/g," ")
-                    .replace(/\s+/g," ")
-                    .trim()
-            )
-            .filter(line=>line);
-
-    let candidates = [];
-
-    lines.forEach(line=>{
-
-        const numbers =
-            line.match(/\b\d{1,4}\b/g) || [];
-
-        if(numbers.length < 2){
-            return;
-        }
-
-        const position =
-            Number(numbers[0]);
-
-        if(
-            position < 1 ||
-            position > 999
-        ){
-            return;
-        }
-
-        const possibleSequences =
-            numbers
-                .slice(1)
-                .map(num=>String(num).padStart(4,"0"))
-                .filter(num=>
-                    /^\d{4}$/.test(num) &&
-                    num !== "0000"
-                );
-
-        possibleSequences.forEach(sequence=>{
-
-            candidates.push({
-                position,
-                sequence,
-                partNumber:""
-            });
-
-        });
-
-    });
-
-    if(candidates.length===0){
-        return [];
-    }
-
-    const groups = {};
-
-    candidates.forEach(item=>{
-
-        const key =
-            item.sequence.substring(0,1);
-
-        if(!groups[key]){
-            groups[key] = [];
-        }
-
-        groups[key].push(item);
-
-    });
-
-    const dominantGroup =
-        Object.values(groups)
-            .sort((a,b)=>b.length-a.length)[0] || [];
-
-    let rows =
-        dominantGroup
-            .filter((row,index,self)=>
-                index === self.findIndex(x=>
-                    x.position === row.position
-                )
-            )
-            .sort((a,b)=>a.position-b.position);
-
-    rows =
-        rows.filter((row,index,array)=>{
-
-            if(array.length < 3){
-                return true;
-            }
-
-            const seq =
-                Number(row.sequence);
-
-            const allSeq =
-                array.map(x=>Number(x.sequence));
-
-            const min =
-                Math.min(...allSeq);
-
-            const max =
-                Math.max(...allSeq);
-
-            return (
-                seq >= min &&
-                seq <= max
-            );
-
-        });
-
-    return rows;
-
-}
 window.previewContainer = function(){
 
     if(captureMode==="ocr"){
