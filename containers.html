@@ -452,14 +452,7 @@ textarea{
             📷 Leer etiqueta
         </button>
 
-        <button
-            type="button"
-            class="secondary-btn"
-            onclick="showManualMode()"
-        >
-            ✍️ Manual
-        </button>
-    </div>
+           </div>
 
             
 <div id="ocrModeBox" class="summary-box" style="display:none;">
@@ -475,7 +468,7 @@ textarea{
     >
 
     <div class="help" id="ocrStatus">
-        Toma foto como apoyo. El contenedor se liberará solo con datos confirmados por ZL.
+        Toma foto de la etiqueta. OCR sugerirá datos, pero ZL debe confirmar antes de guardar.
     </div>
 
     <div class="form-group compact-position">
@@ -484,6 +477,7 @@ textarea{
             id="safeFirstPosition"
             inputmode="numeric"
             value="1"
+            disabled
         >
     </div>
 
@@ -654,7 +648,7 @@ textarea{
 </div>
     
 <div class="app-version">
-    DHL Operational Control · Containers Beta · V.2.9.1
+    DHL Operational Control · Containers Beta · V.2.9.2
 </div>
 
 <div class="toast" id="toast">Listo</div>
@@ -671,6 +665,8 @@ import {
 }
 from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
+
+    
 import {
     getFirestore,
     collection,
@@ -698,6 +694,7 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
+    
 
 let currentUser = null;
 let selectedMaterial = null;
@@ -715,7 +712,10 @@ let activeCropHandle = null;
 let cropBox = null;
 let ocrStep = null;
 let ocrPositions = [];
-let ocrSequences = [];    
+let ocrSequences = [];
+let pendingPhotoFile = null;
+let pendingPhotoUrl = "";
+let pendingPhotoPath = "";    
 
 const savedUser =
     localStorage.getItem("operationalUser");
@@ -1232,6 +1232,7 @@ window.startOcrFlow = function(){
 
     document.getElementById("previewContainerBtn").style.display =
         "none";
+    document.getElementById("safeFirstPosition").value = "1";
 
     openOcrCamera();
 
@@ -1396,6 +1397,11 @@ window.processOcrImage = async function(event){
     const status =
         document.getElementById("ocrStatus");
 
+pendingPhotoFile = file;
+pendingPhotoUrl = "";
+pendingPhotoPath = "";
+
+    
     if(!file){
         status.innerText =
             "No se recibió imagen.";
@@ -2433,6 +2439,7 @@ window.executeZlConfirm = async function(){
 
 };
 
+    
 async function savePendingContainer(){
 
     const {
@@ -2443,6 +2450,7 @@ async function savePendingContainer(){
         first,
         last
     } = pendingCreateData;
+
 
     for(const componentName of componentsToCreate){
 
@@ -2467,7 +2475,8 @@ async function savePendingContainer(){
             sequences:parsedSequences,
             sequencesConfirmed:parsedSequences,
             dataQuality:"basic_confirmed",
-            ocrStatus:"zl_confirmed",
+            ocrStatus:"pending_fragmentation",
+            expiresAt:new Date(Date.now() + 14*24*60*60*1000),
 
             createdBy:currentUser.employeeId,
             createdByName:currentUser.name,
@@ -2521,6 +2530,9 @@ async function savePendingContainer(){
     closeCreateModal();
 
     pendingCreateData = null;
+    pendingPhotoFile = null;
+    pendingPhotoUrl = "";
+    pendingPhotoPath = "";
 
     await loadContainers();
 
