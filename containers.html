@@ -1602,6 +1602,8 @@ function parseOcrTable(rawText){
             .map(line=>
                 line
                     .replace(/\|/g," ")
+                    .replace(/\[/g,"")
+                    .replace(/\]/g,"")
                     .replace(/\s+/g," ")
                     .trim()
             )
@@ -1624,21 +1626,29 @@ function parseOcrTable(rawText){
         const sequence =
             String(match[2]).padStart(4,"0");
 
-        let partNumber =
+        const rawPartText =
             match[3]
                 .replace(/\b\d{6}\b/g,"")
-                .replace(/\bCL\d\b/g,"")
-                .replace(/\bRM\d\b/g,"")
-                .replace(/\bBU\d\b/g,"")
+                .replace(/\bCL\d\b/gi,"")
+                .replace(/\bRM\d\b/gi,"")
+                .replace(/\bBU\d\b/gi,"")
                 .replace(/\bTOTAL\b/gi,"")
                 .replace(/\bPIEZAS\b/gi,"")
                 .replace(/\s+/g," ")
                 .trim();
 
+        const indexMatch =
+            rawPartText.match(/\b\d{3}(?:\s?[A-Z])?\b/);
+
+        const partIndex =
+            indexMatch
+                ? indexMatch[0].replace(/\s+/g," ").trim()
+                : "OCR";
+
         if(
             position < 1 ||
             position > 99 ||
-            partNumber.length < 6
+            !sequence
         ){
             return;
         }
@@ -1646,7 +1656,7 @@ function parseOcrTable(rawText){
         rows.push({
             position,
             sequence,
-            partNumber
+            partNumber:partIndex
         });
 
     });
@@ -1799,7 +1809,7 @@ const componentName =
                 <tr>
                     <th>Pos.</th>
                     <th>Sec.</th>
-                    <th>Núm. Parte</th>
+                    <th>Índice</th>
                 </tr>
             </thead>
             <tbody>
@@ -2138,7 +2148,7 @@ function buildRandomValidation(container){
         type:"partNumber",
         answer:item.partNumber,
         html:`
-            <label><b>¿Qué número de parte corresponde a la secuencia ${item.sequence}?</b></label>
+            <label><b>¿Qué índice corresponde a la secuencia ${item.sequence}?</b></label>
             <select id="consumeValidationInput">
                 <option value="">Selecciona...</option>
                 ${options.map(option=>`
