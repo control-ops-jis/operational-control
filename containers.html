@@ -601,7 +601,7 @@ textarea{
 </div>
     
 <div class="app-version">
-    DHL Operational Control · Containers Beta · V.2.7.5
+    DHL Operational Control · Containers Beta · V.2.7.6
 </div>
 
 <div class="toast" id="toast">Listo</div>
@@ -657,7 +657,9 @@ let pendingCreateData = null;
 let ocrImage = null;
 let cropStart = null;
 let cropEnd = null;
-let cropCanvasReady = false;    
+let cropCanvasReady = false;
+let activeCropHandle = null;
+let cropBox = null;
 
 const savedUser =
     localStorage.getItem("operationalUser");
@@ -1499,6 +1501,8 @@ window.closeCropModal = function(){
 
     cropStart = null;
     cropEnd = null;
+    activeCropHandle = null;
+    cropBox = null;
     cropCanvasReady = false;
 
 };
@@ -1531,12 +1535,7 @@ function redrawCropCanvas(){
     const ctx =
         canvas.getContext("2d");
 
-    ctx.clearRect(
-        0,
-        0,
-        canvas.width,
-        canvas.height
-    );
+    ctx.clearRect(0,0,canvas.width,canvas.height);
 
     ctx.drawImage(
         ocrImage,
@@ -1546,72 +1545,256 @@ function redrawCropCanvas(){
         canvas.height
     );
 
-    if(!cropStart || !cropEnd){
+    if(!cropBox){
         return;
     }
 
-    const x =
-        Math.min(cropStart.x,cropEnd.x);
+    ctx.fillStyle = "rgba(0,0,0,.35)";
+    ctx.fillRect(0,0,canvas.width,canvas.height);
 
-    const y =
-        Math.min(cropStart.y,cropEnd.y);
+    ctx.clearRect(
+        cropBox.x,
+        cropBox.y,
+        cropBox.w,
+        cropBox.h
+    );
 
-    const w =
-        Math.abs(cropEnd.x-cropStart.x);
-
-    const h =
-        Math.abs(cropEnd.y-cropStart.y);
+    ctx.drawImage(
+        ocrImage,
+        cropBox.x,
+        cropBox.y,
+        cropBox.w,
+        cropBox.h,
+        cropBox.x,
+        cropBox.y,
+        cropBox.w,
+        cropBox.h
+    );
 
     ctx.lineWidth = 3;
     ctx.strokeStyle = "#D40511";
-    ctx.strokeRect(x,y,w,h);
+    ctx.strokeRect(
+        cropBox.x,
+        cropBox.y,
+        cropBox.w,
+        cropBox.h
+    );
 
-} 
+    drawCropHandle(cropBox.x,cropBox.y);
+    drawCropHandle(cropBox.x + cropBox.w,cropBox.y);
+    drawCropHandle(cropBox.x,cropBox.y + cropBox.h);
+    drawCropHandle(cropBox.x + cropBox.w,cropBox.y + cropBox.h);
+
+}
+
+function drawCropHandle(x,y){
+
+    const canvas =
+        document.getElementById("ocrCanvas");
+
+    const ctx =
+        canvas.getContext("2d");
+
+    ctx.beginPath();
+    ctx.arc(x,y,9,0,Math.PI*2);
+    ctx.fillStyle = "white";
+    ctx.fill();
+    ctx.lineWidth = 2;
+    ctx.strokeStyle = "#D40511";
+    ctx.stroke();
+
+}
+
+function getCropHandle(point){
+
+    if(!cropBox){
+        return null;
+    }
+
+    const handles = [
+        {name:"tl",x:cropBox.x,y:cropBox.y},
+        {name:"tr",x:cropBox.x+cropBox.w,y:cropBox.y},
+        {name:"bl",x:cropBox.x,y:cropBox.y+cropBox.h},
+        {name:"br",x:cropBox.x+cropBox.w,y:cropBox.y+cropBox.h}
+    ];
+
+    return handles.find(handle=>
+        Math.abs(point.x-handle.x) <= 22 &&
+        Math.abs(point.y-handle.y) <= 22
+    )?.name || null;
+
+}
+
+function updateCropBoxFromHandle(point){
+
+    if(!cropBox || !activeCropHandle){
+        return;
+    }
+
+    let left = cropBox.x;
+    let top = cropBox.y;
+    let right = cropBox.x + cropBox.w;
+    let bottom = cropBox.y + cropBox.h;
+
+    if(activeCropHandle.includes("t")){
+        top = point.y;
+    }
+
+    if(activeCropHandle.includes("b")){
+        bottom = point.y;
+    }
+
+    if(activeCropHandle.includes("l")){
+        left = point.x;
+    }
+
+    if(activeCropHandle.includes("r")){
+        right = point.x;
+    }
+
+    cropBox = {
+        x:Math.min(left,right),
+        y:Math.min(top,bottom),
+        w:Math.abs(right-left),
+        h:Math.abs(bottom-top)
+    };
+
+}    
 
 const ocrCanvas =
     document.getElementById("ocrCanvas");
 
-ocrCanvas.addEventListener("mousedown",event=>{
-    if(!cropCanvasReady){ return; }
-    cropStart = getCanvasPoint(event);
-    cropEnd = cropStart;
-    redrawCropCanvas();
-});
-
-ocrCanvas.addEventListener("mousemove",event=>{
-    if(!cropStart){ return; }
-    cropEnd = getCanvasPoint(event);
-    redrawCropCanvas();
-});
-
-ocrCanvas.addEventListener("mouseup",event=>{
-    cropEnd = getCanvasPoint(event);
-    redrawCropCanvas();
-});
-
 ocrCanvas.addEventListener("touchstart",event=>{
     event.preventDefault();
-    if(!cropCanvasReady){ return; }
-    cropStart = getCanvasPoint(event);
-    cropEnd = cropStart;
+
+    if(!cropCanvasReady){
+        return;
+    }
+
+    const point =
+        getCanvasPoint(event);
+
+    activeCropHandle =
+        getCropHandle(point);
+
+    if(!activeCropHandle){
+        cropStart = point;
+        cropEnd = point;
+        cropBox = null;
+    }
+
     redrawCropCanvas();
+
 },{passive:false});
 
 ocrCanvas.addEventListener("touchmove",event=>{
     event.preventDefault();
-    if(!cropStart){ return; }
-    cropEnd = getCanvasPoint(event);
+
+    if(!cropCanvasReady){
+        return;
+    }
+
+    const point =
+        getCanvasPoint(event);
+
+    if(activeCropHandle){
+        updateCropBoxFromHandle(point);
+        redrawCropCanvas();
+        return;
+    }
+
+    if(!cropStart){
+        return;
+    }
+
+    cropEnd = point;
+
+    cropBox = {
+        x:Math.min(cropStart.x,cropEnd.x),
+        y:Math.min(cropStart.y,cropEnd.y),
+        w:Math.abs(cropEnd.x-cropStart.x),
+        h:Math.abs(cropEnd.y-cropStart.y)
+    };
+
     redrawCropCanvas();
+
 },{passive:false});
 
 ocrCanvas.addEventListener("touchend",event=>{
     event.preventDefault();
-    redrawCropCanvas();
+
+    activeCropHandle = null;
+    cropStart = null;
+    cropEnd = null;
+
 },{passive:false});
 
+ocrCanvas.addEventListener("mousedown",event=>{
+
+    if(!cropCanvasReady){
+        return;
+    }
+
+    const point =
+        getCanvasPoint(event);
+
+    activeCropHandle =
+        getCropHandle(point);
+
+    if(!activeCropHandle){
+        cropStart = point;
+        cropEnd = point;
+        cropBox = null;
+    }
+
+    redrawCropCanvas();
+
+});
+
+ocrCanvas.addEventListener("mousemove",event=>{
+
+    if(!cropCanvasReady){
+        return;
+    }
+
+    const point =
+        getCanvasPoint(event);
+
+    if(activeCropHandle){
+        updateCropBoxFromHandle(point);
+        redrawCropCanvas();
+        return;
+    }
+
+    if(!cropStart){
+        return;
+    }
+
+    cropEnd = point;
+
+    cropBox = {
+        x:Math.min(cropStart.x,cropEnd.x),
+        y:Math.min(cropStart.y,cropEnd.y),
+        w:Math.abs(cropEnd.x-cropStart.x),
+        h:Math.abs(cropEnd.y-cropStart.y)
+    };
+
+    redrawCropCanvas();
+
+});
+
+ocrCanvas.addEventListener("mouseup",event=>{
+
+    activeCropHandle = null;
+    cropStart = null;
+    cropEnd = null;
+
+});
+
+    
 window.processSelectedCrop = async function(){
 
-    if(!cropStart || !cropEnd){
+   if(!cropBox){
         showToast("Selecciona el área de la tabla");
         return;
     }
@@ -1619,17 +1802,10 @@ window.processSelectedCrop = async function(){
     const canvas =
         document.getElementById("ocrCanvas");
 
-    const x =
-        Math.min(cropStart.x,cropEnd.x);
-
-    const y =
-        Math.min(cropStart.y,cropEnd.y);
-
-    const w =
-        Math.abs(cropEnd.x-cropStart.x);
-
-    const h =
-        Math.abs(cropEnd.y-cropStart.y);
+    const x = cropBox.x;
+    const y = cropBox.y;
+    const w = cropBox.w;
+    const h = cropBox.h;
 
     if(w < 50 || h < 50){
         showToast("Área seleccionada muy pequeña");
