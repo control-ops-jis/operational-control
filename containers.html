@@ -601,7 +601,7 @@ textarea{
 </div>
     
 <div class="app-version">
-    DHL Operational Control · Containers Beta · V.2.7.6
+    DHL Operational Control · Containers Beta · V.2.7.7
 </div>
 
 <div class="toast" id="toast">Listo</div>
@@ -1354,7 +1354,7 @@ window.processOcrImage = async function(event){
 
         originalImage.onload = function(){
 
-            const maxWidth = 900;
+            const maxWidth = 700;
 
             const scale =
                 Math.min(
@@ -1453,7 +1453,7 @@ function openCropModal(){
         return;
     }
 
-    const maxWidth = 900;
+    const maxWidth = 700;
 
     const scale =
         Math.min(
@@ -1821,7 +1821,7 @@ window.processSelectedCrop = async function(){
     const cropCtx =
         cropCanvas.getContext("2d");
 
-    const scaleFactor = 2;
+    const scaleFactor = 1;
 
 cropCanvas.width = w * scaleFactor;
 cropCanvas.height = h * scaleFactor;
