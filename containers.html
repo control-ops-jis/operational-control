@@ -80,8 +80,8 @@ header h1{
 .materials-grid,
 .containers-grid{
     display:grid;
-    grid-template-columns:repeat(auto-fit,minmax(180px,1fr));
-    gap:14px;
+    grid-template-columns:repeat(auto-fit,minmax(160px,1fr));
+    gap:12px;
 }
 
 .material-btn,
@@ -315,6 +315,26 @@ textarea{
     .compact-position input{
         max-width:74px;
     }
+
+    .materials-grid{
+    grid-template-columns:repeat(2,1fr);
+    gap:10px;
+}
+
+    .material-btn{
+    padding:14px 12px;
+    min-height:92px;
+    border-radius:16px;
+}
+
+    .material-btn span{
+    font-size:11px;
+}
+
+    .container-btn{
+    padding:18px;
+}
+    
 }
 </style>
 </head>
@@ -683,6 +703,12 @@ window.selectMaterial = async function(materialId){
         : "none";
 
     await loadContainers();
+
+    document.getElementById("containersPanel")
+    .scrollIntoView({
+        behavior:"smooth",
+        block:"start"
+    });
 
 };
 
@@ -1190,7 +1216,7 @@ window.previewContainer = function(){
         }
 
         const calculatedCount =
-    Number(lastSequence) - Number(firstSequence);
+    (Number(lastSequence) - Number(firstSequence)) + 1;
 
 if(calculatedCount <= 0){
     showToast("La secuencia final debe ser mayor a la inicial");
@@ -1277,7 +1303,7 @@ const componentName =
             Componente: <b>${componentName || "Familia completa"}</b><br>
             Primera secuencia: <b>${first.sequence}</b><br>
             Última secuencia: <b>${last.sequence}</b><br>
-            Total: <b>${parsedSequences.length}</b>
+            Cantidad calculada: <b>${last.position}</b>
         </p>
 
         <table class="summary-table">
@@ -1410,7 +1436,8 @@ window.confirmCreateContainer = async function(){
 
             firstSequence:first.sequence,
             lastSequence:last.sequence,
-            sequenceCount:Number(last.sequence) - Number(first.sequence),
+            sequenceCount:
+            (Number(last.sequence) - Number(first.sequence)) + 1,
             sequences:parsedSequences,
 
             createdBy:currentUser.employeeId,
