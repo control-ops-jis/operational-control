@@ -615,7 +615,7 @@ textarea{
 </div>
     
 <div class="app-version">
-    DHL Operational Control · Containers Beta · V.2.7.3
+    DHL Operational Control · Containers Beta · V.2.7.4
 </div>
 
 <div class="toast" id="toast">Listo</div>
@@ -1346,7 +1346,7 @@ window.processOcrImage = async function(event){
 
         originalImage.onload = function(){
 
-            const maxWidth = 1200;
+            const maxWidth = 900;
 
             const scale =
                 Math.min(
@@ -1639,7 +1639,7 @@ window.processSelectedCrop = async function(){
     const cropCtx =
         cropCanvas.getContext("2d");
 
-    const scaleFactor = 3;
+    const scaleFactor = 2;
 
 cropCanvas.width = w * scaleFactor;
 cropCanvas.height = h * scaleFactor;
@@ -1698,10 +1698,11 @@ cropCtx.putImageData(
 
         const result =
             await Tesseract.recognize(
-                cropCanvas,
-                "eng",
-                {
-                    logger:m=>{
+    cropCanvas,
+    "eng",
+    {
+        tessedit_char_whitelist:"0123456789 ",
+        logger:m=>{
                         if(m.status){
                             status.innerText =
                                 `OCR: ${m.status}`;
@@ -1764,7 +1765,7 @@ function parseOcrTable(rawText){
             )
             .filter(line=>line);
 
-    let rows = [];
+    let candidates = [];
 
     lines.forEach(line=>{
 
@@ -1775,47 +1776,98 @@ function parseOcrTable(rawText){
             return;
         }
 
-        for(let i=0;i<numbers.length-1;i++){
+        const position =
+            Number(numbers[0]);
 
-            const possiblePosition =
-                Number(numbers[i]);
-
-            const possibleSequence =
-                String(numbers[i+1]).padStart(4,"0");
-
-            if(
-                possiblePosition >= 1 &&
-                possiblePosition <= 999 &&
-                /^\d{4}$/.test(possibleSequence) &&
-                possibleSequence !== "0000"
-            ){
-                rows.push({
-                    position:possiblePosition,
-                    sequence:possibleSequence,
-                    partNumber:""
-                });
-
-                break;
-            }
-
+        if(
+            position < 1 ||
+            position > 999
+        ){
+            return;
         }
+
+        const possibleSequences =
+            numbers
+                .slice(1)
+                .map(num=>String(num).padStart(4,"0"))
+                .filter(num=>
+                    /^\d{4}$/.test(num) &&
+                    num !== "0000"
+                );
+
+        possibleSequences.forEach(sequence=>{
+
+            candidates.push({
+                position,
+                sequence,
+                partNumber:""
+            });
+
+        });
 
     });
 
-    rows =
-        rows
+    if(candidates.length===0){
+        return [];
+    }
+
+    const groups = {};
+
+    candidates.forEach(item=>{
+
+        const key =
+            item.sequence.substring(0,1);
+
+        if(!groups[key]){
+            groups[key] = [];
+        }
+
+        groups[key].push(item);
+
+    });
+
+    const dominantGroup =
+        Object.values(groups)
+            .sort((a,b)=>b.length-a.length)[0] || [];
+
+    let rows =
+        dominantGroup
             .filter((row,index,self)=>
                 index === self.findIndex(x=>
-                    x.position === row.position &&
-                    x.sequence === row.sequence
+                    x.position === row.position
                 )
             )
             .sort((a,b)=>a.position-b.position);
 
+    rows =
+        rows.filter((row,index,array)=>{
+
+            if(array.length < 3){
+                return true;
+            }
+
+            const seq =
+                Number(row.sequence);
+
+            const allSeq =
+                array.map(x=>Number(x.sequence));
+
+            const min =
+                Math.min(...allSeq);
+
+            const max =
+                Math.max(...allSeq);
+
+            return (
+                seq >= min &&
+                seq <= max
+            );
+
+        });
+
     return rows;
 
-}   
-
+}
 window.previewContainer = function(){
 
     if(captureMode==="ocr"){
