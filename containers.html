@@ -530,6 +530,32 @@ textarea{
     </div>
 </div>
 
+<div class="app-modal" id="zlConfirmModal">
+    <div class="modal-card">
+        <div class="modal-header">
+            <h2>Confirmar contenedor</h2>
+            <button class="close-btn" onclick="closeZlConfirmModal()">X</button>
+        </div>
+
+        <p id="zlConfirmText"></p>
+
+        <div class="form-group">
+            <label>Última secuencia</label>
+            <input
+                id="zlConfirmInput"
+                maxlength="4"
+                inputmode="numeric"
+                placeholder="Ingresa última secuencia"
+            >
+        </div>
+
+        <div class="form-actions">
+            <button class="secondary-btn" onclick="closeZlConfirmModal()">Cancelar</button>
+            <button class="primary-btn" onclick="executeZlConfirm()">Confirmar</button>
+        </div>
+    </div>
+</div>
+    
 <div class="toast" id="toast">Listo</div>
 
 <script type="module">
@@ -578,6 +604,7 @@ let selectedContainerGroup = [];
 let containersCache = [];
 let parsedSequences = [];
 let consumeValidation = null;
+let pendingCreateData = null;    
 
 const savedUser =
     localStorage.getItem("operationalUser");
@@ -824,13 +851,14 @@ function renderContainers(){
                 class="container-btn ${visualClass}"
                 onclick="openContainerAction('${container.groupKey}')"
             >
+                <span style="font-size:30px;font-weight:900;color:#111;">
                 ${container.containerId}
-                <span>${container.sequenceCount || 0} secuencias</span>
-                <span>Última: ${container.lastSequence || "-"}</span>
+                </span>
+                <span>${container.sequenceCount || 0} piezas</span>
                 <span>
                     ${
                         currentUser.area==="PU" && isSuggested
-                        ? "Sugerido"
+                        ? ""
                         : "Disponible"
                     }
                 </span>
@@ -1402,54 +1430,30 @@ window.confirmCreateContainer = async function(){
     const last =
         parsedSequences[parsedSequences.length-1];
 
-    const validation =
-        prompt(`Confirma la última secuencia del contenedor ${containerId}`);
+    pendingCreateData = {
+    containerId,
+    selectedComponentName,
+    componentsToCreate,
+    isMassive,
+    first,
+    last
+};
 
-    const cleanValidation =
-        String(validation || "")
-            .trim()
-            .padStart(4,"0");
+document.getElementById("zlConfirmText").innerHTML =
+    `Confirma la última secuencia del contenedor <b>${containerId}</b>`;
 
-    if(cleanValidation !== last.sequence){
-        showToast("Validación incorrecta");
-        return;
-    }
+document.getElementById("zlConfirmInput").value = "";
 
+document.getElementById("zlConfirmModal").style.display =
+    "flex";
+
+return;
+
+    
     const first =
         parsedSequences[0];
 
-    for(const componentName of componentsToCreate){
-
-        const containerData = {
-            containerId,
-            componentName,
-            materialId:selectedMaterial.id,
-            materialName:selectedMaterial.name,
-            supplierId:selectedMaterial.supplierId || "",
-            supplierName:selectedMaterial.supplierName || "",
-            warehouseId:selectedMaterial.warehouseId,
-            warehouseName:selectedMaterial.warehouseName || "",
-
-            status:"available",
-            captureMode:captureMode || "manual",
-            creationMode:isMassive ? "massive" : "individual",
-
-            firstSequence:first.sequence,
-            lastSequence:last.sequence,
-            sequenceCount:
-            (Number(last.sequence) - Number(first.sequence)) + 1,
-            sequences:parsedSequences,
-
-            createdBy:currentUser.employeeId,
-            createdByName:currentUser.name,
-            createdAt:serverTimestamp(),
-
-            consumedBy:null,
-            consumedByName:null,
-            consumedAt:null,
-
-            version:1,
-            active:true
+    await savePendingContainer();
         };
 
         await addDoc(
@@ -1500,6 +1504,134 @@ window.confirmCreateContainer = async function(){
 
 };
 
+window.closeZlConfirmModal = function(){
+
+    document.getElementById("zlConfirmModal").style.display =
+        "none";
+
+    pendingCreateData = null;
+
+};
+
+window.executeZlConfirm = async function(){
+
+    if(!pendingCreateData){
+        return;
+    }
+
+    const input =
+        document.getElementById("zlConfirmInput");
+
+    const cleanValidation =
+        String(input.value || "")
+            .trim()
+            .padStart(4,"0");
+
+    if(cleanValidation !== pendingCreateData.last.sequence){
+        showToast("Validación incorrecta");
+        return;
+    }
+
+    await savePendingContainer();
+
+};
+
+async function savePendingContainer(){
+
+    const {
+        containerId,
+        selectedComponentName,
+        componentsToCreate,
+        isMassive,
+        first,
+        last
+    } = pendingCreateData;
+
+    for(const componentName of componentsToCreate){
+
+        const containerData = {
+            containerId,
+            componentName,
+            materialId:selectedMaterial.id,
+            materialName:selectedMaterial.name,
+            supplierId:selectedMaterial.supplierId || "",
+            supplierName:selectedMaterial.supplierName || "",
+            warehouseId:selectedMaterial.warehouseId,
+            warehouseName:selectedMaterial.warehouseName || "",
+
+            status:"available",
+            captureMode:captureMode || "manual",
+            creationMode:isMassive ? "massive" : "individual",
+
+            firstSequence:first.sequence,
+            lastSequence:last.sequence,
+            sequenceCount:
+                (Number(last.sequence) - Number(first.sequence)) + 1,
+            sequences:parsedSequences,
+
+            createdBy:currentUser.employeeId,
+            createdByName:currentUser.name,
+            createdAt:serverTimestamp(),
+
+            consumedBy:null,
+            consumedByName:null,
+            consumedAt:null,
+
+            version:1,
+            active:true
+        };
+
+        await addDoc(
+            collection(db,"containers"),
+            containerData
+        );
+
+    }
+
+    await setDoc(
+        doc(
+            db,
+            "latestCaptures",
+            `${selectedMaterial.id}_ZL`
+        ),
+        {
+            materialId:selectedMaterial.id,
+            materialName:selectedMaterial.name,
+            warehouseId:selectedMaterial.warehouseId,
+            warehouseName:selectedMaterial.warehouseName,
+            supplierId:selectedMaterial.supplierId || "",
+            supplierName:selectedMaterial.supplierName || "",
+            area:"ZL",
+            sequence:Number(last.sequence),
+            controlTime:selectedMaterial.controlTime,
+            capturedBy:currentUser.employeeId,
+            capturedByName:currentUser.name,
+            shift:getCurrentShift(),
+            source:"container",
+            captureMode:captureMode || "manual",
+            containerId,
+            componentName:isMassive ? "Paquete completo" : selectedComponentName,
+            createdAt:serverTimestamp(),
+            updatedAt:serverTimestamp(),
+            active:true
+        }
+    );
+
+    closeZlConfirmModal();
+    closeCreateModal();
+
+    pendingCreateData = null;
+
+    await loadContainers();
+
+    showToast(
+        isMassive
+        ? "Paquete de subfamilias creado"
+        : "Contenedor creado"
+    );
+
+}    
+
 window.openContainerAction = function(groupKey){
 
     selectedContainerGroup =
@@ -1535,13 +1667,13 @@ window.openContainerAction = function(groupKey){
 function openConsumeModal(){
 
     document.getElementById("consumeTitle").innerText =
-        `Consumir contenedor ${selectedContainer.containerId}`;
+    `Mover contenedor ${selectedContainer.containerId} a PU`;
 
-    document.getElementById("consumeInfo").innerHTML = `
+document.getElementById("consumeInfo").innerHTML = `
     <p>
         Familia: <b>${selectedContainer.materialName}</b><br>
-        Secuencias: <b>${selectedContainer.sequenceCount}</b><br>
-        Última secuencia: <b>${selectedContainer.lastSequence}</b>
+        Contenedor: <b>${selectedContainer.containerId}</b><br>
+        Piezas: <b>${selectedContainer.sequenceCount}</b>
     </p>
 `;
 
