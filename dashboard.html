@@ -164,20 +164,21 @@ header{
 
 .dashboard-grid{
     display:grid;
-    grid-template-columns:repeat(auto-fit,minmax(250px,1fr));
-    gap:14px;
+    grid-template-columns:repeat(auto-fit,minmax(160px,1fr));
+    gap:12px;
 }
 
 .material-card{
     background:white;
     border:none;
     width:100%;
-    border-radius:20px;
-    padding:16px;
+    border-radius:18px;
+    padding:16px 14px;
     text-align:left;
     box-shadow:0 4px 14px rgba(0,0,0,.08);
     border-left:8px solid #ccc;
     cursor:pointer;
+    min-height:150px;
 }
 
 .material-card.critical{
@@ -591,12 +592,45 @@ th:first-child{
     }
 
     .dashboard-grid{
-        grid-template-columns:1fr;
+    grid-template-columns:repeat(2,1fr);
+    gap:10px;
     }
 
     .material-card{
-        padding:14px;
-    }
+    padding:14px 12px;
+    min-height:150px;
+    border-radius:16px;
+}
+
+.material-card h3{
+    font-size:13px;
+}
+
+.material-card small{
+    font-size:10px;
+}
+
+.material-line{
+    gap:6px;
+    margin-top:10px;
+}
+
+.mini-box{
+    padding:8px 4px;
+}
+
+.mini-box span{
+    font-size:10px;
+}
+
+.mini-box strong{
+    font-size:16px;
+}
+
+.coverage-box{
+    padding:9px 6px;
+    font-size:12px;
+}
 
     .panel h2{
         font-size:22px;
