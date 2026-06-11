@@ -1307,69 +1307,110 @@ window.processOcrImage = async function(event){
     const file =
         event.target.files[0];
 
+    const status =
+        document.getElementById("ocrStatus");
+
     if(!file){
+        status.innerText =
+            "No se recibió imagen.";
         return;
     }
 
-    const imageUrl =
-        URL.createObjectURL(file);
+    status.innerText =
+        "Preparando imagen...";
 
-    const originalImage =
-        new Image();
+    const reader =
+        new FileReader();
 
-    originalImage.onload = function(){
+    reader.onload = function(loadEvent){
 
-        const maxWidth = 1200;
-
-        const scale =
-            Math.min(
-                1,
-                maxWidth / originalImage.width
-            );
-
-        const resizedCanvas =
-            document.createElement("canvas");
-
-        resizedCanvas.width =
-            Math.round(originalImage.width * scale);
-
-        resizedCanvas.height =
-            Math.round(originalImage.height * scale);
-
-        const resizedCtx =
-            resizedCanvas.getContext("2d");
-
-        resizedCtx.drawImage(
-            originalImage,
-            0,
-            0,
-            resizedCanvas.width,
-            resizedCanvas.height
-        );
-
-        ocrImage =
+        const originalImage =
             new Image();
 
-        ocrImage.onload = function(){
+        originalImage.onload = function(){
 
-            openCropModal();
+            const maxWidth = 1200;
 
-            URL.revokeObjectURL(imageUrl);
+            const scale =
+                Math.min(
+                    1,
+                    maxWidth / originalImage.width
+                );
+
+            const resizedCanvas =
+                document.createElement("canvas");
+
+            resizedCanvas.width =
+                Math.round(originalImage.width * scale);
+
+            resizedCanvas.height =
+                Math.round(originalImage.height * scale);
+
+            const resizedCtx =
+                resizedCanvas.getContext("2d");
+
+            resizedCtx.drawImage(
+                originalImage,
+                0,
+                0,
+                resizedCanvas.width,
+                resizedCanvas.height
+            );
+
+            ocrImage =
+                new Image();
+
+            ocrImage.onload = function(){
+
+                status.innerText =
+                    "Imagen lista. Selecciona la tabla.";
+
+                openCropModal();
+
+            };
+
+            ocrImage.onerror = function(){
+
+                status.innerText =
+                    "No se pudo cargar la imagen reducida.";
+
+                showToast("Error al preparar imagen");
+
+            };
+
+            ocrImage.src =
+                resizedCanvas.toDataURL("image/jpeg",0.85);
 
         };
 
-        ocrImage.src =
-            resizedCanvas.toDataURL("image/jpeg",0.85);
+        originalImage.onerror = function(){
+
+            status.innerText =
+                "No se pudo leer la foto tomada.";
+
+            showToast("Error al leer foto");
+
+        };
+
+        originalImage.src =
+            loadEvent.target.result;
 
     };
 
-    originalImage.src =
-        imageUrl;
+    reader.onerror = function(){
+
+        status.innerText =
+            "Error al cargar archivo de imagen.";
+
+        showToast("Error al cargar imagen");
+
+    };
+
+    reader.readAsDataURL(file);
 
     event.target.value = "";
 
 };
-
 window.closeCropModal = function(){
 
     document.getElementById("cropModal").style.display =
