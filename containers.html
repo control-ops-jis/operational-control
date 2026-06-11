@@ -451,7 +451,7 @@ textarea{
 <button
     type="button"
     class="primary-btn"
-    onclick="document.getElementById('ocrImageInput').click()"
+    onclick="openOcrCamera()"
 >
     📷 Leer etiqueta
 </button>
@@ -586,7 +586,7 @@ textarea{
         </div>
 
         <p class="help">
-            Marca con el dedo solo la tabla de posiciones, secuencias y números de parte.
+            Marca desde Posición hasta Número de parte. Puedes volver a arrastrar el cuadro si no queda bien antes de leer.
         </p>
 
         <canvas
@@ -1285,6 +1285,23 @@ window.mockOcrRead = function(){
 
 };
 
+window.openOcrCamera = function(){
+
+    localStorage.setItem(
+        "containerOcrDraft",
+        JSON.stringify({
+            materialId:selectedMaterial ? selectedMaterial.id : "",
+            containerId:document.getElementById("containerIdInput").value || "",
+            componentName:document.getElementById("componentInput").value || "",
+            captureMode:"ocr",
+            savedAt:new Date().toISOString()
+        })
+    );
+
+    document.getElementById("ocrImageInput").click();
+
+};
+    
 window.processOcrImage = async function(event){
 
     const file =
@@ -1297,75 +1314,61 @@ window.processOcrImage = async function(event){
     const imageUrl =
         URL.createObjectURL(file);
 
-    ocrImage =
+    const originalImage =
         new Image();
 
-    ocrImage.onload = function(){
+    originalImage.onload = function(){
 
-        openCropModal();
+        const maxWidth = 1200;
 
-        URL.revokeObjectURL(imageUrl);
+        const scale =
+            Math.min(
+                1,
+                maxWidth / originalImage.width
+            );
+
+        const resizedCanvas =
+            document.createElement("canvas");
+
+        resizedCanvas.width =
+            Math.round(originalImage.width * scale);
+
+        resizedCanvas.height =
+            Math.round(originalImage.height * scale);
+
+        const resizedCtx =
+            resizedCanvas.getContext("2d");
+
+        resizedCtx.drawImage(
+            originalImage,
+            0,
+            0,
+            resizedCanvas.width,
+            resizedCanvas.height
+        );
+
+        ocrImage =
+            new Image();
+
+        ocrImage.onload = function(){
+
+            openCropModal();
+
+            URL.revokeObjectURL(imageUrl);
+
+        };
+
+        ocrImage.src =
+            resizedCanvas.toDataURL("image/jpeg",0.85);
 
     };
 
-    ocrImage.src =
+    originalImage.src =
         imageUrl;
 
     event.target.value = "";
 
 };
-
-function openCropModal(){
-
-    const modal =
-        document.getElementById("cropModal");
-
-    const canvas =
-        document.getElementById("ocrCanvas");
-
-    const ctx =
-        canvas.getContext("2d");
-
-    const maxWidth = 900;
-
-    const scale =
-        Math.min(
-            1,
-            maxWidth / ocrImage.width
-        );
-
-    canvas.width =
-        ocrImage.width * scale;
-
-    canvas.height =
-        ocrImage.height * scale;
-
-    canvas.dataset.scale =
-        scale;
-
-    ctx.clearRect(
-        0,
-        0,
-        canvas.width,
-        canvas.height
-    );
-
-    ctx.drawImage(
-        ocrImage,
-        0,
-        0,
-        canvas.width,
-        canvas.height
-    );
-
-    cropStart = null;
-    cropEnd = null;
-    cropCanvasReady = true;
-
-    modal.style.display =
-        "flex";
-
-}
 
 window.closeCropModal = function(){
 
