@@ -270,6 +270,19 @@ textarea{
     cursor:pointer;
 }
 
+.app-version{
+    position:fixed;
+    left:10px;
+    bottom:8px;
+    font-size:11px;
+    color:#777;
+    background:rgba(255,255,255,.85);
+    padding:4px 8px;
+    border-radius:10px;
+    z-index:500;
+    font-weight:bold;
+}
+    
 .toast{
     display:none;
     position:fixed;
@@ -601,6 +614,10 @@ textarea{
     </div>
 </div>
     
+<div class="app-version">
+    DHL Operational Control · Containers Beta · V.2.7.3
+</div>
+
 <div class="toast" id="toast">Listo</div>
 <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
     
@@ -1411,6 +1428,64 @@ window.processOcrImage = async function(event){
     event.target.value = "";
 
 };
+
+function openCropModal(){
+
+    const modal =
+        document.getElementById("cropModal");
+
+    const canvas =
+        document.getElementById("ocrCanvas");
+
+    const ctx =
+        canvas.getContext("2d");
+
+    if(!ocrImage){
+        showToast("Imagen OCR no disponible");
+        return;
+    }
+
+    const maxWidth = 900;
+
+    const scale =
+        Math.min(
+            1,
+            maxWidth / ocrImage.width
+        );
+
+    canvas.width =
+        Math.round(ocrImage.width * scale);
+
+    canvas.height =
+        Math.round(ocrImage.height * scale);
+
+    canvas.dataset.scale =
+        scale;
+
+    ctx.clearRect(
+        0,
+        0,
+        canvas.width,
+        canvas.height
+    );
+
+    ctx.drawImage(
+        ocrImage,
+        0,
+        0,
+        canvas.width,
+        canvas.height
+    );
+
+    cropStart = null;
+    cropEnd = null;
+    cropCanvasReady = true;
+
+    modal.style.display =
+        "flex";
+
+}
+    
 window.closeCropModal = function(){
 
     document.getElementById("cropModal").style.display =
