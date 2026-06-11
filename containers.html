@@ -1520,18 +1520,55 @@ window.processSelectedCrop = async function(){
     const cropCtx =
         cropCanvas.getContext("2d");
 
-    cropCtx.drawImage(
-        canvas,
-        x,
-        y,
-        w,
-        h,
+    const scaleFactor = 3;
+
+cropCanvas.width = w * scaleFactor;
+cropCanvas.height = h * scaleFactor;
+
+cropCtx.drawImage(
+    canvas,
+    x,
+    y,
+    w,
+    h,
+    0,
+    0,
+    cropCanvas.width,
+    cropCanvas.height
+);
+
+const imageData =
+    cropCtx.getImageData(
         0,
         0,
-        w,
-        h
+        cropCanvas.width,
+        cropCanvas.height
     );
 
+const data =
+    imageData.data;
+
+for(let i=0;i<data.length;i+=4){
+
+    const gray =
+        data[i] * 0.299 +
+        data[i+1] * 0.587 +
+        data[i+2] * 0.114;
+
+    const value =
+        gray > 150 ? 255 : 0;
+
+    data[i] = value;
+    data[i+1] = value;
+    data[i+2] = value;
+
+}
+
+cropCtx.putImageData(
+    imageData,
+    0,
+    0
+);
     const status =
         document.getElementById("ocrStatus");
 
@@ -1602,8 +1639,7 @@ function parseOcrTable(rawText){
             .map(line=>
                 line
                     .replace(/\|/g," ")
-                    .replace(/\[/g,"")
-                    .replace(/\]/g,"")
+                    .replace(/[^\d\s]/g," ")
                     .replace(/\s+/g," ")
                     .trim()
             )
@@ -1613,51 +1649,37 @@ function parseOcrTable(rawText){
 
     lines.forEach(line=>{
 
-        const match =
-            line.match(/^0?(\d{1,2})\s+(\d{4})\s+(.+)$/);
+        const numbers =
+            line.match(/\b\d{1,4}\b/g) || [];
 
-        if(!match){
+        if(numbers.length < 2){
             return;
         }
 
-        const position =
-            Number(match[1]);
+        for(let i=0;i<numbers.length-1;i++){
 
-        const sequence =
-            String(match[2]).padStart(4,"0");
+            const possiblePosition =
+                Number(numbers[i]);
 
-        const rawPartText =
-            match[3]
-                .replace(/\b\d{6}\b/g,"")
-                .replace(/\bCL\d\b/gi,"")
-                .replace(/\bRM\d\b/gi,"")
-                .replace(/\bBU\d\b/gi,"")
-                .replace(/\bTOTAL\b/gi,"")
-                .replace(/\bPIEZAS\b/gi,"")
-                .replace(/\s+/g," ")
-                .trim();
+            const possibleSequence =
+                String(numbers[i+1]).padStart(4,"0");
 
-        const indexMatch =
-            rawPartText.match(/\b\d{3}(?:\s?[A-Z])?\b/);
+            if(
+                possiblePosition >= 1 &&
+                possiblePosition <= 999 &&
+                /^\d{4}$/.test(possibleSequence) &&
+                possibleSequence !== "0000"
+            ){
+                rows.push({
+                    position:possiblePosition,
+                    sequence:possibleSequence,
+                    partNumber:""
+                });
 
-        const partIndex =
-            indexMatch
-                ? indexMatch[0].replace(/\s+/g," ").trim()
-                : "OCR";
+                break;
+            }
 
-        if(
-            position < 1 ||
-            position > 99 ||
-            !sequence
-        ){
-            return;
         }
-
-        rows.push({
-            position,
-            sequence,
-            partNumber:partIndex
-        });
 
     });
 
