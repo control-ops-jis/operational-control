@@ -493,7 +493,7 @@ textarea{
     class="primary-btn"
     id="manualFallbackBtn"
     onclick="showManualFallback()"
-    style="display:none;"
+    style="display:block;"
 >
     Captura manual
 </button>
@@ -503,30 +503,10 @@ textarea{
     class="help"
     style="display:none;margin-top:10px;"
 >
-</div>
-
-
-       
+</div>       
            </div>
+         
 
-            
-<div id="ocrModeBox" class="summary-box" style="display:none;">
-    <strong>Captura segura ZL</strong>
-
-    <input
-        id="ocrImageInput"
-        type="file"
-        accept="image/*"
-        capture="environment"
-        style="display:none;"
-        onchange="processOcrImage(event)"
-    >
-
-    <div class="help" id="ocrStatus">
-        
-        Modo respaldo: captura manual solo si OCR no puede leer la etiqueta.
-        
-    </div>
 
     <div class="form-group compact-position">
         <label>Posición inicial confirmada</label>
@@ -652,12 +632,6 @@ textarea{
     </div>
 </div>
 
-<div class="app-modal" id="cropModal">
-    <div class="modal-card crop-card">
-        <div class="modal-header">
-            <h2>Selecciona tabla OCR</h2>
-            <button class="close-btn" onclick="closeCropModal()">X</button>
-        </div>
 
         <p class="help">
             Selecciona en un solo rectángulo la zona donde se vean Pos. y Sec. El OCR solo sugerirá inicial y final.
@@ -676,7 +650,7 @@ textarea{
 </div>
     
 <div class="app-version">
-    DHL Operational Control · Containers Beta · V.3.0.6.2
+    DHL Operational Control · Containers Beta · V.3.0.6.3
 </div>
 
 <div class="toast" id="toast">Listo</div>
@@ -723,7 +697,7 @@ const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
 const GOOGLE_VISION_API_KEY =
-    "AIzaSyBNzI24byutRAaopuJpsuMQ-I4onRlQTgE";
+    "AIzaSyDzotTyWQIP7a6R47f8lamYHHghuEMqANA";
 
 const VISION_USAGE_DOC_ID =
     "visionUsage";
@@ -1131,9 +1105,9 @@ if(safeLastSequenceInput){
     componentInput.value = "";
 
     
-       document.getElementById("ocrModeBox").style.display = "none";
-        document.getElementById("manualModeBox").style.display = "none";
-        document.getElementById("manualFallbackBtn").style.display = "none";
+           document.getElementById("ocrModeBox").style.display = "none";
+           document.getElementById("manualModeBox").style.display = "none";
+           document.getElementById("manualFallbackBtn").style.display = "block";
 
         createSummary.style.display = "none";
         createSummary.innerHTML = "";
@@ -1297,150 +1271,21 @@ window.startOcrFlow = function(){
     captureMode = "ocr";
 
     document.getElementById("ocrModeBox").style.display =
-        "block";
+        "none";
 
     document.getElementById("manualModeBox").style.display =
         "none";
 
-    document.getElementById("previewContainerBtn").style.display =
-        "none";
-    document.getElementById("safeFirstPosition").value = "1";
+    document.getElementById("manualFallbackBtn").style.display =
+        "block";
+
+    document.getElementById("visionStatusBox").style.display =
+        "block";
+
+    document.getElementById("visionStatusBox").innerText =
+        "Abriendo cámara...";
 
     openOcrCamera();
-
-};
-    
-window.showOcrMode = function(){
-
-    captureMode = "ocr";
-
-    document.getElementById("ocrModeBox").style.display =
-        "block";
-
-    document.getElementById("manualModeBox").style.display =
-        "none";
-
-};
-
-window.showManualMode = function(){
-
-    captureMode = "manual";
-
-    document.getElementById("ocrModeBox").style.display =
-        "none";
-
-    document.getElementById("manualModeBox").style.display =
-        "block";
-
-    document.getElementById("previewContainerBtn").style.display =
-        "block";
-
-};
-
-window.calculateManualPosition = function(){
-
-    const firstSequence =
-        document.getElementById("manualFirstSequence").value.trim();
-
-    const lastSequence =
-        document.getElementById("manualLastSequence").value.trim();
-
-    const lastPositionInput =
-        document.getElementById("manualLastPosition");
-
-    if(!firstSequence || !lastSequence){
-        lastPositionInput.value = "";
-        return;
-    }
-
-    const first =
-        Number(firstSequence);
-
-    const last =
-        Number(lastSequence);
-
-    if(
-        isNaN(first) ||
-        isNaN(last) ||
-        last < first
-    ){
-        lastPositionInput.value = "";
-        return;
-    }
-
-    lastPositionInput.value =
-        last - first;
-
-};    
-
-window.mockOcrRead = function(){
-
-    captureMode = "ocr";
-
-    parsedSequences = [
-        {
-            position:1,
-            sequence:"3081",
-            partNumber:"5QM 723 058 N"
-        },
-        {
-            position:2,
-            sequence:"3082",
-            partNumber:"5QV 723 058"
-        },
-        {
-            position:3,
-            sequence:"3083",
-            partNumber:"5QV 723 058 A"
-        },
-        {
-            position:4,
-            sequence:"3084",
-            partNumber:"5QV 723 058 B"
-        },
-        {
-            position:5,
-            sequence:"3085",
-            partNumber:"5QM 723 058 N"
-        },
-        {
-            position:6,
-            sequence:"3086",
-            partNumber:"5QV 723 058"
-        },
-        {
-            position:7,
-            sequence:"3087",
-            partNumber:"5QV 723 058 A"
-        },
-        {
-            position:8,
-            sequence:"3088",
-            partNumber:"5QV 723 058 B"
-        },
-        {
-            position:9,
-            sequence:"3089",
-            partNumber:"5QM 723 058 N"
-        },
-        {
-            position:10,
-            sequence:"3090",
-            partNumber:"5QV 723 058"
-        },
-        {
-            position:11,
-            sequence:"3091",
-            partNumber:"5QV 723 058 A"
-        },
-        {
-            position:12,
-            sequence:"3092",
-            partNumber:"5QV 723 058 B"
-        }
-    ];
-
-    renderCreateSummary();
 
 };
 
@@ -1541,76 +1386,12 @@ window.processOcrImage = async function(event){
         parsedSequences =
             parseVisionRows(result);
 
-        function parseSinglePieceLabelFromText(text){
-
-    const clean =
-        text
-            .replace(/\s+/g," ")
-            .trim();
-
-    const totalMatch =
-        clean.match(/TOTAL PIEZAS[:\s]+1/i);
-
-    if(!totalMatch){
-        return [];
-    }
-
-    const sequenceMatch =
-        clean.match(/\b\d{4}\b/);
-
-    const partMatch =
-        clean.match(/\b[A-Z0-9]{2,4}\s?\d{3}\s?\d{3}\s?[A-Z0-9]?(?:\s?[A-Z0-9]{2,4})?\b/i);
-
-    if(
-        !sequenceMatch ||
-        !partMatch
-    ){
-        return [];
-    }
-
-    return [
-        {
-            position:1,
-            sequence:sequenceMatch[0],
-            partNumber:partMatch[0]
-                .toUpperCase()
-                .replace(/\s+/g," ")
-                .trim(),
-            source:"google_vision_single_piece"
-        }
-    ];
-
-}
+        
 
         parsedSequences =
             validateVisionRows(parsedSequences);
 
-        function validateVisionRows(rows){
-
-    if(!rows || rows.length===0){
-        return [];
-    }
-
-    const cleanRows =
-        rows
-            .filter(row=>
-                row.position >= 1 &&
-                row.position <= 120 &&
-                /^\d{4}$/.test(row.sequence)
-            )
-            .sort((a,b)=>a.position-b.position);
-
-    const uniqueRows =
-        cleanRows.filter((row,index,self)=>
-            index === self.findIndex(item=>
-                item.position === row.position
-            )
-        );
-
-    return uniqueRows;
-
-}
-
+        
         await incrementVisionUsage(usage);
 
         if(parsedSequences.length === 0){
@@ -1661,238 +1442,6 @@ window.processOcrImage = async function(event){
     event.target.value = "";
 
 };
-function openCropModal(){
-
-    const modal =
-        document.getElementById("cropModal");
-
-    const canvas =
-        document.getElementById("ocrCanvas");
-
-    const ctx =
-        canvas.getContext("2d");
-
-    if(!ocrImage){
-        showToast("Imagen OCR no disponible");
-        return;
-    }
-
-    const maxWidth = 700;
-
-    const scale =
-        Math.min(
-            1,
-            maxWidth / ocrImage.width
-        );
-
-    canvas.width =
-        Math.round(ocrImage.width * scale);
-
-    canvas.height =
-        Math.round(ocrImage.height * scale);
-
-    canvas.dataset.scale =
-        scale;
-
-    ctx.clearRect(
-        0,
-        0,
-        canvas.width,
-        canvas.height
-    );
-
-    ctx.drawImage(
-        ocrImage,
-        0,
-        0,
-        canvas.width,
-        canvas.height
-    );
-
-    cropStart = null;
-    cropEnd = null;
-    activeCropHandle = null;
-    cropBox = null;
-    cropCanvasReady = true;
-
-    ocrStep = "safeRange";
-    ocrPositions = [];
-    ocrSequences = [];
-
-    document.querySelector("#cropModal h2").innerText =
-    "Selecciona Pos. y Sec.";
-
-    modal.style.display =
-        "flex";
-
-}
-    
-window.closeCropModal = function(){
-
-    document.getElementById("cropModal").style.display =
-        "none";
-
-    cropStart = null;
-    cropEnd = null;
-    activeCropHandle = null;
-    cropBox = null;
-    cropCanvasReady = false;
-
-};
-
-function getCanvasPoint(event){
-
-    const canvas =
-        document.getElementById("ocrCanvas");
-
-    const rect =
-        canvas.getBoundingClientRect();
-
-    const touch =
-        event.touches
-        ? event.touches[0]
-        : event;
-
-    return {
-        x:(touch.clientX - rect.left) * (canvas.width / rect.width),
-        y:(touch.clientY - rect.top) * (canvas.height / rect.height)
-    };
-
-}
-
-function redrawCropCanvas(){
-
-    const canvas =
-        document.getElementById("ocrCanvas");
-
-    const ctx =
-        canvas.getContext("2d");
-
-    ctx.clearRect(0,0,canvas.width,canvas.height);
-
-    ctx.drawImage(
-        ocrImage,
-        0,
-        0,
-        canvas.width,
-        canvas.height
-    );
-
-    if(!cropBox){
-        return;
-    }
-
-    ctx.fillStyle = "rgba(0,0,0,.35)";
-    ctx.fillRect(0,0,canvas.width,canvas.height);
-
-    ctx.clearRect(
-        cropBox.x,
-        cropBox.y,
-        cropBox.w,
-        cropBox.h
-    );
-
-    ctx.drawImage(
-        ocrImage,
-        cropBox.x,
-        cropBox.y,
-        cropBox.w,
-        cropBox.h,
-        cropBox.x,
-        cropBox.y,
-        cropBox.w,
-        cropBox.h
-    );
-
-    ctx.lineWidth = 3;
-    ctx.strokeStyle = "#D40511";
-    ctx.strokeRect(
-        cropBox.x,
-        cropBox.y,
-        cropBox.w,
-        cropBox.h
-    );
-
-    drawCropHandle(cropBox.x,cropBox.y);
-    drawCropHandle(cropBox.x + cropBox.w,cropBox.y);
-    drawCropHandle(cropBox.x,cropBox.y + cropBox.h);
-    drawCropHandle(cropBox.x + cropBox.w,cropBox.y + cropBox.h);
-
-}
-
-function drawCropHandle(x,y){
-
-    const canvas =
-        document.getElementById("ocrCanvas");
-
-    const ctx =
-        canvas.getContext("2d");
-
-    ctx.beginPath();
-    ctx.arc(x,y,9,0,Math.PI*2);
-    ctx.fillStyle = "white";
-    ctx.fill();
-    ctx.lineWidth = 2;
-    ctx.strokeStyle = "#D40511";
-    ctx.stroke();
-
-}
-
-function getCropHandle(point){
-
-    if(!cropBox){
-        return null;
-    }
-
-    const handles = [
-        {name:"tl",x:cropBox.x,y:cropBox.y},
-        {name:"tr",x:cropBox.x+cropBox.w,y:cropBox.y},
-        {name:"bl",x:cropBox.x,y:cropBox.y+cropBox.h},
-        {name:"br",x:cropBox.x+cropBox.w,y:cropBox.y+cropBox.h}
-    ];
-
-    return handles.find(handle=>
-        Math.abs(point.x-handle.x) <= 22 &&
-        Math.abs(point.y-handle.y) <= 22
-    )?.name || null;
-
-}
-
-function updateCropBoxFromHandle(point){
-
-    if(!cropBox || !activeCropHandle){
-        return;
-    }
-
-    let left = cropBox.x;
-    let top = cropBox.y;
-    let right = cropBox.x + cropBox.w;
-    let bottom = cropBox.y + cropBox.h;
-
-    if(activeCropHandle.includes("t")){
-        top = point.y;
-    }
-
-    if(activeCropHandle.includes("b")){
-        bottom = point.y;
-    }
-
-    if(activeCropHandle.includes("l")){
-        left = point.x;
-    }
-
-    if(activeCropHandle.includes("r")){
-        right = point.x;
-    }
-
-    cropBox = {
-        x:Math.min(left,right),
-        y:Math.min(top,bottom),
-        w:Math.abs(right-left),
-        h:Math.abs(bottom-top)
-    };
-
-}    
 
 const ocrCanvas =
     document.getElementById("ocrCanvas");
@@ -2023,145 +1572,6 @@ ocrCanvas.addEventListener("mouseup",event=>{
     cropEnd = null;
 
 });
-
-    
-window.processSelectedCrop = async function(){
-
-    if(!cropBox){
-        showToast("Selecciona el área Pos. y Sec.");
-        return;
-    }
-
-    const canvas =
-        document.getElementById("ocrCanvas");
-
-    const x = cropBox.x;
-    const y = cropBox.y;
-    const w = cropBox.w;
-    const h = cropBox.h;
-
-    if(w < 30 || h < 50){
-        showToast("Área seleccionada muy pequeña");
-        return;
-    }
-
-    const cropCanvas =
-        document.createElement("canvas");
-
-    cropCanvas.width = w;
-    cropCanvas.height = h;
-
-    const cropCtx =
-        cropCanvas.getContext("2d");
-
-    cropCtx.drawImage(
-        canvas,
-        x,
-        y,
-        w,
-        h,
-        0,
-        0,
-        cropCanvas.width,
-        cropCanvas.height
-    );
-
-    const imageData =
-        cropCtx.getImageData(
-            0,
-            0,
-            cropCanvas.width,
-            cropCanvas.height
-        );
-
-    const data =
-        imageData.data;
-
-    for(let i=0;i<data.length;i+=4){
-
-        const gray =
-            data[i] * 0.299 +
-            data[i+1] * 0.587 +
-            data[i+2] * 0.114;
-
-        const value =
-            gray > 150 ? 255 : 0;
-
-        data[i] = value;
-        data[i+1] = value;
-        data[i+2] = value;
-
-    }
-
-    cropCtx.putImageData(
-        imageData,
-        0,
-        0
-    );
-
-    const status =
-        document.getElementById("ocrStatus");
-
-    status.innerText =
-        "Leyendo rango inicial/final...";
-
-    try{
-
-        const result =
-            await Tesseract.recognize(
-                cropCanvas,
-                "eng",
-                {
-                    tessedit_char_whitelist:"0123456789 ",
-                    logger:m=>{
-                        if(m.status){
-                            status.innerText =
-                                `OCR: ${m.status}`;
-                        }
-                    }
-                }
-            );
-
-        const rawText =
-            result.data.text || "";
-
-        const parsed =
-            parseSafeRangeFromOcr(rawText);
-
-        if(parsed.length < 2){
-            showToast("OCR sin datos suficientes");
-            status.innerText =
-                "No se detectó inicial/final. Captura manualmente.";
-            return;
-        }
-
-        parsedSequences =
-            parsed;
-
-        applyOcrSuggestionToSafeFields();
-
-        closeCropModal();
-
-        status.innerText =
-            "OCR sugerido. Confirma inicial y final.";
-
-        parsedSequences =
-            buildSafeSequencesFromZl();
-
-        renderCreateSummary();
-
-    }catch(error){
-
-        console.error(error);
-
-        showToast("Error OCR");
-
-        status.innerText =
-            "Error al procesar OCR";
-
-    }
-
-};
 
 function fileToBase64(file){
 
@@ -2312,6 +1722,73 @@ function parseVisionRows(result){
         .sort((a,b)=>a.position-b.position);
 
 }
+
+function parseSinglePieceLabelFromText(text){
+
+    const clean =
+        text
+            .replace(/\s+/g," ")
+            .trim();
+
+    const totalMatch =
+        clean.match(/TOTAL PIEZAS[:\s]+1/i);
+
+    if(!totalMatch){
+        return [];
+    }
+
+    const sequenceMatch =
+        clean.match(/\b\d{4}\b/);
+
+    const partMatch =
+        clean.match(/\b[A-Z0-9]{2,4}\s?\d{3}\s?\d{3}\s?[A-Z0-9]?(?:\s?[A-Z0-9]{2,4})?\b/i);
+
+    if(
+        !sequenceMatch ||
+        !partMatch
+    ){
+        return [];
+    }
+
+    return [
+        {
+            position:1,
+            sequence:sequenceMatch[0],
+            partNumber:partMatch[0]
+                .toUpperCase()
+                .replace(/\s+/g," ")
+                .trim(),
+            source:"google_vision_single_piece"
+        }
+    ];
+
+}
+
+function validateVisionRows(rows){
+
+    if(!rows || rows.length===0){
+        return [];
+    }
+
+    const cleanRows =
+        rows
+            .filter(row=>
+                row.position >= 1 &&
+                row.position <= 120 &&
+                /^\d{4}$/.test(row.sequence)
+            )
+            .sort((a,b)=>a.position-b.position);
+
+    const uniqueRows =
+        cleanRows.filter((row,index,self)=>
+            index === self.findIndex(item=>
+                item.position === row.position
+            )
+        );
+
+    return uniqueRows;
+
+}    
 
 function showManualFallback(){
 
@@ -2492,173 +1969,6 @@ async function incrementVisionUsage(usage){
 
 }
     
-function applyOcrSuggestionToSafeFields(){
-
-    if(parsedSequences.length < 2){
-        return;
-    }
-
-    const first =
-        parsedSequences[0];
-
-    const last =
-        parsedSequences[parsedSequences.length-1];
-
-    document.getElementById("safeFirstPosition").value =
-        first.position;
-
-    document.getElementById("safeFirstSequence").value =
-        first.sequence;
-
-    document.getElementById("safeLastPosition").value =
-        last.position;
-
-    document.getElementById("safeLastSequence").value =
-        last.sequence;
-
-}
-
-function buildSafeSequencesFromZl(){
-
-    const firstPosition =
-        Number(
-            document.getElementById("safeFirstPosition").value.trim()
-        );
-
-    const firstSequence =
-        document.getElementById("safeFirstSequence")
-            .value
-            .trim()
-            .padStart(4,"0");
-
-    const lastPosition =
-        Number(
-            document.getElementById("safeLastPosition").value.trim()
-        );
-
-    const lastSequence =
-        document.getElementById("safeLastSequence")
-            .value
-            .trim()
-            .padStart(4,"0");
-
-    if(
-        !firstPosition ||
-        !lastPosition ||
-        !/^\d{4}$/.test(firstSequence) ||
-        !/^\d{4}$/.test(lastSequence)
-    ){
-        return [];
-    }
-
-    if(lastPosition <= firstPosition){
-        return [];
-    }
-
-    return [
-        {
-            position:firstPosition,
-            sequence:firstSequence,
-            partNumber:"",
-            source:"zl_confirmed"
-        },
-        {
-            position:lastPosition,
-            sequence:lastSequence,
-            partNumber:"",
-            source:"zl_confirmed"
-        }
-    ];
-
-}
-
-function parseSafeRangeFromOcr(rawText){
-
-    const lines =
-        rawText
-            .split("\n")
-            .map(line=>
-                line
-                    .replace(/[^\d\s]/g," ")
-                    .replace(/\s+/g," ")
-                    .trim()
-            )
-            .filter(line=>line);
-
-    let rows = [];
-
-    lines.forEach(line=>{
-
-        const nums =
-            line.match(/\b\d{1,4}\b/g) || [];
-
-        if(nums.length < 2){
-            return;
-        }
-
-        const position =
-            Number(nums[0]);
-
-        const sequence =
-            String(nums[1]).padStart(4,"0");
-
-        if(
-            position >= 1 &&
-            position <= 999 &&
-            /^\d{4}$/.test(sequence) &&
-            sequence !== "0000"
-        ){
-            rows.push({
-                position,
-                sequence,
-                partNumber:"",
-                source:"ocr_suggestion"
-            });
-        }
-
-    });
-
-    return rows
-        .filter((row,index,self)=>
-            index === self.findIndex(x=>
-                x.position === row.position &&
-                x.sequence === row.sequence
-            )
-        )
-        .sort((a,b)=>a.position-b.position);
-
-}
-    
-function parseOcrColumn(rawText){
-
-    return rawText
-        .split(/\n|\s+/)
-        .map(text=>
-            text
-                .replace(/[^\d]/g,"")
-                .trim()
-        )
-        .filter(text=>text);
-
-}    
-    
-window.previewContainer = function(){
-
-    if(captureMode==="ocr"){
-
-        parsedSequences =
-            buildSafeSequencesFromZl();
-
-        if(parsedSequences.length < 2){
-            showToast("Confirma posición y secuencia inicial/final");
-            return;
-        }
-
-        renderCreateSummary();
-        return;
-
-    }
-
     if(captureMode==="manual"){
 
         const firstPosition =
@@ -2716,32 +2026,6 @@ parsedSequences = [
 
 };
 
-function parseSequences(raw){
-
-    return raw
-        .split("\n")
-        .map(line=>line.trim())
-        .filter(line=>line)
-        .map(line=>{
-
-            const parts =
-                line.split(",").map(x=>x.trim());
-
-            return {
-                position:Number(parts[0]),
-                sequence:String(parts[1] || "").padStart(4,"0"),
-                partNumber:parts[2] || ""
-            };
-
-        })
-        .filter(item=>
-            item.position &&
-            item.sequence &&
-            item.sequence !== "0000"
-        )
-        .sort((a,b)=>a.position-b.position);
-
-}
 
 function renderCreateSummary(){
 
@@ -2867,8 +2151,9 @@ window.confirmCreateContainer = async function(){
     }
 
     if(parsedSequences.length===0){
-        previewContainer();
-    }
+    showToast("Primero lee etiqueta o captura manual");
+    return;
+}
 
     if(parsedSequences.length===0){
         return;
