@@ -346,6 +346,13 @@ textarea{
     text-align:center;
 }
 
+#containersGrid{
+    grid-template-columns:repeat(2,1fr);
+}
+
+#containersPanel{
+    min-height:70vh;
+}    
     
 @media(max-width:600px){
 
@@ -430,7 +437,7 @@ textarea{
 
 <div class="container">
 
-    <div class="panel">
+    <div class="panel" id="materialsPanel">
         <h2 id="areaTitle">Selecciona familia</h2>
         <div class="materials-grid" id="materialsGrid">
             Cargando familias...
@@ -438,7 +445,12 @@ textarea{
     </div>
 
     <div class="panel" id="containersPanel" style="display:none;">
-        <h2 id="selectedMaterialTitle">Contenedores</h2>
+        <div class="modal-header">
+    <button class="secondary-btn" style="flex:0;width:auto;" onclick="backToMaterials()">
+        ← Atrás
+    </button>
+    <h2 id="selectedMaterialTitle">Contenedores</h2>
+</div>
         <div class="containers-grid" id="containersGrid">
             Selecciona una familia.
         </div>
@@ -608,7 +620,7 @@ textarea{
 
             
 <div class="app-version">
-    DHL Operational Control · Containers Beta · V.3.0.6.7
+    DHL Operational Control · Containers Beta · V.3.1.0
 </div>
 
 <div class="toast" id="toast">Listo</div>
@@ -655,7 +667,7 @@ const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
 const GOOGLE_VISION_API_KEY =
-    "AIzaSyDhA7dju-t1tuyMnzABGATiaolM1wAAvaA";
+    "AIzaSyB6C4KQxFbgn6cw9VrKPWh8e781cqkOq8c";
 
 const VISION_USAGE_DOC_ID =
     "visionUsage";
@@ -801,7 +813,8 @@ window.selectMaterial = async function(materialId){
 
     document.getElementById("containersPanel").style.display =
         "block";
-
+    document.getElementById("materialsPanel").style.display =
+    "none";
     document.getElementById("selectedMaterialTitle").innerText =
         `${selectedMaterial.name} · Contenedores`;
 
@@ -811,13 +824,6 @@ window.selectMaterial = async function(materialId){
         : "none";
 
     await loadContainers();
-
-    document.getElementById("containersPanel")
-    .scrollIntoView({
-        behavior:"smooth",
-        block:"start"
-    });
-
 };
 
 async function loadContainers(){
@@ -983,6 +989,25 @@ function getSuggestedContainerToConsume(containers){
     return ordered[0].containerId;
 
 }
+
+window.backToMaterials = function(){
+
+    selectedMaterial = null;
+    containersCache = [];
+
+    document.getElementById("materialsPanel").style.display =
+        "block";
+
+    document.getElementById("containersPanel").style.display =
+        "none";
+
+    document.getElementById("addContainerBtn").style.display =
+        "none";
+
+    document.getElementById("containersGrid").innerHTML =
+        "Selecciona una familia.";
+
+};    
 
 window.openCreateModal = function(){
 
