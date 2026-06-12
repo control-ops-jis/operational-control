@@ -468,7 +468,9 @@ textarea{
     >
 
     <div class="help" id="ocrStatus">
-        Toma foto de la etiqueta. OCR sugerirá datos, pero ZL debe confirmar antes de guardar.
+        
+        Modo respaldo: captura manual solo si OCR no puede leer la etiqueta.
+        
     </div>
 
     <div class="form-group compact-position">
@@ -1441,7 +1443,7 @@ window.processOcrImage = async function(event){
         }
 
         status.innerText =
-            "Leyendo imagen con Google Vision...";
+            "Obteniendo información de la etiqueta, espera un momento...";
 
         const base64Image =
             await fileToBase64(file);
@@ -2198,7 +2200,7 @@ function showSafeManualFallback(){
     captureMode = "ocr_fallback";
 
     document.getElementById("ocrModeBox").style.display =
-        "block";
+    "none";
 
     document.getElementById("manualModeBox").style.display =
         "none";
@@ -2585,6 +2587,10 @@ const componentName =
 
     summary.innerHTML = `
         <strong>Resumen</strong>
+
+        <div class="help" style="margin:8px 0 12px;color:#D40511;">
+            Confirma la posición final antes de guardar. Este dato alimenta los alcances del material.
+        </div>
         <p>
             Componente: <b>${componentName || "Familia completa"}</b><br>
             Primera secuencia: <b>${first.sequence}</b><br>
