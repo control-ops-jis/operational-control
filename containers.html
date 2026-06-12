@@ -627,6 +627,7 @@ textarea{
 </button>
 
         <div class="summary-box" id="createSummary" style="display:none;"></div>
+        <div class="summary-box" id="visionDebugBox" style="display:none;"></div>
 
         <div class="form-actions">
             <button class="secondary-btn" onclick="closeCreateModal()">Cancelar</button>
@@ -703,7 +704,7 @@ textarea{
 </div>
     
 <div class="app-version">
-    DHL Operational Control · Containers Beta · V.3.0.4
+    DHL Operational Control · Containers Beta · V.3.0.5
 </div>
 
 <div class="toast" id="toast">Listo</div>
@@ -1136,6 +1137,11 @@ window.openCreateModal = function(){
     document.getElementById("manualModeBox").style.display = "none";
     createSummary.style.display = "none";
     createSummary.innerHTML = "";
+    document.getElementById("visionDebugBox").style.display =
+    "none";
+
+document.getElementById("visionDebugBox").innerHTML =
+    "";
 
     createModal.style.display =
         "flex";
@@ -1608,18 +1614,19 @@ window.processOcrImage = async function(event){
 
         if(parsedSequences.length === 0){
 
-            visionStatus = "text_detected_no_rows";
-            dataQuality = "manual_required";
+    visionStatus = "text_detected_no_rows";
+    dataQuality = "manual_required";
 
-            status.innerText =
-                "Texto detectado, pero no se encontraron filas confiables. Captura manualmente.";
+    status.innerText =
+        "No se encontraron filas confiables. Usa captura manual.";
 
-            showManualFallback();
-            renderVisionTextOnly();
-            return;
+    showManualFallback();
+    renderVisionTextOnly();
+    renderVisionDebug("Vision devolvió texto, pero el parser no armó filas confiables.");
 
-        }
+    return;
 
+}
         visionStatus = "rows_detected";
         dataQuality =
             parsedSequences.length >= 2
@@ -1645,6 +1652,7 @@ window.processOcrImage = async function(event){
             "Error al consultar Google Vision. Captura manualmente.";
 
         showManualFallback();
+        renderVisionDebug(error.message || "Error al consultar Google Vision.");
 
     }
 
@@ -2328,6 +2336,32 @@ function showManualFallback(){
 }
 
 window.showManualFallback = showManualFallback;
+
+function renderVisionDebug(reason){
+
+    const box =
+        document.getElementById("visionDebugBox");
+
+    if(!box){
+        return;
+    }
+
+    box.style.display =
+        "block";
+
+    box.innerHTML = `
+        <strong>Diagnóstico Vision Beta</strong>
+        <p>
+            Estado: <b>${visionStatus}</b><br>
+            Motivo: <b>${reason}</b><br>
+            Filas detectadas: <b>${parsedSequences.length}</b>
+        </p>
+
+        <strong>Texto recibido de Vision</strong>
+        <pre style="white-space:pre-wrap;font-size:12px;">${visionText || "Sin texto recibido"}</pre>
+    `;
+
+}
     
 function renderVisionTextOnly(){
 
