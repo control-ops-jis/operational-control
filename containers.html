@@ -719,7 +719,7 @@ textarea{
 </div>
     
 <div class="app-version">
-    DHL Operational Control · Containers Beta · V.3.0.6
+    DHL Operational Control · Containers Beta · V.3.0.6.1
 </div>
 
 <div class="toast" id="toast">Listo</div>
@@ -1128,14 +1128,40 @@ window.openCreateModal = function(){
 
     parsedSequences = [];
     captureMode = null;
-    document.getElementById("manualFirstPosition").value = "1";
-    document.getElementById("manualFirstPosition").disabled = true;
-    document.getElementById("manualLastPosition").value = "";
-    document.getElementById("manualLastPosition").disabled = true;
-    document.getElementById("safeFirstPosition").value = "1";
-    document.getElementById("safeFirstSequence").value = "";
-    document.getElementById("safeLastPosition").value = "";
-    document.getElementById("safeLastSequence").value = "";
+    const manualLastSequenceInput =
+    document.getElementById("manualLastSequence");
+
+if(manualLastSequenceInput){
+    manualLastSequenceInput.value = "";
+}
+
+const safeFirstPositionInput =
+    document.getElementById("safeFirstPosition");
+
+const safeFirstSequenceInput =
+    document.getElementById("safeFirstSequence");
+
+const safeLastPositionInput =
+    document.getElementById("safeLastPosition");
+
+const safeLastSequenceInput =
+    document.getElementById("safeLastSequence");
+
+if(safeFirstPositionInput){
+    safeFirstPositionInput.value = "1";
+}
+
+if(safeFirstSequenceInput){
+    safeFirstSequenceInput.value = "";
+}
+
+if(safeLastPositionInput){
+    safeLastPositionInput.value = "";
+}
+
+if(safeLastSequenceInput){
+    safeLastSequenceInput.value = "";
+}
     
 
     containerIdInput.value =
@@ -1150,6 +1176,8 @@ window.openCreateModal = function(){
     
     document.getElementById("ocrModeBox").style.display = "none";
     document.getElementById("manualModeBox").style.display = "none";
+    document.getElementById("manualFallbackBtn").style.display =
+    "none";
     createSummary.style.display = "none";
     createSummary.innerHTML = "";
     document.getElementById("visionDebugBox").style.display =
