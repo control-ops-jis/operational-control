@@ -326,6 +326,16 @@ textarea{
     margin:6px 0 12px;
 }
 
+.debug-pre{
+    max-height:220px;
+    overflow:auto;
+    white-space:pre-wrap;
+    font-size:12px;
+    background:white;
+    border-radius:12px;
+    padding:10px;
+}
+    
 .validation-input{
     width:100%;
     padding:16px;
@@ -602,7 +612,7 @@ textarea{
 
             
 <div class="app-version">
-    DHL Operational Control · Containers Beta · V.3.0.6.5
+    DHL Operational Control · Containers Beta · V.3.0.6.6
 </div>
 
 <div class="toast" id="toast">Listo</div>
@@ -1585,6 +1595,22 @@ window.openManualMode = function(){
 
     document.getElementById("manualLastSequence").value =
         "";
+    document.getElementById("createSummary").style.display =
+    "none";
+
+    document.getElementById("createSummary").innerHTML =
+    "";
+
+    document.getElementById("visionDebugBox").style.display =
+    "none";
+
+    document.getElementById("visionDebugBox").innerHTML =
+    "";
+
+    document.querySelector(
+        "#createModal .primary-btn[onclick='confirmCreateContainer()']"
+        ).style.display =
+        "none";
 
 };
 
@@ -1638,7 +1664,10 @@ function renderVisionDebug(reason){
         </p>
 
         <strong>Texto recibido de Vision</strong>
-        <pre style="white-space:pre-wrap;font-size:12px;">${visionText || "Sin texto recibido"}</pre>
+        <details>
+    <summary><b>Ver texto recibido de Vision</b></summary>
+    <pre class="debug-pre">${visionText || "Sin texto recibido"}</pre>
+</details>
     `;
 
 }
@@ -1649,12 +1678,10 @@ function renderVisionTextOnly(){
         document.getElementById("createSummary");
 
     summary.style.display =
-        "block";
+        "none";
 
-    summary.innerHTML = `
-        <strong>Texto detectado por Vision</strong>
-        <pre style="white-space:pre-wrap;font-size:12px;">${visionText}</pre>
-    `;
+    summary.innerHTML =
+        "";
 
 }
     
