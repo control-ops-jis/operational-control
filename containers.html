@@ -488,10 +488,12 @@ textarea{
             📷 Leer etiqueta
         </button>   
        
-       <button
+      <button
     type="button"
-    class="secondary-btn"
+    class="primary-btn"
+    id="manualFallbackBtn"
     onclick="showManualFallback()"
+    style="display:none;"
 >
     Captura manual
 </button>
@@ -566,18 +568,31 @@ textarea{
     </div>
 </div>
 
-    <div id="manualModeBox" class="summary-box" style="display:none;">
-        <strong>Modo manual de emergencia</strong>
+<div id="manualModeBox" class="summary-box" style="display:none;">
+    <strong>Captura manual</strong>
 
-        <div class="form-group compact-position">
-        <label>Posición inicial</label>
+    <div class="help" style="margin:8px 0 12px;color:#D40511;">
+        Usa este modo solo cuando Vision no pueda leer la etiqueta. Confirma la secuencia final del contenedor.
+    </div>
+
+    <div class="form-group">
+        <label>Secuencia final del contenedor</label>
         <input
-        id="manualFirstPosition"
-        inputmode="numeric"
-        value="1"
-        disabled
+            id="manualLastSequence"
+            maxlength="4"
+            inputmode="numeric"
+            placeholder="5075"
         >
-        </div>
+    </div>
+
+    <button
+        type="button"
+        class="secondary-btn"
+        onclick="previewManualContainer()"
+    >
+        Generar resumen manual
+    </button>
+</div>
 
         <div class="form-group">
             <label>Secuencia inicial</label>
@@ -704,7 +719,7 @@ textarea{
 </div>
     
 <div class="app-version">
-    DHL Operational Control · Containers Beta · V.3.0.5
+    DHL Operational Control · Containers Beta · V.3.0.6
 </div>
 
 <div class="toast" id="toast">Listo</div>
@@ -1142,7 +1157,8 @@ window.openCreateModal = function(){
 
 document.getElementById("visionDebugBox").innerHTML =
     "";
-
+document.querySelector("#createModal .primary-btn[onclick='confirmCreateContainer()']").style.display =
+    "none";
     createModal.style.display =
         "flex";
 
@@ -1623,7 +1639,8 @@ window.processOcrImage = async function(event){
     showManualFallback();
     renderVisionTextOnly();
     renderVisionDebug("Vision devolvió texto, pero el parser no armó filas confiables.");
-
+    document.querySelector("#createModal .primary-btn[onclick='confirmCreateContainer()']").style.display =
+    "none";
     return;
 
 }
@@ -2313,29 +2330,57 @@ function parseVisionRows(result){
 
 function showManualFallback(){
 
-    captureMode = "ocr_fallback";
+    captureMode = "manual";
 
     document.getElementById("visionStatusBox").style.display =
         "none";
 
     document.getElementById("ocrModeBox").style.display =
-        "block";
-
-    document.getElementById("manualModeBox").style.display =
         "none";
 
-    document.getElementById("previewContainerBtn").style.display =
+    document.getElementById("manualModeBox").style.display =
         "block";
 
-    document.getElementById("safeFirstPosition").value =
-        "1";
+    document.getElementById("manualFallbackBtn").style.display =
+        "block";
 
-    document.getElementById("ocrStatus").innerText =
-        "Captura manual de respaldo. Confirma posición y secuencia final.";
+    document.getElementById("manualLastSequence").value =
+        "";
+
+    showToast("Captura manual activada");
 
 }
 
 window.showManualFallback = showManualFallback;
+
+window.previewManualContainer = function(){
+
+    const lastSequence =
+        document.getElementById("manualLastSequence")
+            .value
+            .trim()
+            .padStart(4,"0");
+
+    if(!/^\d{4}$/.test(lastSequence)){
+        showToast("Ingresa secuencia final válida");
+        return;
+    }
+
+    parsedSequences = [
+        {
+            position:1,
+            sequence:lastSequence,
+            partNumber:"MANUAL",
+            source:"manual_final_sequence"
+        }
+    ];
+
+    visionStatus = "manual_capture";
+    dataQuality = "manual_final_sequence";
+
+    renderCreateSummary();
+
+};    
 
 function renderVisionDebug(reason){
 
@@ -2726,6 +2771,8 @@ function renderCreateSummary(){
 
     summary.style.display =
         "block";
+    document.querySelector("#createModal .primary-btn[onclick='confirmCreateContainer()']").style.display =
+    "block";
 
    const componentInput =
     document.getElementById("componentInput");
@@ -3069,6 +3116,35 @@ function buildRandomValidation(container){
         container.sequencesConfirmed?.length
         ? container.sequencesConfirmed
         : container.sequences || [];
+
+    if(container.dataQuality === "manual_final_sequence"){
+
+    const lastSequence =
+        container.lastSequence;
+
+    return {
+        type:"manualLastSequence",
+        answer:lastSequence,
+        html:`
+            <div class="validation-card">
+                <div class="validation-question">
+                    Valida el contenedor antes de mover a PU
+                </div>
+                <div>Contenedor capturado manualmente.</div>
+                <div class="validation-chip">Última secuencia</div>
+                <label><b>Ingresa la secuencia final del contenedor</b></label>
+                <input
+                    id="consumeValidationInput"
+                    class="validation-input"
+                    inputmode="numeric"
+                    maxlength="4"
+                    placeholder="0000"
+                >
+            </div>
+        `
+    };
+
+}
 
     const item =
         sequences[
