@@ -633,24 +633,9 @@ textarea{
 </div>
 
 
-        <p class="help">
-            Selecciona en un solo rectángulo la zona donde se vean Pos. y Sec. El OCR solo sugerirá inicial y final.
-        </p>
-
-        <canvas
-            id="ocrCanvas"
-            style="width:100%;border:1px solid #ddd;border-radius:14px;"
-        ></canvas>
-
-        <div class="form-actions">
-            <button class="secondary-btn" onclick="closeCropModal()">Cancelar</button>
-            <button class="primary-btn" onclick="processSelectedCrop()">Leer área</button>
-        </div>
-    </div>
-</div>
-    
+            
 <div class="app-version">
-    DHL Operational Control · Containers Beta · V.3.0.6.3
+    DHL Operational Control · Containers Beta · V.3.0.6.4
 </div>
 
 <div class="toast" id="toast">Listo</div>
@@ -1104,8 +1089,6 @@ if(safeLastSequenceInput){
 
     componentInput.value = "";
 
-    
-           document.getElementById("ocrModeBox").style.display = "none";
            document.getElementById("manualModeBox").style.display = "none";
            document.getElementById("manualFallbackBtn").style.display = "block";
 
@@ -1969,64 +1952,6 @@ async function incrementVisionUsage(usage){
 
 }
     
-    if(captureMode==="manual"){
-
-        const firstPosition =
-            document.getElementById("manualFirstPosition").value.trim();
-
-        const firstSequence =
-            document.getElementById("manualFirstSequence").value.trim();
-
-        const lastPosition =
-            document.getElementById("manualLastPosition").value.trim();
-
-        const lastSequence =
-            document.getElementById("manualLastSequence").value.trim();
-
-        if(
-            !firstPosition ||
-            !firstSequence ||
-            !lastPosition ||
-            !lastSequence
-        ){
-            showToast("Completa datos manuales");
-            return;
-        }
-
-        const calculatedCount =
-    (Number(lastSequence) - Number(firstSequence)) + 1;
-
-if(calculatedCount <= 0){
-    showToast("La secuencia final debe ser mayor a la inicial");
-    return;
-}
-
-document.getElementById("manualLastPosition").value =
-    calculatedCount;
-
-parsedSequences = [
-    {
-        position:1,
-        sequence:firstSequence.padStart(4,"0"),
-        partNumber:"MANUAL"
-    },
-    {
-        position:calculatedCount,
-        sequence:lastSequence.padStart(4,"0"),
-        partNumber:"MANUAL"
-    }
-];
-
-        renderCreateSummary();
-        return;
-
-    }
-
-    showToast("Selecciona OCR o Manual");
-
-};
-
-
 function renderCreateSummary(){
 
     const summary =
