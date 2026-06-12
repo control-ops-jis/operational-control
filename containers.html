@@ -492,7 +492,7 @@ textarea{
     type="button"
     class="primary-btn"
     id="manualFallbackBtn"
-    onclick="showManualFallback()"
+    onclick="openManualMode()"
     style="display:block;"
 >
     Captura manual
@@ -503,49 +503,16 @@ textarea{
     class="help"
     style="display:none;margin-top:10px;"
 >
-</div>       
-           </div>
-         
-
-
-    <div class="form-group compact-position">
-        <label>Posición inicial confirmada</label>
-        <input
-            id="safeFirstPosition"
-            inputmode="numeric"
-            value="1"
-            disabled
-        >
-    </div>
-
-    <div class="form-group">
-        <label>Secuencia inicial confirmada</label>
-        <input
-            id="safeFirstSequence"
-            maxlength="4"
-            inputmode="numeric"
-            placeholder="3081"
-        >
-    </div>
-
-    <div class="form-group compact-position">
-        <label>Posición final confirmada</label>
-        <input
-            id="safeLastPosition"
-            inputmode="numeric"
-            placeholder="12"
-        >
-    </div>
-
-    <div class="form-group">
-        <label>Secuencia final confirmada</label>
-        <input
-            id="safeLastSequence"
-            maxlength="4"
-            inputmode="numeric"
-            placeholder="3092"
-        >
-    </div>
+</div>  
+<input
+    id="ocrImageInput"
+    type="file"
+    accept="image/*"
+    capture="environment"
+    style="display:none;"
+    onchange="processOcrImage(event)"
+>       
+</div>
 </div>
 
 <div id="manualModeBox" class="summary-box" style="display:none;">
@@ -635,7 +602,7 @@ textarea{
 
             
 <div class="app-version">
-    DHL Operational Control · Containers Beta · V.3.0.6.4
+    DHL Operational Control · Containers Beta · V.3.0.6.5
 </div>
 
 <div class="toast" id="toast">Listo</div>
@@ -1051,34 +1018,6 @@ if(manualLastSequenceInput){
     manualLastSequenceInput.value = "";
 }
 
-const safeFirstPositionInput =
-    document.getElementById("safeFirstPosition");
-
-const safeFirstSequenceInput =
-    document.getElementById("safeFirstSequence");
-
-const safeLastPositionInput =
-    document.getElementById("safeLastPosition");
-
-const safeLastSequenceInput =
-    document.getElementById("safeLastSequence");
-
-if(safeFirstPositionInput){
-    safeFirstPositionInput.value = "1";
-}
-
-if(safeFirstSequenceInput){
-    safeFirstSequenceInput.value = "";
-}
-
-if(safeLastPositionInput){
-    safeLastPositionInput.value = "";
-}
-
-if(safeLastSequenceInput){
-    safeLastSequenceInput.value = "";
-}
-    
 
     containerIdInput.value =
         suggestNextContainerId();
@@ -1091,6 +1030,8 @@ if(safeLastSequenceInput){
 
            document.getElementById("manualModeBox").style.display = "none";
            document.getElementById("manualFallbackBtn").style.display = "block";
+            document.getElementById("visionStatusBox").style.display = "none";
+            document.getElementById("visionStatusBox").innerText = "";
 
         createSummary.style.display = "none";
         createSummary.innerHTML = "";
@@ -1253,14 +1194,8 @@ window.startOcrFlow = function(){
 
     captureMode = "ocr";
 
-    document.getElementById("ocrModeBox").style.display =
-        "none";
-
     document.getElementById("manualModeBox").style.display =
         "none";
-
-    document.getElementById("manualFallbackBtn").style.display =
-        "block";
 
     document.getElementById("visionStatusBox").style.display =
         "block";
@@ -1326,13 +1261,10 @@ window.processOcrImage = async function(event){
             status.innerText =
                 "Vision no disponible por límite mensual. Usa captura segura manual.";
 
-            showManualFallback();
+            openManualMode();
             return;
 
         }
-
-        document.getElementById("ocrModeBox").style.display =
-            "none";
 
         document.getElementById("visionStatusBox").style.display =
             "block";
@@ -1360,7 +1292,7 @@ window.processOcrImage = async function(event){
             status.innerText =
                 "Vision no detectó texto útil. Captura manualmente.";
 
-            showManualFallback();
+            openManualMode();
             await incrementVisionUsage(usage);
             return;
 
@@ -1385,7 +1317,7 @@ window.processOcrImage = async function(event){
     status.innerText =
         "No se encontraron filas confiables. Usa captura manual.";
 
-    showManualFallback();
+    openManualMode();
     renderVisionTextOnly();
     renderVisionDebug("Vision devolvió texto, pero el parser no armó filas confiables.");
     document.querySelector("#createModal .primary-btn[onclick='confirmCreateContainer()']").style.display =
@@ -1402,9 +1334,6 @@ window.processOcrImage = async function(event){
         status.innerText =
             "Ya tenemos una vista preeliminar. Revisa y confirma antes de guardar.";
 
-        document.getElementById("ocrModeBox").style.display =
-            "none";
-
         renderCreateSummary();
 
     }catch(error){
@@ -1417,7 +1346,7 @@ window.processOcrImage = async function(event){
         status.innerText =
             "Error al consultar Google Vision. Captura manualmente.";
 
-        showManualFallback();
+        openManualMode();
         renderVisionDebug(error.message || "Error al consultar Google Vision.");
 
     }
@@ -1426,135 +1355,6 @@ window.processOcrImage = async function(event){
 
 };
 
-const ocrCanvas =
-    document.getElementById("ocrCanvas");
-
-ocrCanvas.addEventListener("touchstart",event=>{
-    event.preventDefault();
-
-    if(!cropCanvasReady){
-        return;
-    }
-
-    const point =
-        getCanvasPoint(event);
-
-    activeCropHandle =
-        getCropHandle(point);
-
-    if(!activeCropHandle){
-        cropStart = point;
-        cropEnd = point;
-        cropBox = null;
-    }
-
-    redrawCropCanvas();
-
-},{passive:false});
-
-ocrCanvas.addEventListener("touchmove",event=>{
-    event.preventDefault();
-
-    if(!cropCanvasReady){
-        return;
-    }
-
-    const point =
-        getCanvasPoint(event);
-
-    if(activeCropHandle){
-        updateCropBoxFromHandle(point);
-        redrawCropCanvas();
-        return;
-    }
-
-    if(!cropStart){
-        return;
-    }
-
-    cropEnd = point;
-
-    cropBox = {
-        x:Math.min(cropStart.x,cropEnd.x),
-        y:Math.min(cropStart.y,cropEnd.y),
-        w:Math.abs(cropEnd.x-cropStart.x),
-        h:Math.abs(cropEnd.y-cropStart.y)
-    };
-
-    redrawCropCanvas();
-
-},{passive:false});
-
-ocrCanvas.addEventListener("touchend",event=>{
-    event.preventDefault();
-
-    activeCropHandle = null;
-    cropStart = null;
-    cropEnd = null;
-
-},{passive:false});
-
-ocrCanvas.addEventListener("mousedown",event=>{
-
-    if(!cropCanvasReady){
-        return;
-    }
-
-    const point =
-        getCanvasPoint(event);
-
-    activeCropHandle =
-        getCropHandle(point);
-
-    if(!activeCropHandle){
-        cropStart = point;
-        cropEnd = point;
-        cropBox = null;
-    }
-
-    redrawCropCanvas();
-
-});
-
-ocrCanvas.addEventListener("mousemove",event=>{
-
-    if(!cropCanvasReady){
-        return;
-    }
-
-    const point =
-        getCanvasPoint(event);
-
-    if(activeCropHandle){
-        updateCropBoxFromHandle(point);
-        redrawCropCanvas();
-        return;
-    }
-
-    if(!cropStart){
-        return;
-    }
-
-    cropEnd = point;
-
-    cropBox = {
-        x:Math.min(cropStart.x,cropEnd.x),
-        y:Math.min(cropStart.y,cropEnd.y),
-        w:Math.abs(cropEnd.x-cropStart.x),
-        h:Math.abs(cropEnd.y-cropStart.y)
-    };
-
-    redrawCropCanvas();
-
-});
-
-ocrCanvas.addEventListener("mouseup",event=>{
-
-    activeCropHandle = null;
-    cropStart = null;
-    cropEnd = null;
-
-});
 
 function fileToBase64(file){
 
@@ -1773,30 +1573,20 @@ function validateVisionRows(rows){
 
 }    
 
-function showManualFallback(){
+window.openManualMode = function(){
 
     captureMode = "manual";
 
     document.getElementById("visionStatusBox").style.display =
         "none";
 
-    document.getElementById("ocrModeBox").style.display =
-        "none";
-
     document.getElementById("manualModeBox").style.display =
-        "block";
-
-    document.getElementById("manualFallbackBtn").style.display =
         "block";
 
     document.getElementById("manualLastSequence").value =
         "";
 
-    showToast("Captura manual activada");
-
-}
-
-window.showManualFallback = showManualFallback;
+};
 
 window.previewManualContainer = function(){
 
