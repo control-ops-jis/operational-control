@@ -193,7 +193,7 @@ localStorage.setItem(
     "operationalUser",
     JSON.stringify({
         employeeId,
-        name:userData.name,
+        name:userData.name || userData.nombre || employeeId,
         role:userRole,
         area:userArea,
         warehouse:userData.warehouse,
