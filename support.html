@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>DHL Operational Control | Soporte</title>
+
+<style>
+:root{
+    --dhl-red:#D40511;
+    --dhl-yellow:#FFCC00;
+    --bg:#f5f5f5;
+}
+
+*{
+    box-sizing:border-box;
+    font-family:Arial,sans-serif;
+}
+
+body{
+    margin:0;
+    background:var(--bg);
+}
+
+header{
+    background:var(--dhl-yellow);
+    padding:14px 18px;
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    gap:12px;
+    flex-wrap:wrap;
+}
+
+.header-info h1{
+    margin:0;
+    color:var(--dhl-red);
+    font-size:22px;
+}
+
+.header-info span{
+    display:block;
+    margin-top:4px;
+    font-size:13px;
+    font-weight:bold;
+}
+
+.header-actions{
+    display:flex;
+    gap:8px;
+    flex-wrap:wrap;
+}
+
+.header-btn{
+    border:none;
+    background:var(--dhl-red);
+    color:white;
+    padding:10px 14px;
+    border-radius:12px;
+    font-weight:bold;
+    cursor:pointer;
+}
+
+.container{
+    max-width:1300px;
+    margin:auto;
+    padding:16px;
+}
+
+.tabs{
+    display:flex;
+    gap:8px;
+    overflow-x:auto;
+    padding-bottom:10px;
+}
+
+.tab-btn{
+    border:none;
+    padding:12px 16px;
+    border-radius:999px;
+    background:white;
+    font-weight:bold;
+    cursor:pointer;
+    box-shadow:0 2px 8px rgba(0,0,0,.08);
+    white-space:nowrap;
+}
+
+.tab-btn.active{
+    background:var(--dhl-red);
+    color:white;
+}
+
+.panel{
+    background:white;
+    border-radius:22px;
+    padding:18px;
+    box-shadow:0 4px 14px rgba(0,0,0,.08);
+    margin-top:12px;
+}
+
+.panel h2{
+    margin-top:0;
+    color:var(--dhl-red);
+}
+
+.empty-state{
+    background:#fafafa;
+    border-radius:16px;
+    padding:18px;
+    font-weight:bold;
+    color:#555;
+}
+
+@media(max-width:600px){
+    header{
+        padding:12px;
+    }
+
+    .header-info h1{
+        font-size:18px;
+    }
+
+    .header-btn{
+        padding:9px 12px;
+        font-size:13px;
+    }
+
+    .container{
+        padding:12px;
+    }
+
+    .panel{
+        padding:14px;
+        border-radius:18px;
+    }
+}
+</style>
+</head>
+
+<body>
+
+<header>
+    <div class="header-info">
+        <h1>🛠️ DHL Soporte Operativo</h1>
+        <span id="headerUser">Soporte</span>
+    </div>
+
+    <div class="header-actions">
+        <button class="header-btn" onclick="goDashboard()">Dashboard</button>
+        <button class="header-btn" onclick="logout()">Salir</button>
+    </div>
+</header>
+
+<div class="container">
+
+    <div class="tabs">
+        <button class="tab-btn active" id="tabCaptures" onclick="openTab('captures')">
+            Capturas
+        </button>
+
+        <button class="tab-btn" id="tabReports" onclick="openTab('reports')">
+            Reportes
+        </button>
+
+        <button class="tab-btn" id="tabUsers" onclick="openTab('users')">
+            Usuarios
+        </button>
+    </div>
+
+    <div class="panel" id="capturesPanel">
+        <h2>Capturas</h2>
+        <div class="empty-state">
+            Aquí se mostrarán capturas ZL / PU para corrección operativa.
+        </div>
+    </div>
+
+    <div class="panel" id="reportsPanel" style="display:none;">
+        <h2>Reportes</h2>
+        <div class="empty-state">
+            Aquí se generarán reportes operativos de contenedores, OCR, manual y productividad.
+        </div>
+    </div>
+
+    <div class="panel" id="usersPanel" style="display:none;">
+        <h2>Usuarios</h2>
+        <div class="empty-state">
+            Aquí se administrarán usuarios operativos y solicitudes de reset vía Cloud Functions.
+        </div>
+    </div>
+
+</div>
+
+<script type="module">
+
+import { initializeApp }
+from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+
+import {
+    getAuth,
+    signOut
+}
+from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+
+const firebaseConfig = {
+    apiKey: "AIzaSyC4yHubTO4ZPn2H80I1fG7H6qeR7SavNbM",
+    authDomain: "dhl-operational-control.firebaseapp.com",
+    projectId: "dhl-operational-control",
+    storageBucket: "dhl-operational-control.firebasestorage.app",
+    messagingSenderId: "830487097530",
+    appId: "1:830487097530:web:41e01b4d396678f0819283"
+};
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+
+const savedUser =
+    localStorage.getItem("operationalUser");
+
+if(!savedUser){
+    window.location.href="index.html";
+}
+
+const currentUser =
+    JSON.parse(savedUser);
+
+if(
+    currentUser.role!=="admin" &&
+    currentUser.role!=="it"
+){
+    window.location.href="dashboard.html";
+}
+
+document.getElementById("headerUser").innerText =
+    `${currentUser.name || currentUser.employeeId} · ${currentUser.role}`;
+
+function openTab(tab){
+
+    document.getElementById("capturesPanel").style.display =
+        tab==="captures" ? "block" : "none";
+
+    document.getElementById("reportsPanel").style.display =
+        tab==="reports" ? "block" : "none";
+
+    document.getElementById("usersPanel").style.display =
+        tab==="users" ? "block" : "none";
+
+    document.getElementById("tabCaptures").classList.toggle(
+        "active",
+        tab==="captures"
+    );
+
+    document.getElementById("tabReports").classList.toggle(
+        "active",
+        tab==="reports"
+    );
+
+    document.getElementById("tabUsers").classList.toggle(
+        "active",
+        tab==="users"
+    );
+
+}
+
+window.openTab=openTab;
+
+function goDashboard(){
+    window.location.href="dashboard.html";
+}
+
+window.goDashboard=goDashboard;
+
+async function logout(){
+
+    await signOut(auth);
+
+    localStorage.removeItem("operationalUser");
+
+    window.location.href="index.html";
+
+}
+
+window.logout=logout;
+
+</script>
+
+</body>
+</html>
