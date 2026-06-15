@@ -708,6 +708,9 @@ if(!savedUser){
 currentUser =
     JSON.parse(savedUser);
 
+document.getElementById("activeUser").innerText =
+    `${currentUser.name || currentUser.employeeId} · ${currentUser.role}`;    
+
 const urlParams =
     new URLSearchParams(window.location.search);
 
