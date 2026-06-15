@@ -3,6 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
 <title>DHL Operational Control | Soporte</title>
 
 <style>
@@ -10,6 +11,8 @@
     --dhl-red:#D40511;
     --dhl-yellow:#FFCC00;
     --bg:#f5f5f5;
+    --ok:#1f7a1f;
+    --warning:#a67c00;
 }
 
 *{
@@ -73,7 +76,7 @@ header{
 }
 
 .container{
-    max-width:1400px;
+    max-width:1450px;
     margin:auto;
     padding:16px;
 }
@@ -152,7 +155,7 @@ header{
 table{
     width:100%;
     border-collapse:collapse;
-    min-width:1150px;
+    min-width:1250px;
 }
 
 th,td{
@@ -180,6 +183,107 @@ th:first-child{
     font-size:12px;
 }
 
+.badge.ok{
+    background:#e8f7e8;
+    color:var(--ok);
+}
+
+.badge.warning{
+    background:#fff4cc;
+    color:var(--warning);
+}
+
+.eye-btn{
+    border:none;
+    background:#fff4cc;
+    color:#333;
+    padding:7px 10px;
+    border-radius:10px;
+    font-weight:bold;
+    cursor:pointer;
+}
+
+.app-modal{
+    display:none;
+    position:fixed;
+    inset:0;
+    background:rgba(0,0,0,.55);
+    z-index:999;
+    justify-content:center;
+    align-items:center;
+    padding:16px;
+}
+
+.modal-card{
+    width:100%;
+    max-width:760px;
+    max-height:88vh;
+    overflow:auto;
+    background:white;
+    border-radius:24px;
+    padding:22px;
+    box-shadow:0 12px 35px rgba(0,0,0,.25);
+}
+
+.modal-header{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    gap:10px;
+    margin-bottom:16px;
+}
+
+.modal-header h2{
+    margin:0;
+    color:var(--dhl-red);
+}
+
+.close-btn{
+    border:none;
+    width:38px;
+    height:38px;
+    border-radius:50%;
+    font-weight:bold;
+    cursor:pointer;
+}
+
+.modal-grid{
+    display:grid;
+    grid-template-columns:repeat(2,1fr);
+    gap:10px;
+    margin-bottom:14px;
+}
+
+.modal-box{
+    background:#fafafa;
+    border-radius:14px;
+    padding:10px;
+}
+
+.modal-box span{
+    display:block;
+    font-size:12px;
+    color:#666;
+    font-weight:bold;
+}
+
+.modal-box strong{
+    display:block;
+    margin-top:4px;
+    color:#111;
+}
+
+.ocr-table{
+    width:100%;
+    min-width:0;
+}
+
+.ocr-table th,
+.ocr-table td{
+    font-size:12px;
+    padding:8px;
+}
+
 @media(max-width:600px){
     header{
         padding:12px;
@@ -201,6 +305,10 @@ th:first-child{
     .panel{
         padding:14px;
         border-radius:18px;
+    }
+
+    .modal-grid{
+        grid-template-columns:1fr;
     }
 }
 </style>
@@ -280,6 +388,7 @@ th:first-child{
             <table>
                 <thead>
                     <tr>
+                        <th>Evento</th>
                         <th>Fecha</th>
                         <th>Hora</th>
                         <th>Nave</th>
@@ -290,7 +399,6 @@ th:first-child{
                         <th>Usuario</th>
                         <th>Método</th>
                         <th>OCR</th>
-                        <th>Estado</th>
                     </tr>
                 </thead>
 
@@ -312,6 +420,17 @@ th:first-child{
 
 </div>
 
+<div class="app-modal" id="ocrModal">
+    <div class="modal-card">
+        <div class="modal-header">
+            <h2>Detalle OCR</h2>
+            <button class="close-btn" onclick="closeOcrModal()">X</button>
+        </div>
+
+        <div id="ocrModalBody"></div>
+    </div>
+</div>
+
 <script type="module">
 
 import { initializeApp }
@@ -327,9 +446,7 @@ import {
     getFirestore,
     collection,
     getDocs,
-    query,
-    where,
-    orderBy
+    query
 }
 from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
@@ -347,6 +464,7 @@ const auth = getAuth(app);
 const db = getFirestore(app);
 
 let reportRows = [];
+let sourceContainers = [];
 let materialsCache = [];
 let warehousesCache = [];
 
@@ -499,30 +617,73 @@ window.loadReports = async function(){
     const sequence =
         document.getElementById("reportSequence").value.trim();
 
-    const q =
-    query(
-        collection(db,"containers")
-    );
-
     const snapshot =
-        await getDocs(q);
+        await getDocs(
+            query(collection(db,"containers"))
+        );
 
-    reportRows =
+    sourceContainers =
         snapshot.docs
             .map(docSnap=>({
                 id:docSnap.id,
                 ...docSnap.data()
             }))
-            .filter(item=>{
-                                if(item.active !== true){
-                    return false;
-                }
+            .filter(item=>item.active===true);
+
+    const events = [];
+
+    sourceContainers.forEach(container=>{
+
+        const sequences =
+            container.sequencesConfirmed ||
+            container.sequences ||
+            [];
+
+        const lastSequence =
+            container.lastSequence ||
+            sequences[sequences.length-1]?.sequence ||
+            "-";
+
+        events.push({
+            eventType:"Creado",
+            area:"ZL",
+            eventAt:container.createdAt || null,
+            userId:container.createdBy || "-",
+            userName:container.createdByName || "",
+            method:getCleanMethod(container),
+            ocrEnabled:hasOcrRows(container),
+            container,
+            sequence:lastSequence
+        });
+
+        if(container.consumedAt){
+            events.push({
+                eventType:"Consumido",
+                area:"PU",
+                eventAt:container.consumedAt,
+                userId:container.consumedBy || "-",
+                userName:container.consumedByName || "",
+                method:"-",
+                ocrEnabled:false,
+                container,
+                sequence:lastSequence
+            });
+        }
+
+    });
+
+    reportRows =
+        events
+            .filter(row=>{
+
+                const item =
+                    row.container;
 
                 if(warehouse!=="ALL" && item.warehouseId!==warehouse){
                     return false;
                 }
 
-                if(area!=="ALL" && item.areaOwner!==area){
+                if(area!=="ALL" && row.area!==area){
                     return false;
                 }
 
@@ -534,16 +695,16 @@ window.loadReports = async function(){
                     return false;
                 }
 
-                const sequences =
-                    item.sequencesConfirmed ||
-                    item.sequences ||
-                    [];
-
                 if(sequence){
 
+                    const sequences =
+                        item.sequencesConfirmed ||
+                        item.sequences ||
+                        [];
+
                     const found =
-                        sequences.some(row=>
-                            String(row.sequence || "")
+                        sequences.some(seqRow=>
+                            String(seqRow.sequence || "")
                                 .padStart(4,"0") === sequence.padStart(4,"0")
                         );
 
@@ -554,19 +715,17 @@ window.loadReports = async function(){
                 }
 
                 const date =
-                    item.createdAt?.toDate
-                    ? item.createdAt.toDate()
-                    : null;
+                    timestampToDate(row.eventAt);
 
                 if(!date){
                     return false;
                 }
 
                 const dateText =
-                    date.toISOString().slice(0,10);
+                    getLocalDateValue(date);
 
                 const timeText =
-                    date.toTimeString().slice(0,5);
+                    getLocalTimeValue(date);
 
                 if(dateFrom && dateText < dateFrom){
                     return false;
@@ -586,6 +745,15 @@ window.loadReports = async function(){
 
                 return true;
 
+            })
+            .sort((a,b)=>{
+                const dateA =
+                    timestampToDate(a.eventAt)?.getTime() || 0;
+
+                const dateB =
+                    timestampToDate(b.eventAt)?.getTime() || 0;
+
+                return dateB - dateA;
             });
 
     renderReports();
@@ -605,47 +773,223 @@ function renderReports(){
 
     table.innerHTML = "";
 
-    reportRows.forEach(item=>{
+    reportRows.forEach((row,index)=>{
+
+        const item =
+            row.container;
 
         const date =
-            item.createdAt?.toDate
-            ? item.createdAt.toDate()
-            : null;
+            timestampToDate(row.eventAt);
 
-        const sequences =
-            item.sequencesConfirmed ||
-            item.sequences ||
-            [];
-
-        const lastSequence =
-            item.lastSequence ||
-            sequences[sequences.length-1]?.sequence ||
-            "-";
-
-        const ocrText =
-            sequences.length > 0
-            ? `${sequences.length} filas / ${sequences[0]?.sequence || "-"} → ${sequences[sequences.length-1]?.sequence || "-"}`
+        const ocrCell =
+            row.ocrEnabled
+            ? `<button class="eye-btn" onclick="openOcrModal(${index})">👁 Ver</button>`
             : "-";
 
         table.innerHTML += `
             <tr>
+                <td>
+                    <span class="badge ${row.eventType==="Creado" ? "ok" : "warning"}">
+                        ${row.eventType}
+                    </span>
+                </td>
                 <td>${date ? date.toLocaleDateString("es-MX") : "-"}</td>
                 <td>${date ? date.toLocaleTimeString("es-MX",{hour:"2-digit",minute:"2-digit"}) : "-"}</td>
                 <td>${item.warehouseName || item.warehouseId || "-"}</td>
-                <td>${item.areaOwner || "-"}</td>
+                <td>${row.area}</td>
                 <td>${item.materialName || "-"}</td>
                 <td>${item.containerId || "-"}</td>
-                <td>${String(lastSequence).padStart(4,"0")}</td>
-                <td>${item.createdBy || "-"}</td>
-                <td><span class="badge">${item.dataQuality || item.captureMode || "-"}</span></td>
-                <td>${ocrText}</td>
-                <td>${item.status || "-"}</td>
+                <td>${String(row.sequence).padStart(4,"0")}</td>
+                <td>${row.userName || row.userId || "-"}</td>
+                <td>${row.method}</td>
+                <td>${ocrCell}</td>
             </tr>
         `;
 
     });
 
 }
+
+function getCleanMethod(container){
+
+    const value =
+        String(
+            container.dataQuality ||
+            container.captureMode ||
+            ""
+        ).toLowerCase();
+
+    if(
+        value.includes("manual")
+    ){
+        return "Manual";
+    }
+
+    if(
+        value.includes("vision") ||
+        value.includes("ocr")
+    ){
+        return "OCR";
+    }
+
+    return "-";
+
+}
+
+function hasOcrRows(container){
+
+    const method =
+        getCleanMethod(container);
+
+    const rows =
+        container.sequencesConfirmed ||
+        container.sequences ||
+        [];
+
+    return (
+        method==="OCR" &&
+        rows.length > 0
+    );
+
+}
+
+function timestampToDate(value){
+
+    if(!value){
+        return null;
+    }
+
+    if(value.toDate){
+        return value.toDate();
+    }
+
+    return new Date(value);
+
+}
+
+function getLocalDateValue(date){
+
+    const year =
+        date.getFullYear();
+
+    const month =
+        String(date.getMonth()+1).padStart(2,"0");
+
+    const day =
+        String(date.getDate()).padStart(2,"0");
+
+    return `${year}-${month}-${day}`;
+
+}
+
+function getLocalTimeValue(date){
+
+    const hour =
+        String(date.getHours()).padStart(2,"0");
+
+    const minute =
+        String(date.getMinutes()).padStart(2,"0");
+
+    return `${hour}:${minute}`;
+
+}
+
+window.openOcrModal = function(index){
+
+    const row =
+        reportRows[index];
+
+    if(!row){
+        return;
+    }
+
+    const item =
+        row.container;
+
+    const sequences =
+        item.sequencesConfirmed ||
+        item.sequences ||
+        [];
+
+    const date =
+        timestampToDate(row.eventAt);
+
+    const first =
+        sequences[0] || {};
+
+    const last =
+        sequences[sequences.length-1] || {};
+
+    const body =
+        document.getElementById("ocrModalBody");
+
+    body.innerHTML = `
+        <div class="modal-grid">
+            <div class="modal-box">
+                <span>Familia</span>
+                <strong>${item.materialName || "-"}</strong>
+            </div>
+
+            <div class="modal-box">
+                <span>Contenedor</span>
+                <strong>${item.containerId || "-"}</strong>
+            </div>
+
+            <div class="modal-box">
+                <span>Fecha / Hora</span>
+                <strong>${date ? date.toLocaleString("es-MX") : "-"}</strong>
+            </div>
+
+            <div class="modal-box">
+                <span>Método</span>
+                <strong>${row.method}</strong>
+            </div>
+
+            <div class="modal-box">
+                <span>Filas OCR</span>
+                <strong>${sequences.length}</strong>
+            </div>
+
+            <div class="modal-box">
+                <span>Primera / Última</span>
+                <strong>${first.sequence || "-"} → ${last.sequence || "-"}</strong>
+            </div>
+        </div>
+
+        <table class="ocr-table">
+            <thead>
+                <tr>
+                    <th>Posición</th>
+                    <th>Secuencia</th>
+                    <th>Índice / Parte</th>
+                    <th>Fuente</th>
+                </tr>
+            </thead>
+
+            <tbody>
+                ${sequences.map(seq=>`
+                    <tr>
+                        <td>${seq.position || "-"}</td>
+                        <td>${seq.sequence || "-"}</td>
+                        <td>${seq.partNumber || "-"}</td>
+                        <td>${seq.source || "-"}</td>
+                    </tr>
+                `).join("")}
+            </tbody>
+        </table>
+    `;
+
+    document.getElementById("ocrModal").style.display =
+        "flex";
+
+};
+
+window.closeOcrModal = function(){
+
+    document.getElementById("ocrModal").style.display =
+        "none";
+
+};
 
 window.exportReportsExcel = function(){
 
@@ -655,6 +999,7 @@ window.exportReportsExcel = function(){
     }
 
     const headers = [
+        "Evento",
         "Fecha",
         "Hora",
         "Nave",
@@ -664,45 +1009,45 @@ window.exportReportsExcel = function(){
         "Secuencia",
         "Usuario",
         "Metodo",
-        "OCR",
-        "Estado"
+        "Filas OCR",
+        "Primera OCR",
+        "Ultima OCR"
     ];
 
     const rows =
-        reportRows.map(item=>{
+        reportRows.map(row=>{
+
+            const item =
+                row.container;
 
             const date =
-                item.createdAt?.toDate
-                ? item.createdAt.toDate()
-                : null;
+                timestampToDate(row.eventAt);
 
             const sequences =
                 item.sequencesConfirmed ||
                 item.sequences ||
                 [];
 
-            const lastSequence =
-                item.lastSequence ||
-                sequences[sequences.length-1]?.sequence ||
-                "-";
+            const first =
+                sequences[0] || {};
 
-            const ocrText =
-                sequences.length > 0
-                ? `${sequences.length} filas / ${sequences[0]?.sequence || "-"} -> ${sequences[sequences.length-1]?.sequence || "-"}`
-                : "-";
+            const last =
+                sequences[sequences.length-1] || {};
 
             return [
+                row.eventType,
                 date ? date.toLocaleDateString("es-MX") : "-",
                 date ? date.toLocaleTimeString("es-MX",{hour:"2-digit",minute:"2-digit"}) : "-",
                 item.warehouseName || item.warehouseId || "-",
-                item.areaOwner || "-",
+                row.area,
                 item.materialName || "-",
                 item.containerId || "-",
-                String(lastSequence).padStart(4,"0"),
-                item.createdBy || "-",
-                item.dataQuality || item.captureMode || "-",
-                ocrText,
-                item.status || "-"
+                String(row.sequence).padStart(4,"0"),
+                row.userName || row.userId || "-",
+                row.method,
+                row.ocrEnabled ? sequences.length : "-",
+                row.ocrEnabled ? (first.sequence || "-") : "-",
+                row.ocrEnabled ? (last.sequence || "-") : "-"
             ];
 
         });
@@ -732,7 +1077,7 @@ window.exportReportsExcel = function(){
 
     link.href = url;
     link.download =
-        `reporte_contenedores_${new Date().toISOString().slice(0,10)}.csv`;
+        `reporte_eventos_contenedores_${new Date().toISOString().slice(0,10)}.csv`;
 
     document.body.appendChild(link);
     link.click();
