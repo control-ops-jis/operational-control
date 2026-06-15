@@ -3,7 +3,6 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
 <title>DHL Operational Control | Soporte</title>
 
 <style>
@@ -262,24 +261,19 @@ th:first-child{
                 <option value="ALL">Todas las familias</option>
             </select>
 
-            <input id="reportDateFrom" type="date" title="Fecha inicio">
-            <input id="reportDateTo" type="date" title="Fecha fin">
+            <input id="reportDateFrom" type="date">
+            <input id="reportDateTo" type="date">
 
-            <input id="reportTimeFrom" type="time" title="Hora inicio">
-            <input id="reportTimeTo" type="time" title="Hora fin">
+            <input id="reportTimeFrom" type="time">
+            <input id="reportTimeTo" type="time">
 
             <input id="reportContainerId" placeholder="Contenedor">
             <input id="reportSequence" placeholder="Secuencia">
         </div>
 
         <div class="form-actions">
-            <button class="primary-btn" onclick="loadReports()">
-                Buscar
-            </button>
-
-            <button class="secondary-btn" onclick="exportReportsExcel()">
-                Exportar Excel
-            </button>
+            <button class="primary-btn" onclick="loadReports()">Buscar</button>
+            <button class="secondary-btn" onclick="exportReportsExcel()">Exportar Excel</button>
         </div>
 
         <div class="table-wrap">
@@ -462,20 +456,9 @@ function openTab(tab){
     document.getElementById("usersPanel").style.display =
         tab==="users" ? "block" : "none";
 
-    document.getElementById("tabCaptures").classList.toggle(
-        "active",
-        tab==="captures"
-    );
-
-    document.getElementById("tabReports").classList.toggle(
-        "active",
-        tab==="reports"
-    );
-
-    document.getElementById("tabUsers").classList.toggle(
-        "active",
-        tab==="users"
-    );
+    document.getElementById("tabCaptures").classList.toggle("active",tab==="captures");
+    document.getElementById("tabReports").classList.toggle("active",tab==="reports");
+    document.getElementById("tabUsers").classList.toggle("active",tab==="users");
 
 }
 
@@ -516,7 +499,7 @@ window.loadReports = async function(){
     const sequence =
         document.getElementById("reportSequence").value.trim();
 
-    let q =
+    const q =
         query(
             collection(db,"containers"),
             where("active","==",true),
@@ -550,12 +533,12 @@ window.loadReports = async function(){
                     return false;
                 }
 
-                if(sequence){
+                const sequences =
+                    item.sequencesConfirmed ||
+                    item.sequences ||
+                    [];
 
-                    const sequences =
-                        item.sequencesConfirmed ||
-                        item.sequences ||
-                        [];
+                if(sequence){
 
                     const found =
                         sequences.some(row=>
@@ -653,11 +636,7 @@ function renderReports(){
                 <td>${item.containerId || "-"}</td>
                 <td>${String(lastSequence).padStart(4,"0")}</td>
                 <td>${item.createdBy || "-"}</td>
-                <td>
-                    <span class="badge">
-                        ${item.dataQuality || item.captureMode || "-"}
-                    </span>
-                </td>
+                <td><span class="badge">${item.dataQuality || item.captureMode || "-"}</span></td>
                 <td>${ocrText}</td>
                 <td>${item.status || "-"}</td>
             </tr>
