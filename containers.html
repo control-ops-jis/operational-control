@@ -1634,43 +1634,48 @@ function parseVisionRows(result){
 
     const rows = [];
 
-    lines.forEach(line=>{
+    for(let i=0;i<lines.length;i++){
 
-        const rowMatch =
-            line.match(/^(\d{1,2})\s+(\d{4})\b(.*)$/);
+        const current =
+            lines[i];
 
-        if(!rowMatch){
-            return;
+        const next =
+            lines[i+1] || "";
+
+        const third =
+            lines[i+2] || "";
+
+        if(!/^\d{1,2}$/.test(current)){
+            continue;
+        }
+
+        if(!/^\d{4}$/.test(next)){
+            continue;
         }
 
         const position =
-            Number(rowMatch[1]);
+            Number(current);
 
         const sequence =
-            String(rowMatch[2]).padStart(4,"0");
-
-        const partNumber =
-            String(rowMatch[3] || "")
-                .replace(/\s+/g," ")
-                .trim()
-                .toUpperCase();
+            next.padStart(4,"0");
 
         if(
             position < 1 ||
-            position > 99 ||
-            !/^\d{4}$/.test(sequence)
+            position > 99
         ){
-            return;
+            continue;
         }
 
         rows.push({
             position,
             sequence,
-            partNumber:partNumber || "OCR",
-            source:"google_vision_table_row"
+            partNumber:third || "OCR",
+            source:"google_vision_split_lines"
         });
 
-    });
+        i = i + 1;
+
+    }
 
     if(rows.length===0){
         return parseSinglePieceLabelFromText(text);
