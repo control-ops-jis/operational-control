@@ -1621,56 +1621,38 @@ function parseVisionRows(result){
 
     lines.forEach(line=>{
 
-        const numbers =
-            line.match(/\b\d{1,4}\b/g) || [];
+        const rowMatch =
+            line.match(/^(\d{1,2})\s+(\d{4})\b(.*)$/);
 
-        if(numbers.length < 2){
-            return;
-        }
-
-        const positionCandidate =
-            numbers.find(value=>{
-                const num = Number(value);
-                return num >= 1 && num <= 120;
-            });
-
-        const sequenceCandidate =
-            numbers.find(value=>
-                /^\d{4}$/.test(value) &&
-                value !== positionCandidate
-            );
-
-        if(
-            !positionCandidate ||
-            !sequenceCandidate
-        ){
+        if(!rowMatch){
             return;
         }
 
         const position =
-            Number(positionCandidate);
+            Number(rowMatch[1]);
 
         const sequence =
-            String(sequenceCandidate).padStart(4,"0");
+            String(rowMatch[2]).padStart(4,"0");
 
-        let partNumber =
-            line
-                .replace(positionCandidate,"")
-                .replace(sequenceCandidate,"")
+        const partNumber =
+            String(rowMatch[3] || "")
                 .replace(/\s+/g," ")
                 .trim()
                 .toUpperCase();
 
-        if(!partNumber){
-            partNumber =
-                "OCR";
+        if(
+            position < 1 ||
+            position > 99 ||
+            !/^\d{4}$/.test(sequence)
+        ){
+            return;
         }
 
         rows.push({
             position,
             sequence,
-            partNumber,
-            source:"google_vision_flexible"
+            partNumber:partNumber || "OCR",
+            source:"google_vision_table_row"
         });
 
     });
