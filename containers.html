@@ -1327,26 +1327,8 @@ window.processOcrImage = async function(event){
         document.getElementById("visionStatusBox").innerText =
             "Obteniendo información de la etiqueta, espera un momento...";
 
-        let imageFile =
-    file;
-
-try{
-
-    imageFile =
-        await compressImageFile(file);
-
-}catch(compressError){
-
-    console.warn(
-        "No se pudo comprimir imagen, usando original",
-        compressError
-    );
-
-}
-
-const base64Image =
-    await fileToBase64(imageFile);
-
+       const base64Image =
+    await fileToBase64(file);
         const result =
             await callGoogleVision(base64Image);
 
