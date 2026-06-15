@@ -500,11 +500,9 @@ window.loadReports = async function(){
         document.getElementById("reportSequence").value.trim();
 
     const q =
-        query(
-            collection(db,"containers"),
-            where("active","==",true),
-            orderBy("createdAt","desc")
-        );
+    query(
+        collection(db,"containers")
+    );
 
     const snapshot =
         await getDocs(q);
@@ -516,6 +514,9 @@ window.loadReports = async function(){
                 ...docSnap.data()
             }))
             .filter(item=>{
+                                if(item.active !== true){
+                    return false;
+                }
 
                 if(warehouse!=="ALL" && item.warehouseId!==warehouse){
                     return false;
