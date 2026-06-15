@@ -358,12 +358,61 @@ th:first-child{
         </button>
     </div>
 
-    <div class="panel" id="capturesPanel">
-        <h2>Capturas</h2>
-        <div class="empty-state">
-            Módulo pendiente: aquí se gestionarán capturas con Ver / Editar / Eliminar.
-        </div>
+   <div class="panel" id="capturesPanel">
+    <h2>Capturas</h2>
+
+    <div class="filters-grid">
+        <select id="captureWarehouse">
+            <option value="ALL">Todas las naves</option>
+        </select>
+
+        <select id="captureArea">
+            <option value="ALL">Todas las áreas</option>
+            <option value="ZL">ZL</option>
+            <option value="PU">PU</option>
+        </select>
+
+        <select id="captureMaterial">
+            <option value="ALL">Todas las familias</option>
+        </select>
+
+        <input id="captureDateFrom" type="date">
+        <input id="captureDateTo" type="date">
+
+        <input id="captureContainerId" placeholder="Contenedor">
+        <input id="captureSequence" placeholder="Secuencia">
     </div>
+
+    <div class="form-actions">
+        <button class="primary-btn" onclick="loadCaptures()">Buscar</button>
+    </div>
+
+    <div class="table-wrap">
+        <table>
+            <thead>
+                <tr>
+                    <th>Evento</th>
+                    <th>Fecha</th>
+                    <th>Hora</th>
+                    <th>Nave</th>
+                    <th>Área</th>
+                    <th>Familia</th>
+                    <th>Contenedor</th>
+                    <th>Secuencia</th>
+                    <th>Usuario</th>
+                    <th>Método</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+
+            <tbody id="capturesTable">
+                <tr>
+                    <td colspan="11">Usa los filtros para consultar capturas.</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
 
     <div class="panel" id="reportsPanel" style="display:none;">
         <h2>Reportes</h2>
@@ -511,6 +560,8 @@ async function loadSupportCatalogs(){
         loadMaterialsForReports()
     ]);
 
+    cloneReportCatalogsToCaptures();
+
 }
 
 async function loadWarehousesForReports(){
@@ -544,7 +595,31 @@ async function loadWarehousesForReports(){
     });
 
 }
+function cloneReportCatalogsToCaptures(){
 
+    const reportWarehouse =
+        document.getElementById("reportWarehouse");
+
+    const captureWarehouse =
+        document.getElementById("captureWarehouse");
+
+    const reportMaterial =
+        document.getElementById("reportMaterial");
+
+    const captureMaterial =
+        document.getElementById("captureMaterial");
+
+    if(reportWarehouse && captureWarehouse){
+        captureWarehouse.innerHTML =
+            reportWarehouse.innerHTML;
+    }
+
+    if(reportMaterial && captureMaterial){
+        captureMaterial.innerHTML =
+            reportMaterial.innerHTML;
+    }
+
+}
 async function loadMaterialsForReports(){
 
     const select =
