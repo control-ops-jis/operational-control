@@ -670,7 +670,224 @@ function openTab(tab){
 }
 
 window.openTab=openTab;
+let captureRows = [];
 
+window.loadCaptures = async function(){
+
+    const table =
+        document.getElementById("capturesTable");
+
+    table.innerHTML =
+        `<tr><td colspan="11">Cargando capturas...</td></tr>`;
+
+    const warehouse =
+        document.getElementById("captureWarehouse").value;
+
+    const area =
+        document.getElementById("captureArea").value;
+
+    const material =
+        document.getElementById("captureMaterial").value;
+
+    const dateFrom =
+        document.getElementById("captureDateFrom").value;
+
+    const dateTo =
+        document.getElementById("captureDateTo").value;
+
+    const containerId =
+        document.getElementById("captureContainerId").value.trim();
+
+    const sequence =
+        document.getElementById("captureSequence").value.trim();
+
+    const snapshot =
+        await getDocs(
+            query(collection(db,"containers"))
+        );
+
+    const containers =
+        snapshot.docs
+            .map(docSnap=>({
+                id:docSnap.id,
+                ...docSnap.data()
+            }))
+            .filter(item=>item.active===true);
+
+    const events = [];
+
+    containers.forEach(container=>{
+
+        const sequences =
+            container.sequencesConfirmed ||
+            container.sequences ||
+            [];
+
+        const lastSequence =
+            container.lastSequence ||
+            sequences[sequences.length-1]?.sequence ||
+            "-";
+
+        events.push({
+            eventType:"Creado",
+            area:"ZL",
+            eventAt:container.createdAt || null,
+            userId:container.createdBy || "-",
+            userName:container.createdByName || "",
+            method:getCleanMethod(container),
+            ocrEnabled:hasOcrRows(container),
+            container,
+            sequence:lastSequence
+        });
+
+        if(container.consumedAt){
+
+            events.push({
+                eventType:"Consumido",
+                area:"PU",
+                eventAt:container.consumedAt,
+                userId:container.consumedBy || "-",
+                userName:container.consumedByName || "",
+                method:"-",
+                ocrEnabled:false,
+                container,
+                sequence:lastSequence
+            });
+
+        }
+
+    });
+
+    captureRows =
+        events
+            .filter(row=>{
+
+                const item =
+                    row.container;
+
+                if(warehouse!=="ALL" && item.warehouseId!==warehouse){
+                    return false;
+                }
+
+                if(area!=="ALL" && row.area!==area){
+                    return false;
+                }
+
+                if(material!=="ALL" && item.materialId!==material){
+                    return false;
+                }
+
+                if(containerId && item.containerId!==containerId.padStart(3,"0")){
+                    return false;
+                }
+
+                if(sequence){
+
+                    const sequences =
+                        item.sequencesConfirmed ||
+                        item.sequences ||
+                        [];
+
+                    const found =
+                        sequences.some(seqRow=>
+                            String(seqRow.sequence || "")
+                                .padStart(4,"0") === sequence.padStart(4,"0")
+                        );
+
+                    if(!found){
+                        return false;
+                    }
+
+                }
+
+                const date =
+                    timestampToDate(row.eventAt);
+
+                if(!date){
+                    return false;
+                }
+
+                const dateText =
+                    getLocalDateValue(date);
+
+                if(dateFrom && dateText < dateFrom){
+                    return false;
+                }
+
+                if(dateTo && dateText > dateTo){
+                    return false;
+                }
+
+                return true;
+
+            })
+            .sort((a,b)=>{
+                const dateA =
+                    timestampToDate(a.eventAt)?.getTime() || 0;
+
+                const dateB =
+                    timestampToDate(b.eventAt)?.getTime() || 0;
+
+                return dateB - dateA;
+            });
+
+    renderCaptures();
+
+};
+
+function renderCaptures(){
+
+    const table =
+        document.getElementById("capturesTable");
+
+    if(captureRows.length===0){
+        table.innerHTML =
+            `<tr><td colspan="11">No hay capturas con los filtros seleccionados.</td></tr>`;
+        return;
+    }
+
+    table.innerHTML = "";
+
+    captureRows.forEach((row,index)=>{
+
+        const item =
+            row.container;
+
+        const date =
+            timestampToDate(row.eventAt);
+
+        const deleteButton =
+            currentUser.role==="admin"
+            ? `<button class="eye-btn" onclick="deleteCaptureRow(${index})">🗑</button>`
+            : "";
+
+        table.innerHTML += `
+            <tr>
+                <td>
+                    <span class="badge ${row.eventType==="Creado" ? "ok" : "warning"}">
+                        ${row.eventType}
+                    </span>
+                </td>
+                <td>${date ? date.toLocaleDateString("es-MX") : "-"}</td>
+                <td>${date ? date.toLocaleTimeString("es-MX",{hour:"2-digit",minute:"2-digit"}) : "-"}</td>
+                <td>${item.warehouseName || item.warehouseId || "-"}</td>
+                <td>${row.area}</td>
+                <td>${item.materialName || "-"}</td>
+                <td>${item.containerId || "-"}</td>
+                <td>${String(row.sequence).padStart(4,"0")}</td>
+                <td>${row.userName || row.userId || "-"}</td>
+                <td>${row.method}</td>
+                <td>
+                    <button class="eye-btn" onclick="viewCaptureRow(${index})">👁</button>
+                    <button class="eye-btn" onclick="editCaptureRow(${index})">✏️</button>
+                    ${deleteButton}
+                </td>
+            </tr>
+        `;
+
+    });
+
+}
 window.loadReports = async function(){
 
     const table =
