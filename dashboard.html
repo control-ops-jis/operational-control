@@ -974,7 +974,12 @@ document.getElementById("headerUser").innerText =
 if(currentUser.role !== "admin"){
     document.getElementById("adminBtn").style.display =
         "none";
+}
 
+if(
+    currentUser.role !== "admin" &&
+    currentUser.role !== "it"
+){
     document.getElementById("puBtn").style.display =
         "none";
 
@@ -1001,9 +1006,10 @@ async function loadWarehouseFilter(){
         document.getElementById("warehousePanel");
 
     const canViewMultipleWarehouses =
-        currentUser.role==="admin" ||
-        currentUser.role==="gerente" ||
-        currentUser.role==="manager";
+    currentUser.role==="admin" ||
+    currentUser.role==="gerente" ||
+    currentUser.role==="manager" ||
+    currentUser.role==="it";
 
     if(!canViewMultipleWarehouses){
 
@@ -1063,7 +1069,8 @@ async function loadDashboard(){
     const canViewMultipleWarehouses =
     currentUser.role==="admin" ||
     currentUser.role==="gerente" ||
-    currentUser.role==="manager";
+    currentUser.role==="manager" ||
+    currentUser.role==="it";
 
 const selectedWarehouse =
     canViewMultipleWarehouses
@@ -1591,7 +1598,7 @@ window.goAdmin=goAdmin;
 function goCapturePU(){
 
     window.location.href =
-        "capture.html?area=PU";
+        "containers.html?area=PU";
 
 }
 
@@ -1600,7 +1607,7 @@ window.goCapturePU=goCapturePU;
 function goCaptureZL(){
 
     window.location.href =
-        "capture.html?area=ZL";
+        "containers.html?area=ZL";
 
 }
 
