@@ -74,6 +74,19 @@ body{
     margin-top:15px;
     font-weight:bold;
 }
+.app-version{
+    position:fixed;
+    left:10px;
+    bottom:8px;
+    font-size:11px;
+    color:#777;
+    background:rgba(255,255,255,.85);
+    padding:4px 8px;
+    border-radius:10px;
+    z-index:500;
+    font-weight:bold;
+}
+    
 </style>
 </head>
 
@@ -274,5 +287,16 @@ window.login=login;
 
 </script>
 
+<div class="app-version" id="appVersion">
+    Cargando versión...
+</div>
+
+<script src="version.js"></script>
+
+<script>
+document.getElementById("appVersion").innerText =
+    `${window.APP_CONFIG.name} · ${window.APP_CONFIG.version}`;
+</script>
+    
 </body>
 </html>
