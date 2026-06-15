@@ -1327,8 +1327,23 @@ window.processOcrImage = async function(event){
         document.getElementById("visionStatusBox").innerText =
             "Obteniendo información de la etiqueta, espera un momento...";
 
-       const base64Image =
-    await fileToBase64(file);
+       let imageFile =
+    file;
+
+try{
+
+    imageFile =
+        await compressImageFile(file);
+
+}catch(error){
+
+    console.warn("Compresión falló, usando imagen original",error);
+
+}
+
+const base64Image =
+    await fileToBase64(imageFile);
+        
        
         const result =
             await callGoogleVision(base64Image);
@@ -1430,7 +1445,7 @@ async function compressImageFile(file){
                     img.height;
 
                 const maxSize =
-                    1400;
+                    2200;
 
                 if(
                     width > maxSize ||
@@ -1507,7 +1522,7 @@ async function compressImageFile(file){
 
                     },
                     "image/jpeg",
-                    0.75
+                    0.92
                 );
 
             };
