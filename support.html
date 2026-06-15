@@ -52,18 +52,29 @@ header{
     flex-wrap:wrap;
 }
 
-.header-btn{
+.header-btn,
+.primary-btn,
+.secondary-btn{
     border:none;
-    background:var(--dhl-red);
-    color:white;
-    padding:10px 14px;
+    padding:12px 14px;
     border-radius:12px;
     font-weight:bold;
     cursor:pointer;
 }
 
+.header-btn,
+.primary-btn{
+    background:var(--dhl-red);
+    color:white;
+}
+
+.secondary-btn{
+    background:#eee;
+    color:#333;
+}
+
 .container{
-    max-width:1300px;
+    max-width:1400px;
     margin:auto;
     padding:16px;
 }
@@ -110,6 +121,64 @@ header{
     padding:18px;
     font-weight:bold;
     color:#555;
+}
+
+.filters-grid{
+    display:grid;
+    grid-template-columns:repeat(auto-fit,minmax(160px,1fr));
+    gap:10px;
+    margin-bottom:14px;
+}
+
+.filters-grid input,
+.filters-grid select{
+    width:100%;
+    padding:12px;
+    border-radius:12px;
+    border:1px solid #ccc;
+    font-weight:bold;
+}
+
+.form-actions{
+    display:flex;
+    gap:10px;
+    margin:14px 0;
+    flex-wrap:wrap;
+}
+
+.table-wrap{
+    overflow-x:auto;
+}
+
+table{
+    width:100%;
+    border-collapse:collapse;
+    min-width:1150px;
+}
+
+th,td{
+    padding:10px;
+    border-bottom:1px solid #eee;
+    text-align:center;
+    font-size:13px;
+}
+
+th{
+    background:#fff7cc;
+}
+
+td:first-child,
+th:first-child{
+    text-align:left;
+}
+
+.badge{
+    display:inline-block;
+    padding:6px 10px;
+    border-radius:999px;
+    background:#f0f0f0;
+    font-weight:bold;
+    font-size:12px;
 }
 
 @media(max-width:600px){
@@ -171,21 +240,79 @@ header{
     <div class="panel" id="capturesPanel">
         <h2>Capturas</h2>
         <div class="empty-state">
-            Aquí se mostrarán capturas ZL / PU para corrección operativa.
+            Módulo pendiente: aquí se gestionarán capturas con Ver / Editar / Eliminar.
         </div>
     </div>
 
     <div class="panel" id="reportsPanel" style="display:none;">
         <h2>Reportes</h2>
-        <div class="empty-state">
-            Aquí se generarán reportes operativos de contenedores, OCR, manual y productividad.
+
+        <div class="filters-grid">
+            <select id="reportWarehouse">
+                <option value="ALL">Todas las naves</option>
+            </select>
+
+            <select id="reportArea">
+                <option value="ALL">Todas las áreas</option>
+                <option value="ZL">ZL</option>
+                <option value="PU">PU</option>
+            </select>
+
+            <select id="reportMaterial">
+                <option value="ALL">Todas las familias</option>
+            </select>
+
+            <input id="reportDateFrom" type="date" title="Fecha inicio">
+            <input id="reportDateTo" type="date" title="Fecha fin">
+
+            <input id="reportTimeFrom" type="time" title="Hora inicio">
+            <input id="reportTimeTo" type="time" title="Hora fin">
+
+            <input id="reportContainerId" placeholder="Contenedor">
+            <input id="reportSequence" placeholder="Secuencia">
+        </div>
+
+        <div class="form-actions">
+            <button class="primary-btn" onclick="loadReports()">
+                Buscar
+            </button>
+
+            <button class="secondary-btn" onclick="exportReportsExcel()">
+                Exportar Excel
+            </button>
+        </div>
+
+        <div class="table-wrap">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Fecha</th>
+                        <th>Hora</th>
+                        <th>Nave</th>
+                        <th>Área</th>
+                        <th>Familia</th>
+                        <th>Contenedor</th>
+                        <th>Secuencia</th>
+                        <th>Usuario</th>
+                        <th>Método</th>
+                        <th>OCR</th>
+                        <th>Estado</th>
+                    </tr>
+                </thead>
+
+                <tbody id="reportsTable">
+                    <tr>
+                        <td colspan="11">Usa los filtros para consultar información.</td>
+                    </tr>
+                </tbody>
+            </table>
         </div>
     </div>
 
     <div class="panel" id="usersPanel" style="display:none;">
         <h2>Usuarios</h2>
         <div class="empty-state">
-            Aquí se administrarán usuarios operativos y solicitudes de reset vía Cloud Functions.
+            Módulo pendiente: usuarios y reset de contraseña vía Cloud Functions.
         </div>
     </div>
 
@@ -202,6 +329,16 @@ import {
 }
 from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
+import {
+    getFirestore,
+    collection,
+    getDocs,
+    query,
+    where,
+    orderBy
+}
+from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
 const firebaseConfig = {
     apiKey: "AIzaSyC4yHubTO4ZPn2H80I1fG7H6qeR7SavNbM",
     authDomain: "dhl-operational-control.firebaseapp.com",
@@ -213,6 +350,11 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
+const db = getFirestore(app);
+
+let reportRows = [];
+let materialsCache = [];
+let warehousesCache = [];
 
 const savedUser =
     localStorage.getItem("operationalUser");
@@ -232,7 +374,82 @@ if(
 }
 
 document.getElementById("headerUser").innerText =
-    `${currentUser.name || currentUser.employeeId} · ${currentUser.role}`;
+    `${currentUser.name || currentUser.employeeId || "Usuario"} · ${currentUser.role}`;
+
+loadSupportCatalogs();
+
+async function loadSupportCatalogs(){
+
+    await Promise.all([
+        loadWarehousesForReports(),
+        loadMaterialsForReports()
+    ]);
+
+}
+
+async function loadWarehousesForReports(){
+
+    const select =
+        document.getElementById("reportWarehouse");
+
+    const snapshot =
+        await getDocs(
+            collection(db,"warehouses")
+        );
+
+    warehousesCache =
+        snapshot.docs.map(docSnap=>({
+            id:docSnap.id,
+            ...docSnap.data()
+        }));
+
+    warehousesCache.forEach(warehouse=>{
+
+        if(warehouse.active===false){
+            return;
+        }
+
+        select.innerHTML += `
+            <option value="${warehouse.id}">
+                ${warehouse.name || warehouse.id}
+            </option>
+        `;
+
+    });
+
+}
+
+async function loadMaterialsForReports(){
+
+    const select =
+        document.getElementById("reportMaterial");
+
+    const snapshot =
+        await getDocs(
+            collection(db,"materials")
+        );
+
+    materialsCache =
+        snapshot.docs.map(docSnap=>({
+            id:docSnap.id,
+            ...docSnap.data()
+        }));
+
+    materialsCache.forEach(material=>{
+
+        if(material.active===false){
+            return;
+        }
+
+        select.innerHTML += `
+            <option value="${material.id}">
+                ${material.name}
+            </option>
+        `;
+
+    });
+
+}
 
 function openTab(tab){
 
@@ -263,6 +480,287 @@ function openTab(tab){
 }
 
 window.openTab=openTab;
+
+window.loadReports = async function(){
+
+    const table =
+        document.getElementById("reportsTable");
+
+    table.innerHTML =
+        `<tr><td colspan="11">Cargando reporte...</td></tr>`;
+
+    const warehouse =
+        document.getElementById("reportWarehouse").value;
+
+    const area =
+        document.getElementById("reportArea").value;
+
+    const material =
+        document.getElementById("reportMaterial").value;
+
+    const dateFrom =
+        document.getElementById("reportDateFrom").value;
+
+    const dateTo =
+        document.getElementById("reportDateTo").value;
+
+    const timeFrom =
+        document.getElementById("reportTimeFrom").value;
+
+    const timeTo =
+        document.getElementById("reportTimeTo").value;
+
+    const containerId =
+        document.getElementById("reportContainerId").value.trim();
+
+    const sequence =
+        document.getElementById("reportSequence").value.trim();
+
+    let q =
+        query(
+            collection(db,"containers"),
+            where("active","==",true),
+            orderBy("createdAt","desc")
+        );
+
+    const snapshot =
+        await getDocs(q);
+
+    reportRows =
+        snapshot.docs
+            .map(docSnap=>({
+                id:docSnap.id,
+                ...docSnap.data()
+            }))
+            .filter(item=>{
+
+                if(warehouse!=="ALL" && item.warehouseId!==warehouse){
+                    return false;
+                }
+
+                if(area!=="ALL" && item.areaOwner!==area){
+                    return false;
+                }
+
+                if(material!=="ALL" && item.materialId!==material){
+                    return false;
+                }
+
+                if(containerId && item.containerId!==containerId.padStart(3,"0")){
+                    return false;
+                }
+
+                if(sequence){
+
+                    const sequences =
+                        item.sequencesConfirmed ||
+                        item.sequences ||
+                        [];
+
+                    const found =
+                        sequences.some(row=>
+                            String(row.sequence || "")
+                                .padStart(4,"0") === sequence.padStart(4,"0")
+                        );
+
+                    if(!found){
+                        return false;
+                    }
+
+                }
+
+                const date =
+                    item.createdAt?.toDate
+                    ? item.createdAt.toDate()
+                    : null;
+
+                if(!date){
+                    return false;
+                }
+
+                const dateText =
+                    date.toISOString().slice(0,10);
+
+                const timeText =
+                    date.toTimeString().slice(0,5);
+
+                if(dateFrom && dateText < dateFrom){
+                    return false;
+                }
+
+                if(dateTo && dateText > dateTo){
+                    return false;
+                }
+
+                if(timeFrom && timeText < timeFrom){
+                    return false;
+                }
+
+                if(timeTo && timeText > timeTo){
+                    return false;
+                }
+
+                return true;
+
+            });
+
+    renderReports();
+
+};
+
+function renderReports(){
+
+    const table =
+        document.getElementById("reportsTable");
+
+    if(reportRows.length===0){
+        table.innerHTML =
+            `<tr><td colspan="11">No hay información con los filtros seleccionados.</td></tr>`;
+        return;
+    }
+
+    table.innerHTML = "";
+
+    reportRows.forEach(item=>{
+
+        const date =
+            item.createdAt?.toDate
+            ? item.createdAt.toDate()
+            : null;
+
+        const sequences =
+            item.sequencesConfirmed ||
+            item.sequences ||
+            [];
+
+        const lastSequence =
+            item.lastSequence ||
+            sequences[sequences.length-1]?.sequence ||
+            "-";
+
+        const ocrText =
+            sequences.length > 0
+            ? `${sequences.length} filas / ${sequences[0]?.sequence || "-"} → ${sequences[sequences.length-1]?.sequence || "-"}`
+            : "-";
+
+        table.innerHTML += `
+            <tr>
+                <td>${date ? date.toLocaleDateString("es-MX") : "-"}</td>
+                <td>${date ? date.toLocaleTimeString("es-MX",{hour:"2-digit",minute:"2-digit"}) : "-"}</td>
+                <td>${item.warehouseName || item.warehouseId || "-"}</td>
+                <td>${item.areaOwner || "-"}</td>
+                <td>${item.materialName || "-"}</td>
+                <td>${item.containerId || "-"}</td>
+                <td>${String(lastSequence).padStart(4,"0")}</td>
+                <td>${item.createdBy || "-"}</td>
+                <td>
+                    <span class="badge">
+                        ${item.dataQuality || item.captureMode || "-"}
+                    </span>
+                </td>
+                <td>${ocrText}</td>
+                <td>${item.status || "-"}</td>
+            </tr>
+        `;
+
+    });
+
+}
+
+window.exportReportsExcel = function(){
+
+    if(reportRows.length===0){
+        alert("No hay información para exportar");
+        return;
+    }
+
+    const headers = [
+        "Fecha",
+        "Hora",
+        "Nave",
+        "Area",
+        "Familia",
+        "Contenedor",
+        "Secuencia",
+        "Usuario",
+        "Metodo",
+        "OCR",
+        "Estado"
+    ];
+
+    const rows =
+        reportRows.map(item=>{
+
+            const date =
+                item.createdAt?.toDate
+                ? item.createdAt.toDate()
+                : null;
+
+            const sequences =
+                item.sequencesConfirmed ||
+                item.sequences ||
+                [];
+
+            const lastSequence =
+                item.lastSequence ||
+                sequences[sequences.length-1]?.sequence ||
+                "-";
+
+            const ocrText =
+                sequences.length > 0
+                ? `${sequences.length} filas / ${sequences[0]?.sequence || "-"} -> ${sequences[sequences.length-1]?.sequence || "-"}`
+                : "-";
+
+            return [
+                date ? date.toLocaleDateString("es-MX") : "-",
+                date ? date.toLocaleTimeString("es-MX",{hour:"2-digit",minute:"2-digit"}) : "-",
+                item.warehouseName || item.warehouseId || "-",
+                item.areaOwner || "-",
+                item.materialName || "-",
+                item.containerId || "-",
+                String(lastSequence).padStart(4,"0"),
+                item.createdBy || "-",
+                item.dataQuality || item.captureMode || "-",
+                ocrText,
+                item.status || "-"
+            ];
+
+        });
+
+    const csv =
+        [headers,...rows]
+            .map(row=>
+                row.map(value=>
+                    `"${String(value).replaceAll('"','""')}"`
+                ).join(",")
+            )
+            .join("\n");
+
+    const blob =
+        new Blob(
+            ["\ufeff" + csv],
+            {
+                type:"text/csv;charset=utf-8;"
+            }
+        );
+
+    const url =
+        URL.createObjectURL(blob);
+
+    const link =
+        document.createElement("a");
+
+    link.href = url;
+    link.download =
+        `reporte_contenedores_${new Date().toISOString().slice(0,10)}.csv`;
+
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+
+    URL.revokeObjectURL(url);
+
+};
 
 function goDashboard(){
     window.location.href="dashboard.html";
