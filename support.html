@@ -482,7 +482,35 @@ th:first-child{
     </div>
 
 </div>
+<div class="app-modal" id="editCaptureModal">
+    <div class="modal-card">
+        <div class="modal-header">
+            <h2>Editar captura</h2>
+            <button class="close-btn" onclick="closeEditCaptureModal()">X</button>
+        </div>
 
+        <div class="modal-grid">
+            <div class="modal-box">
+                <span>Familia</span>
+                <strong id="editCaptureMaterial">-</strong>
+            </div>
+
+            <div class="modal-box">
+                <span>Contenedor</span>
+                <strong id="editCaptureContainer">-</strong>
+            </div>
+        </div>
+
+        <div class="filters-grid">
+            <input id="editCaptureSequence" maxlength="4" placeholder="Secuencia">
+        </div>
+
+        <div class="form-actions">
+            <button class="secondary-btn" onclick="closeEditCaptureModal()">Cancelar</button>
+            <button class="primary-btn" onclick="saveEditCapture()">Guardar</button>
+        </div>
+    </div>
+</div>
 <div class="app-modal" id="ocrModal">
     <div class="modal-card">
         <div class="modal-header">
@@ -509,7 +537,10 @@ import {
     getFirestore,
     collection,
     getDocs,
-    query
+    query,
+    doc,
+    updateDoc,
+    serverTimestamp
 }
 from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
@@ -888,6 +919,251 @@ function renderCaptures(){
     });
 
 }
+let editCaptureIndex = null;
+
+window.viewCaptureRow = function(index){
+
+    const row =
+        captureRows[index];
+
+    if(!row){
+        return;
+    }
+
+    const item =
+        row.container;
+
+    const sequences =
+        item.sequencesConfirmed ||
+        item.sequences ||
+        [];
+
+    const date =
+        timestampToDate(row.eventAt);
+
+    const body =
+        document.getElementById("ocrModalBody");
+
+    body.innerHTML = `
+        <div class="modal-grid">
+            <div class="modal-box">
+                <span>Evento</span>
+                <strong>${row.eventType}</strong>
+            </div>
+
+            <div class="modal-box">
+                <span>Área</span>
+                <strong>${row.area}</strong>
+            </div>
+
+            <div class="modal-box">
+                <span>Familia</span>
+                <strong>${item.materialName || "-"}</strong>
+            </div>
+
+            <div class="modal-box">
+                <span>Contenedor</span>
+                <strong>${item.containerId || "-"}</strong>
+            </div>
+
+            <div class="modal-box">
+                <span>Fecha / Hora</span>
+                <strong>${date ? date.toLocaleString("es-MX") : "-"}</strong>
+            </div>
+
+            <div class="modal-box">
+                <span>Usuario</span>
+                <strong>${row.userName || row.userId || "-"}</strong>
+            </div>
+
+            <div class="modal-box">
+                <span>Método</span>
+                <strong>${row.method}</strong>
+            </div>
+
+            <div class="modal-box">
+                <span>Secuencia</span>
+                <strong>${String(row.sequence).padStart(4,"0")}</strong>
+            </div>
+        </div>
+
+        ${
+            sequences.length > 0
+            ? `
+                <table class="ocr-table">
+                    <thead>
+                        <tr>
+                            <th>Posición</th>
+                            <th>Secuencia</th>
+                            <th>Índice / Parte</th>
+                            <th>Fuente</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${sequences.map(seq=>`
+                            <tr>
+                                <td>${seq.position || "-"}</td>
+                                <td>${seq.sequence || "-"}</td>
+                                <td>${seq.partNumber || "-"}</td>
+                                <td>${seq.source || "-"}</td>
+                            </tr>
+                        `).join("")}
+                    </tbody>
+                </table>
+            `
+            : ""
+        }
+    `;
+
+    document.getElementById("ocrModal").style.display =
+        "flex";
+
+};
+
+window.editCaptureRow = function(index){
+
+    const row =
+        captureRows[index];
+
+    if(!row){
+        return;
+    }
+
+    editCaptureIndex =
+        index;
+
+    document.getElementById("editCaptureMaterial").innerText =
+        row.container.materialName || "-";
+
+    document.getElementById("editCaptureContainer").innerText =
+        row.container.containerId || "-";
+
+    document.getElementById("editCaptureSequence").value =
+        String(row.sequence || "").padStart(4,"0");
+
+    document.getElementById("editCaptureModal").style.display =
+        "flex";
+
+};
+
+window.closeEditCaptureModal = function(){
+
+    editCaptureIndex =
+        null;
+
+    document.getElementById("editCaptureModal").style.display =
+        "none";
+
+};
+
+window.saveEditCapture = async function(){
+
+    if(editCaptureIndex===null){
+        return;
+    }
+
+    const row =
+        captureRows[editCaptureIndex];
+
+    const item =
+        row.container;
+
+    const newSequence =
+        document.getElementById("editCaptureSequence")
+            .value
+            .trim()
+            .padStart(4,"0");
+
+    if(!/^\d{4}$/.test(newSequence)){
+        alert("Secuencia inválida");
+        return;
+    }
+
+    const sequences =
+        item.sequencesConfirmed ||
+        item.sequences ||
+        [];
+
+    const updatedSequences =
+        sequences.map((seq,index)=>{
+
+            if(index === sequences.length-1){
+                return {
+                    ...seq,
+                    sequence:newSequence
+                };
+            }
+
+            return seq;
+
+        });
+
+    await updateDoc(
+        doc(db,"containers",item.id),
+        {
+            lastSequence:newSequence,
+            sequencesConfirmed:updatedSequences,
+            updatedAt:serverTimestamp(),
+            updatedBy:currentUser.employeeId || currentUser.email || "support"
+        }
+    );
+
+    closeEditCaptureModal();
+    await loadCaptures();
+
+};
+
+window.deleteCaptureRow = async function(index){
+
+    if(currentUser.role!=="admin"){
+        alert("Solo Admin puede eliminar");
+        return;
+    }
+
+    const row =
+        captureRows[index];
+
+    if(!row){
+        return;
+    }
+
+    const item =
+        row.container;
+
+    if(!confirm("¿Confirmas eliminar esta captura?")){
+        return;
+    }
+
+    if(row.eventType==="Consumido"){
+
+        await updateDoc(
+            doc(db,"containers",item.id),
+            {
+                status:"available",
+                consumedAt:null,
+                consumedBy:null,
+                consumedByName:null,
+                updatedAt:serverTimestamp(),
+                updatedBy:currentUser.employeeId || currentUser.email || "support"
+            }
+        );
+
+    }else{
+
+        await updateDoc(
+            doc(db,"containers",item.id),
+            {
+                active:false,
+                updatedAt:serverTimestamp(),
+                updatedBy:currentUser.employeeId || currentUser.email || "support"
+            }
+        );
+
+    }
+
+    await loadCaptures();
+
+};    
 window.loadReports = async function(){
 
     const table =
