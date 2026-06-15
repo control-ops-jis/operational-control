@@ -1081,11 +1081,7 @@ let materialsQuery;
 
 if(
     selectedWarehouse==="ALL" &&
-    (
-        currentUser.role==="admin" ||
-        currentUser.role==="gerente" ||
-        currentUser.role==="manager"
-    )
+    canViewMultipleWarehouses
 ){
     materialsQuery = query(
         collection(db,"materials"),
