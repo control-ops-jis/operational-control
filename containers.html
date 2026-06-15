@@ -716,7 +716,10 @@ const forcedArea =
     urlParams.get("area");
 
 if(
-    currentUser.role==="admin" &&
+    (
+        currentUser.role==="admin" ||
+        currentUser.role==="it"
+    ) &&
     (
         forcedArea==="PU" ||
         forcedArea==="ZL"
@@ -728,6 +731,7 @@ if(
 
 if(
     currentUser.role !== "admin" &&
+    currentUser.role !== "it" &&
     currentUser.area !== "PU" &&
     currentUser.area !== "ZL"
 ){
@@ -819,9 +823,11 @@ window.selectMaterial = async function(materialId){
         `${selectedMaterial.name} · Contenedores`;
 
     document.getElementById("addContainerBtn").style.display =
-        currentUser.area==="ZL" || currentUser.role==="admin"
-        ? "block"
-        : "none";
+    currentUser.area==="ZL" ||
+    currentUser.role==="admin" ||
+    currentUser.role==="it"
+    ? "block"
+    : "none";
 
     await loadContainers();
 };
