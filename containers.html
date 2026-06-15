@@ -737,11 +737,15 @@ if(
     window.location.href="dashboard.html";
 }
 
+const dashboardBtn =
+    document.getElementById("dashboardBtn");
+
 if(
+    dashboardBtn &&
     currentUser.role!=="admin" &&
     currentUser.role!=="it"
 ){
-    document.getElementById("dashboardBtn").style.display =
+    dashboardBtn.style.display =
         "none";
 }
 
