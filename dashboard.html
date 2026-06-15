@@ -974,6 +974,14 @@ const currentUser =
 document.getElementById("headerUser").innerText =
     `${currentUser.name} · ${currentUser.role} · ${currentUser.warehouse}`;
 
+const isAdmin =
+    currentUser.role==="admin";
+
+document.getElementById("adminBtn").style.display =
+    isAdmin
+    ? "inline-block"
+    : "none";    
+
 if(
     currentUser.role!=="admin" &&
     currentUser.role!=="it"
