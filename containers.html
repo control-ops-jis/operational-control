@@ -424,13 +424,12 @@ textarea{
 
 <header>
     <div>
-        <h1>📦 Contenedores Beta</h1>
+        <h1>📦 Contenedores</h1>
         <div class="header-user" id="activeUser">Usuario</div>
     </div>
 
     <div class="header-actions">
-        <button class="header-btn" onclick="goCapture()">Captura</button>
-        <button class="header-btn" onclick="goDashboard()">Dashboard</button>
+        <button class="header-btn" id="dashboardBtn" onclick="goDashboard()">Dashboard</button>
         <button class="header-btn" onclick="logout()">Salir</button>
     </div>
 </header>
@@ -738,8 +737,13 @@ if(
     window.location.href="dashboard.html";
 }
 
-document.getElementById("activeUser").innerText =
-    `${currentUser.name} · ${currentUser.area}`;
+if(
+    currentUser.role!=="admin" &&
+    currentUser.role!=="it"
+){
+    document.getElementById("dashboardBtn").style.display =
+        "none";
+}
 
 document.getElementById("areaTitle").innerText =
     currentUser.area==="ZL"
@@ -1858,7 +1862,11 @@ const componentName =
 
 window.confirmCreateContainer = async function(){
 
-    if(currentUser.area !== "ZL" && currentUser.role !== "admin"){
+    if(
+        currentUser.area !== "ZL" &&
+        currentUser.role !== "admin" &&
+        currentUser.role !== "it"
+    ){
         showToast("Solo ZL puede crear contenedores");
         return;
     }
