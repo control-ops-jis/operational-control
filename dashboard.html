@@ -971,6 +971,7 @@ const db = getFirestore(app);
 let dashboardMaterials = [];
 let warehousesCache = [];
 let latestCapturesCache = {};
+let latestCapturesLoaded = false;
     
 const savedUser =
     localStorage.getItem("operationalUser");
@@ -1173,6 +1174,10 @@ for(const docSnap of snapshot.docs){
 
 async function loadLatestCaptures(){
 
+    if(latestCapturesLoaded){
+        return;
+    }
+
     const snapshot =
         await getDocs(
             collection(db,"latestCaptures")
@@ -1186,6 +1191,8 @@ async function loadLatestCaptures(){
             docSnap.data();
 
     });
+
+    latestCapturesLoaded = true;
 
 }
 
