@@ -482,6 +482,29 @@ th:first-child{
     </div>
 
 </div>
+<div class="app-modal" id="deleteCaptureModal">
+    <div class="modal-card">
+        <div class="modal-header">
+            <h2>Eliminar captura</h2>
+            <button class="close-btn" onclick="closeDeleteCaptureModal()">X</button>
+        </div>
+
+        <div id="deleteCaptureText" class="empty-state">
+            ¿Confirmas eliminar esta captura?
+        </div>
+
+        <div class="form-actions">
+            <button class="secondary-btn" onclick="closeDeleteCaptureModal()">
+                Cancelar
+            </button>
+
+            <button class="primary-btn" onclick="confirmDeleteCapture()">
+                Eliminar
+            </button>
+        </div>
+    </div>
+</div>
+    
 <div class="app-modal" id="editCaptureModal">
     <div class="modal-card">
         <div class="modal-header">
@@ -920,6 +943,7 @@ function renderCaptures(){
 
 }
 let editCaptureIndex = null;
+let deleteCaptureIndex = null;    
 
 window.viewCaptureRow = function(index){
 
@@ -1113,7 +1137,7 @@ window.saveEditCapture = async function(){
 
 };
 
-window.deleteCaptureRow = async function(index){
+window.deleteCaptureRow = function(index){
 
     if(currentUser.role!=="admin"){
         alert("Solo Admin puede eliminar");
@@ -1127,12 +1151,52 @@ window.deleteCaptureRow = async function(index){
         return;
     }
 
+    deleteCaptureIndex =
+        index;
+
     const item =
         row.container;
 
-    if(!confirm("¿Confirmas eliminar esta captura?")){
+    document.getElementById("deleteCaptureText").innerHTML =
+        `
+            <strong>¿Confirmas eliminar esta captura?</strong>
+            <br><br>
+            Evento: <b>${row.eventType}</b><br>
+            Familia: <b>${item.materialName || "-"}</b><br>
+            Contenedor: <b>${item.containerId || "-"}</b><br>
+            Secuencia: <b>${String(row.sequence).padStart(4,"0")}</b>
+        `;
+
+    document.getElementById("deleteCaptureModal").style.display =
+        "flex";
+
+};
+
+window.closeDeleteCaptureModal = function(){
+
+    deleteCaptureIndex =
+        null;
+
+    document.getElementById("deleteCaptureModal").style.display =
+        "none";
+
+};
+
+window.confirmDeleteCapture = async function(){
+
+    if(deleteCaptureIndex===null){
         return;
     }
+
+    const row =
+        captureRows[deleteCaptureIndex];
+
+    if(!row){
+        return;
+    }
+
+    const item =
+        row.container;
 
     if(row.eventType==="Consumido"){
 
@@ -1161,9 +1225,10 @@ window.deleteCaptureRow = async function(index){
 
     }
 
+    closeDeleteCaptureModal();
     await loadCaptures();
 
-};    
+}; 
 window.loadReports = async function(){
 
     const table =
