@@ -719,6 +719,9 @@ th:first-child{
     <button class="logout-btn" id="adminBtn" onclick="goAdmin()">
         Admin
     </button>
+    <button class="logout-btn" id="supportBtn" onclick="goSupport()">
+        Soporte
+    </button>    
 
     <button class="logout-btn" id="puBtn" onclick="goCapturePU()">
     PU
@@ -971,8 +974,11 @@ const currentUser =
 document.getElementById("headerUser").innerText =
     `${currentUser.name} · ${currentUser.role} · ${currentUser.warehouse}`;
 
-if(currentUser.role !== "admin"){
-    document.getElementById("adminBtn").style.display =
+if(
+    currentUser.role!=="admin" &&
+    currentUser.role!=="it"
+){
+    document.getElementById("supportBtn").style.display =
         "none";
 }
 
@@ -1588,8 +1594,14 @@ function goAdmin(){
         "admin.html";
 
 }
-
 window.goAdmin=goAdmin;
+
+function goSupport(){
+    window.location.href="support.html";
+}
+
+window.goSupport=goSupport;
+    
 
 function goCapturePU(){
 
