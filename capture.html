@@ -843,6 +843,15 @@ async function logout(){
 window.logout=logout;
 
 </script>
+<div class="app-version" id="appVersion">
+    Cargando versión...
+</div>
 
+<script src="version.js"></script>
+
+<script>
+document.getElementById("appVersion").innerText =
+    `${window.APP_CONFIG.name} · ${window.APP_CONFIG.version}`;
+</script>
 </body>
 </html>
