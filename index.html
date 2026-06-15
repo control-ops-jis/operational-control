@@ -201,14 +201,53 @@ localStorage.setItem(
     })
 );
 
+let captureFlow =
+    "containers";
+
+try{
+
+    const settingsRef =
+        doc(db,"systemSettings","captureFlow");
+
+    const settingsSnap =
+        await getDoc(settingsRef);
+
+    if(settingsSnap.exists()){
+
+        const settingsData =
+            settingsSnap.data();
+
+        captureFlow =
+            settingsData.activeFlow || "containers";
+
+    }
+
+}catch(settingsError){
+
+    console.warn(
+        "No se pudo leer captureFlow, usando containers por default",
+        settingsError
+    );
+
+}
+
 if(
     userRole==="capturista_pu" ||
     userRole==="capturista_zl" ||
     userArea==="PU" ||
     userArea==="ZL"
 ){
-    window.location.href="capture.html";
+
+    if(captureFlow==="legacy"){
+
+        window.location.href="capture.html";
+        return;
+
+    }
+
+    window.location.href="containers.html";
     return;
+
 }
 if(
     userRole==="admin" ||
