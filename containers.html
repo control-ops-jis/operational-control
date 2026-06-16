@@ -1622,6 +1622,166 @@ function parseVisionRows(result){
         return [];
     }
 
+    if(isPedalesTemplate()){
+        return parsePedalesTemplate(text);
+    }
+
+    return parseGenericTemplate(text);
+
+}
+function isPedalesTemplate(){
+
+    const name =
+        String(selectedMaterial?.name || "")
+            .toUpperCase();
+
+    return name.includes("PEDAL");
+
+}
+
+function parsePedalesTemplate(text){
+
+    const lines =
+        text
+            .split("\n")
+            .map(line=>
+                line
+                    .replace(/\s+/g," ")
+                    .trim()
+            )
+            .filter(line=>line);
+
+    const rows = [];
+
+    for(let i=0;i<lines.length;i++){
+
+        const line =
+            lines[i];
+
+        const inlineMatch =
+            line.match(
+                /^(\d{1,2})\s+(\d{4})\s+(.+)$/
+            );
+
+        if(inlineMatch){
+
+            const position =
+                Number(inlineMatch[1]);
+
+            const sequence =
+                inlineMatch[2];
+
+            const partNumber =
+                normalizePartNumber(
+                    inlineMatch[3]
+                );
+
+            if(isValidPedalesRow(position,sequence,partNumber)){
+                rows.push({
+                    position,
+                    sequence,
+                    partNumber,
+                    source:"pedales_inline"
+                });
+            }
+
+            continue;
+
+        }
+
+        if(!/^\d{1,2}$/.test(line)){
+            continue;
+        }
+
+        const sequenceLine =
+            lines[i+1] || "";
+
+        const partLine =
+            lines[i+2] || "";
+
+        if(!/^\d{4}$/.test(sequenceLine)){
+            continue;
+        }
+
+        const position =
+            Number(line);
+
+        const sequence =
+            sequenceLine;
+
+        const partNumber =
+            normalizePartNumber(partLine);
+
+        if(isValidPedalesRow(position,sequence,partNumber)){
+            rows.push({
+                position,
+                sequence,
+                partNumber,
+                source:"pedales_split"
+            });
+        }
+
+        i = i + 2;
+
+    }
+
+    if(rows.length===0){
+        return parseSinglePieceLabelFromText(text);
+    }
+
+    return rows
+        .filter((row,index,self)=>
+            index === self.findIndex(item=>
+                item.position === row.position
+            )
+        )
+        .sort((a,b)=>a.position-b.position);
+
+}
+
+function normalizePartNumber(value){
+
+    return String(value || "")
+        .replace(/\s+/g," ")
+        .trim()
+        .toUpperCase();
+
+}
+
+function isValidPedalesRow(position,sequence,partNumber){
+
+    if(
+        position < 1 ||
+        position > 99
+    ){
+        return false;
+    }
+
+    if(!/^\d{4}$/.test(sequence)){
+        return false;
+    }
+
+    if(!partNumber){
+        return false;
+    }
+
+    if(
+        partNumber.includes("MODEL") ||
+        partNumber.includes("TOTAL") ||
+        partNumber.includes("LINEA") ||
+        partNumber.includes("PEDALES") ||
+        partNumber.includes("SEC") ||
+        partNumber.includes("NUM")
+    ){
+        return false;
+    }
+
+    return true;
+
+}
+
+function parseGenericTemplate(text){
+
     const lines =
         text
             .split("\n")
@@ -1670,7 +1830,7 @@ function parseVisionRows(result){
             position,
             sequence,
             partNumber:third || "OCR",
-            source:"google_vision_split_lines"
+            source:"generic_split_lines"
         });
 
         i = i + 1;
@@ -1690,6 +1850,7 @@ function parseVisionRows(result){
         .sort((a,b)=>a.position-b.position);
 
 }
+    
 function parseSinglePieceLabelFromText(text){
 
     const clean =
