@@ -506,11 +506,48 @@ th:first-child{
 </div>
     
 <div class="app-modal" id="editCaptureModal">
-    <div class="modal-card">
+    <div class="modal-card" style="max-width:920px;">
         <div class="modal-header">
             <h2>Editar captura</h2>
             <button class="close-btn" onclick="closeEditCaptureModal()">X</button>
         </div>
+
+        <div class="modal-grid">
+            <div class="modal-box">
+                <span>Familia</span>
+                <strong id="editCaptureMaterial">-</strong>
+            </div>
+
+            <div class="modal-box">
+                <span>Nave</span>
+                <strong id="editCaptureWarehouse">-</strong>
+            </div>
+        </div>
+
+        <div class="filters-grid">
+            <input id="editCaptureContainer" maxlength="3" placeholder="Contenedor">
+        </div>
+
+        <div class="table-wrap">
+            <table class="ocr-table">
+                <thead>
+                    <tr>
+                        <th>Posición</th>
+                        <th>Secuencia</th>
+                        <th>Número de parte</th>
+                    </tr>
+                </thead>
+
+                <tbody id="editCaptureRows"></tbody>
+            </table>
+        </div>
+
+        <div class="form-actions">
+            <button class="secondary-btn" onclick="closeEditCaptureModal()">Cancelar</button>
+            <button class="primary-btn" onclick="saveEditCapture()">Guardar</button>
+        </div>
+    </div>
+</div>
 
         <div class="modal-grid">
             <div class="modal-box">
@@ -1056,20 +1093,64 @@ window.editCaptureRow = function(index){
     editCaptureIndex =
         index;
 
+    const item =
+        row.container;
+
+    const sequences =
+        item.sequencesConfirmed ||
+        item.sequences ||
+        [];
+
     document.getElementById("editCaptureMaterial").innerText =
-        row.container.materialName || "-";
+        item.materialName || "-";
 
-    document.getElementById("editCaptureContainer").innerText =
-        row.container.containerId || "-";
+    document.getElementById("editCaptureWarehouse").innerText =
+        item.warehouseName || item.warehouseId || "-";
 
-    document.getElementById("editCaptureSequence").value =
-        String(row.sequence || "").padStart(4,"0");
+    document.getElementById("editCaptureContainer").value =
+        item.containerId || "";
+
+    const rowsBody =
+        document.getElementById("editCaptureRows");
+
+    rowsBody.innerHTML = "";
+
+    sequences.forEach((seq,rowIndex)=>{
+
+        rowsBody.innerHTML += `
+            <tr>
+                <td>
+                    <input
+                        id="editPos_${rowIndex}"
+                        value="${seq.position || ""}"
+                        inputmode="numeric"
+                    >
+                </td>
+
+                <td>
+                    <input
+                        id="editSeq_${rowIndex}"
+                        value="${seq.sequence || ""}"
+                        maxlength="4"
+                        inputmode="numeric"
+                    >
+                </td>
+
+                <td>
+                    <input
+                        id="editPart_${rowIndex}"
+                        value="${seq.partNumber || ""}"
+                    >
+                </td>
+            </tr>
+        `;
+
+    });
 
     document.getElementById("editCaptureModal").style.display =
         "flex";
 
 };
-
 window.closeEditCaptureModal = function(){
 
     editCaptureIndex =
@@ -1089,43 +1170,91 @@ window.saveEditCapture = async function(){
     const row =
         captureRows[editCaptureIndex];
 
-    const item =
-        row.container;
-
-    const newSequence =
-        document.getElementById("editCaptureSequence")
-            .value
-            .trim()
-            .padStart(4,"0");
-
-    if(!/^\d{4}$/.test(newSequence)){
-        alert("Secuencia inválida");
+    if(!row){
         return;
     }
 
-    const sequences =
+    const item =
+        row.container;
+
+    const originalSequences =
         item.sequencesConfirmed ||
         item.sequences ||
         [];
 
+    const newContainerId =
+        document.getElementById("editCaptureContainer")
+            .value
+            .trim()
+            .padStart(3,"0");
+
+    if(!/^\d{3}$/.test(newContainerId)){
+        alert("Contenedor inválido");
+        return;
+    }
+
     const updatedSequences =
-        sequences.map((seq,index)=>{
+        originalSequences
+            .map((seq,index)=>{
 
-            if(index === sequences.length-1){
+                const position =
+                    Number(
+                        document.getElementById(`editPos_${index}`).value
+                    );
+
+                const sequence =
+                    String(
+                        document.getElementById(`editSeq_${index}`).value || ""
+                    )
+                    .trim()
+                    .padStart(4,"0");
+
+                const partNumber =
+                    String(
+                        document.getElementById(`editPart_${index}`).value || ""
+                    )
+                    .trim()
+                    .toUpperCase();
+
+                if(
+                    !position ||
+                    position < 1 ||
+                    position > 120 ||
+                    !/^\d{4}$/.test(sequence)
+                ){
+                    return null;
+                }
+
                 return {
-                    ...seq,
-                    sequence:newSequence
+                    position,
+                    sequence,
+                    partNumber,
+                    source:seq.source || "support_edit"
                 };
-            }
 
-            return seq;
+            })
+            .filter(row=>row)
+            .sort((a,b)=>a.position-b.position);
 
-        });
+    if(updatedSequences.length===0){
+        alert("No hay líneas válidas para guardar");
+        return;
+    }
+
+    const first =
+        updatedSequences[0];
+
+    const last =
+        updatedSequences[updatedSequences.length-1];
 
     await updateDoc(
         doc(db,"containers",item.id),
         {
-            lastSequence:newSequence,
+            containerId:newContainerId,
+            firstSequence:first.sequence,
+            lastSequence:last.sequence,
+            sequenceCount:updatedSequences.length,
+            sequences:updatedSequences,
             sequencesConfirmed:updatedSequences,
             updatedAt:serverTimestamp(),
             updatedBy:currentUser.employeeId || currentUser.email || "support"
