@@ -1205,23 +1205,42 @@ let zlCapture =
     latestCapturesCache[`${material.id}_ZL`] || {};
 
 
-   if(
-    puCapture.sequence === undefined ||
-    puCapture.sequence === null ||
-    zlCapture.sequence === undefined ||
-    zlCapture.sequence === null
-){
-        return {
-            pu:"-",
-            zl:"-",
-            total:"-",
-            xHour:"-",
-            controlText:formatControlTime(material.controlTime),
-            compliance:"-",
-            status:"warning",
-            statusText:"Sin datos"
-        };
-    }
+   const hasPU =
+    puCapture.sequence !== undefined &&
+    puCapture.sequence !== null;
+
+const hasZL =
+    zlCapture.sequence !== undefined &&
+    zlCapture.sequence !== null;
+
+if(!hasPU || !hasZL){
+
+    return {
+        pu:hasPU
+            ? String(Number(puCapture.sequence)).padStart(4,"0")
+            : "-",
+
+        zl:hasZL
+            ? String(Number(zlCapture.sequence)).padStart(4,"0")
+            : "-",
+
+        puTime:hasPU
+            ? formatCaptureTime(puCapture.createdAt)
+            : "-",
+
+        zlTime:hasZL
+            ? formatCaptureTime(zlCapture.createdAt)
+            : "-",
+
+        total:"-",
+        xHour:"-",
+        controlText:formatControlTime(material.controlTime),
+        compliance:"-",
+        status:"warning",
+        statusText:"Sin datos"
+    };
+
+}
 
     const pu =
         Number(puCapture.sequence);
