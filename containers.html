@@ -1341,20 +1341,6 @@ try{
 
 }
 
-let imageFile =
-    file;
-
-try{
-
-    imageFile =
-        await compressImageFile(file);
-
-}catch(error){
-
-    console.warn("Compresión falló, usando imagen original",error);
-
-}
-
 const base64Image =
     await fileToBase64(imageFile);
         
