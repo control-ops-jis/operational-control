@@ -1341,6 +1341,20 @@ try{
 
 }
 
+let imageFile =
+    file;
+
+try{
+
+    imageFile =
+        await compressImageFile(file);
+
+}catch(error){
+
+    console.warn("Compresión falló, usando imagen original",error);
+
+}
+
 const base64Image =
     await fileToBase64(imageFile);
         
@@ -1348,7 +1362,7 @@ const base64Image =
         const result =
             await callGoogleVision(base64Image);
 
-        visionRaw = result;
+        visionRaw = null;
         visionText =
             result?.responses?.[0]?.fullTextAnnotation?.text ||
             result?.responses?.[0]?.textAnnotations?.[0]?.description ||
@@ -1741,10 +1755,22 @@ function parsePedalesTemplate(text){
 
 function normalizePartNumber(value){
 
-    return String(value || "")
-        .replace(/\s+/g," ")
-        .trim()
-        .toUpperCase();
+    const clean =
+        String(value || "")
+            .replace(/\s+/g," ")
+            .trim()
+            .toUpperCase();
+
+    const match =
+        clean.match(/\b(5[A-Z0-9]{2}\s*723\s*058(?:\s*[A-Z])?)\b/);
+
+    if(match){
+        return match[1]
+            .replace(/\s+/g," ")
+            .trim();
+    }
+
+    return clean;
 
 }
 
