@@ -571,7 +571,32 @@ textarea{
         </div>
     </div>
 </div>
+<div class="app-modal" id="preConsumeModal">
+    <div class="modal-card">
+        <div class="modal-header">
+            <h2>Detalle / Validación previa</h2>
+            <button class="close-btn" onclick="closePreConsumeModal()">X</button>
+        </div>
 
+        <div id="preConsumeInfo"></div>
+
+        <div
+            id="preConsumeWarning"
+            class="validation-card"
+            style="display:none;"
+        ></div>
+
+        <div class="form-actions">
+            <button class="secondary-btn" onclick="closePreConsumeModal()">
+                Cancelar
+            </button>
+
+            <button class="primary-btn" onclick="continueToConsumeValidation()">
+                Continuar
+            </button>
+        </div>
+    </div>
+</div>
 <div class="app-modal" id="consumeModal">
     <div class="modal-card">
         <div class="modal-header">
