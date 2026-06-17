@@ -1,0 +1,705 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>DHL OCR Lab</title>
+
+<style>
+:root{
+    --dhl-red:#D40511;
+    --dhl-yellow:#FFCC00;
+    --bg:#f5f5f5;
+}
+
+*{
+    box-sizing:border-box;
+    font-family:Arial,sans-serif;
+}
+
+body{
+    margin:0;
+    background:var(--bg);
+}
+
+header{
+    background:var(--dhl-yellow);
+    padding:14px 18px;
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    gap:12px;
+    flex-wrap:wrap;
+}
+
+header h1{
+    margin:0;
+    color:var(--dhl-red);
+    font-size:22px;
+}
+
+.header-btn,
+.primary-btn,
+.secondary-btn{
+    border:none;
+    padding:12px 14px;
+    border-radius:12px;
+    font-weight:bold;
+    cursor:pointer;
+}
+
+.header-btn,
+.primary-btn{
+    background:var(--dhl-red);
+    color:white;
+}
+
+.secondary-btn{
+    background:#eee;
+    color:#333;
+}
+
+.container{
+    max-width:1100px;
+    margin:auto;
+    padding:16px;
+}
+
+.panel{
+    background:white;
+    border-radius:22px;
+    padding:18px;
+    box-shadow:0 4px 14px rgba(0,0,0,.08);
+    margin-bottom:16px;
+}
+
+.panel h2{
+    margin-top:0;
+    color:var(--dhl-red);
+}
+
+.form-grid{
+    display:grid;
+    grid-template-columns:repeat(auto-fit,minmax(180px,1fr));
+    gap:10px;
+}
+
+input,
+select{
+    width:100%;
+    padding:12px;
+    border-radius:12px;
+    border:1px solid #ccc;
+    font-weight:bold;
+}
+
+.preview-img{
+    max-width:100%;
+    border-radius:16px;
+    border:1px solid #ddd;
+    margin-top:12px;
+}
+
+.status{
+    background:#fff7cc;
+    border-radius:16px;
+    padding:12px;
+    font-weight:bold;
+    margin-top:12px;
+}
+
+pre{
+    white-space:pre-wrap;
+    background:#fafafa;
+    border-radius:16px;
+    padding:12px;
+    max-height:280px;
+    overflow:auto;
+}
+
+.table-wrap{
+    overflow-x:auto;
+}
+
+table{
+    width:100%;
+    border-collapse:collapse;
+    min-width:650px;
+}
+
+th,td{
+    padding:10px;
+    border-bottom:1px solid #eee;
+    text-align:center;
+    font-size:13px;
+}
+
+th{
+    background:#fff7cc;
+}
+
+.app-version{
+    position:fixed;
+    left:10px;
+    bottom:8px;
+    font-size:11px;
+    color:#777;
+    background:rgba(255,255,255,.85);
+    padding:4px 8px;
+    border-radius:10px;
+    z-index:9999;
+    font-weight:bold;
+    max-width:260px;
+    white-space:nowrap;
+    pointer-events:none;
+}
+
+@media(max-width:600px){
+    header h1{
+        font-size:18px;
+    }
+
+    .container{
+        padding:12px;
+    }
+
+    .panel{
+        padding:14px;
+        border-radius:18px;
+    }
+}
+</style>
+</head>
+
+<body>
+
+<header>
+    <h1>🧪 DHL OCR Lab</h1>
+
+    <div>
+        <button class="header-btn" onclick="goContainers()">Containers</button>
+        <button class="header-btn" onclick="goDashboard()">Dashboard</button>
+    </div>
+</header>
+
+<div class="container">
+
+    <div class="panel">
+        <h2>Prueba OCR Local</h2>
+
+        <div class="form-grid">
+            <select id="templateSelect">
+                <option value="PEDALES">PEDALES</option>
+            </select>
+
+            <input
+                id="ocrImageInput"
+                type="file"
+                accept="image/*"
+                capture="environment"
+                onchange="previewImage(event)"
+            >
+        </div>
+
+        <div style="display:flex;gap:10px;margin-top:14px;flex-wrap:wrap;">
+            <button class="primary-btn" onclick="runLocalOcr()">
+                Leer OCR local
+            </button>
+
+            <button class="secondary-btn" onclick="clearLab()">
+                Limpiar
+            </button>
+        </div>
+
+        <div class="status" id="ocrStatus">
+            Selecciona una imagen para iniciar.
+        </div>
+
+        <img id="imagePreview" class="preview-img" style="display:none;">
+    </div>
+
+    <div class="panel">
+        <h2>Filas detectadas</h2>
+
+        <div class="table-wrap">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Posición</th>
+                        <th>Secuencia</th>
+                        <th>Número de parte</th>
+                        <th>Fuente</th>
+                    </tr>
+                </thead>
+
+                <tbody id="rowsTable">
+                    <tr>
+                        <td colspan="4">Sin lectura.</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="panel">
+        <h2>Texto OCR recibido</h2>
+        <pre id="ocrText">Sin texto.</pre>
+    </div>
+
+</div>
+
+<div class="app-version" id="appVersion">
+    DHL Operational Control · OCR Lab
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+<script src="version.js"></script>
+
+<script>
+if(window.APP_CONFIG){
+    document.getElementById("appVersion").innerText =
+        `${window.APP_CONFIG.name} · OCR Lab · ${window.APP_CONFIG.version}`;
+}
+
+let selectedFile = null;
+
+function previewImage(event){
+
+    selectedFile =
+        event.target.files[0];
+
+    const preview =
+        document.getElementById("imagePreview");
+
+    if(!selectedFile){
+        preview.style.display =
+            "none";
+        return;
+    }
+
+    preview.src =
+        URL.createObjectURL(selectedFile);
+
+    preview.style.display =
+        "block";
+
+    document.getElementById("ocrStatus").innerText =
+        "Imagen lista. Presiona Leer OCR local.";
+
+}
+
+async function runLocalOcr(){
+
+    if(!selectedFile){
+        document.getElementById("ocrStatus").innerText =
+            "Selecciona una imagen primero.";
+        return;
+    }
+
+    const status =
+        document.getElementById("ocrStatus");
+
+    try{
+
+        status.innerText =
+            "Preparando imagen...";
+
+        const imageFile =
+            await prepareImageForLocalOcr(selectedFile);
+
+        status.innerText =
+            "Leyendo OCR local... puede tardar en celular.";
+
+        const result =
+            await Tesseract.recognize(
+                imageFile,
+                "eng",
+                {
+                    logger:m=>{
+
+                        if(m.status){
+                            status.innerText =
+                                `${m.status} ${m.progress ? Math.round(m.progress*100) + "%" : ""}`;
+                        }
+
+                    }
+                }
+            );
+
+        const text =
+            result?.data?.text || "";
+
+        document.getElementById("ocrText").innerText =
+            text || "Sin texto.";
+
+        const template =
+            document.getElementById("templateSelect").value;
+
+        let rows = [];
+
+        if(template==="PEDALES"){
+            rows =
+                parsePedalesTemplate(text);
+        }
+
+        renderRows(rows);
+
+        status.innerText =
+            `Lectura terminada. Filas detectadas: ${rows.length}`;
+
+    }catch(error){
+
+        console.error(error);
+
+        status.innerText =
+            "Error en OCR local. Revisa consola o prueba otra foto.";
+
+    }
+
+}
+
+async function prepareImageForLocalOcr(file){
+
+    return new Promise((resolve,reject)=>{
+
+        const reader =
+            new FileReader();
+
+        reader.onload = event=>{
+
+            const img =
+                new Image();
+
+            img.onload = ()=>{
+
+                let width =
+                    img.width;
+
+                let height =
+                    img.height;
+
+                const maxSize =
+                    2200;
+
+                if(width > maxSize || height > maxSize){
+
+                    if(width > height){
+                        height =
+                            Math.round(height * (maxSize / width));
+                        width =
+                            maxSize;
+                    }else{
+                        width =
+                            Math.round(width * (maxSize / height));
+                        height =
+                            maxSize;
+                    }
+
+                }
+
+                const canvas =
+                    document.createElement("canvas");
+
+                canvas.width =
+                    width;
+
+                canvas.height =
+                    height;
+
+                const ctx =
+                    canvas.getContext("2d");
+
+                ctx.drawImage(
+                    img,
+                    0,
+                    0,
+                    width,
+                    height
+                );
+
+                const imageData =
+                    ctx.getImageData(
+                        0,
+                        0,
+                        width,
+                        height
+                    );
+
+                const data =
+                    imageData.data;
+
+                for(let i=0;i<data.length;i+=4){
+
+                    const gray =
+                        data[i] * 0.299 +
+                        data[i+1] * 0.587 +
+                        data[i+2] * 0.114;
+
+                    const contrast =
+                        gray > 145
+                        ? 255
+                        : 0;
+
+                    data[i] =
+                        contrast;
+
+                    data[i+1] =
+                        contrast;
+
+                    data[i+2] =
+                        contrast;
+
+                }
+
+                ctx.putImageData(
+                    imageData,
+                    0,
+                    0
+                );
+
+                canvas.toBlob(
+                    blob=>{
+
+                        if(!blob){
+                            reject(
+                                new Error("No se pudo preparar imagen")
+                            );
+                            return;
+                        }
+
+                        resolve(blob);
+
+                    },
+                    "image/png"
+                );
+
+            };
+
+            img.onerror =
+                reject;
+
+            img.src =
+                event.target.result;
+
+        };
+
+        reader.onerror =
+            reject;
+
+        reader.readAsDataURL(file);
+
+    });
+
+}
+
+function parsePedalesTemplate(text){
+
+    const lines =
+        text
+            .split("\n")
+            .map(line=>
+                line
+                    .replace(/\s+/g," ")
+                    .trim()
+                    .toUpperCase()
+            )
+            .filter(line=>line);
+
+    const rows = [];
+
+    for(let i=0;i<lines.length;i++){
+
+        const line =
+            lines[i];
+
+        const inlineMatch =
+            line.match(
+                /^(\d{1,2})\s+(\d{4})\s+(.+)$/
+            );
+
+        if(inlineMatch){
+
+            const position =
+                Number(inlineMatch[1]);
+
+            const sequence =
+                inlineMatch[2];
+
+            const partNumber =
+                normalizePartNumber(
+                    inlineMatch[3]
+                );
+
+            if(isValidPedalesRow(position,sequence,partNumber)){
+                rows.push({
+                    position,
+                    sequence,
+                    partNumber,
+                    source:"local_ocr_inline"
+                });
+            }
+
+            continue;
+
+        }
+
+        if(!/^\d{1,2}$/.test(line)){
+            continue;
+        }
+
+        const sequenceLine =
+            lines[i+1] || "";
+
+        const partLine =
+            lines[i+2] || "";
+
+        if(!/^\d{4}$/.test(sequenceLine)){
+            continue;
+        }
+
+        const position =
+            Number(line);
+
+        const sequence =
+            sequenceLine;
+
+        const partNumber =
+            normalizePartNumber(partLine);
+
+        if(isValidPedalesRow(position,sequence,partNumber)){
+            rows.push({
+                position,
+                sequence,
+                partNumber,
+                source:"local_ocr_split"
+            });
+        }
+
+        i = i + 2;
+
+    }
+
+    return rows
+        .filter((row,index,self)=>
+            index === self.findIndex(item=>
+                item.position === row.position
+            )
+        )
+        .sort((a,b)=>a.position-b.position);
+
+}
+
+function normalizePartNumber(value){
+
+    const clean =
+        String(value || "")
+            .replace(/\s+/g," ")
+            .trim()
+            .toUpperCase();
+
+    const match =
+        clean.match(/\b(5[A-Z0-9]{2}\s*723\s*058(?:\s*[A-Z])?)\b/);
+
+    if(match){
+        return match[1]
+            .replace(/\s+/g," ")
+            .trim();
+    }
+
+    return clean;
+
+}
+
+function isValidPedalesRow(position,sequence,partNumber){
+
+    if(position < 1 || position > 99){
+        return false;
+    }
+
+    if(!/^\d{4}$/.test(sequence)){
+        return false;
+    }
+
+    if(!partNumber){
+        return false;
+    }
+
+    if(
+        partNumber.includes("MODEL") ||
+        partNumber.includes("TOTAL") ||
+        partNumber.includes("LINEA") ||
+        partNumber.includes("PEDALES") ||
+        partNumber.includes("SEC") ||
+        partNumber.includes("NUM")
+    ){
+        return false;
+    }
+
+    return true;
+
+}
+
+function renderRows(rows){
+
+    const table =
+        document.getElementById("rowsTable");
+
+    if(rows.length===0){
+        table.innerHTML =
+            `<tr><td colspan="4">No se detectaron filas confiables.</td></tr>`;
+        return;
+    }
+
+    table.innerHTML = "";
+
+    rows.forEach(row=>{
+
+        table.innerHTML += `
+            <tr>
+                <td>${row.position}</td>
+                <td>${row.sequence}</td>
+                <td>${row.partNumber}</td>
+                <td>${row.source}</td>
+            </tr>
+        `;
+
+    });
+
+}
+
+function clearLab(){
+
+    selectedFile =
+        null;
+
+    document.getElementById("ocrImageInput").value =
+        "";
+
+    document.getElementById("imagePreview").style.display =
+        "none";
+
+    document.getElementById("ocrStatus").innerText =
+        "Selecciona una imagen para iniciar.";
+
+    document.getElementById("ocrText").innerText =
+        "Sin texto.";
+
+    document.getElementById("rowsTable").innerHTML =
+        `<tr><td colspan="4">Sin lectura.</td></tr>`;
+
+}
+
+function goContainers(){
+    window.location.href =
+        "containers.html?area=ZL";
+}
+
+function goDashboard(){
+    window.location.href =
+        "dashboard.html";
+}
+</script>
+
+</body>
+</html>
