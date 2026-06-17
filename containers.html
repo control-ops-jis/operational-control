@@ -2441,158 +2441,174 @@ window.openContainerAction = function(groupKey){
     }
 
     if(currentUser.area==="PU"){
-        openConsumeModal();
-        return;
-    }
+    validateConsumeOrderBeforeOpen();
+    return;
+}
 
-    showToast("Contenedor disponible");
+openZlContainerDetail();
 
 };
 
-function openConsumeModal(){
+};
 
-    document.getElementById("consumeTitle").innerText =
-    `Mover contenedor ${selectedContainer.containerId} a PU`;
+function openZlContainerDetail(){
 
-document.getElementById("consumeInfo").innerHTML = `
-    <p>
-        Familia: <b>${selectedContainer.materialName}</b><br>
-        Contenedor: <b>${selectedContainer.containerId}</b><br>
-        Piezas: <b>${selectedContainer.sequenceCount}</b>
-    </p>
-`;
+    const sequences =
+        selectedContainer.sequencesConfirmed?.length
+        ? selectedContainer.sequencesConfirmed
+        : selectedContainer.sequences || [];
 
-    consumeValidation =
-        buildRandomValidation(selectedContainer);
+    const lastSequence =
+        selectedContainer.lastSequence ||
+        sequences[sequences.length-1]?.sequence ||
+        "-";
 
-    document.getElementById("consumeValidationBox").innerHTML =
-        consumeValidation.html;
+    document.getElementById("preConsumeInfo").innerHTML = `
+        <div class="validation-card">
+            <div class="validation-question">
+                Detalle del contenedor
+            </div>
 
-    document.getElementById("consumeModal").style.display =
+            <p>
+                Familia: <b>${selectedContainer.materialName || "-"}</b><br>
+                Contenedor: <b>${selectedContainer.containerId || "-"}</b><br>
+                Secuencia final: <b>${String(lastSequence).padStart(4,"0")}</b><br>
+                Método: <b>${selectedContainer.captureMode || selectedContainer.dataQuality || "-"}</b><br>
+                Filas OCR: <b>${sequences.length}</b>
+            </p>
+        </div>
+
+        ${
+            sequences.length > 0
+            ? `
+                <table class="summary-table">
+                    <thead>
+                        <tr>
+                            <th>Pos.</th>
+                            <th>Sec.</th>
+                            <th>Índice</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${sequences.map(item=>`
+                            <tr>
+                                <td>${item.position || "-"}</td>
+                                <td>${item.sequence || "-"}</td>
+                                <td>${item.partNumber || "-"}</td>
+                            </tr>
+                        `).join("")}
+                    </tbody>
+                </table>
+            `
+            : ""
+        }
+    `;
+
+    document.getElementById("preConsumeWarning").style.display =
+        "none";
+
+    document.getElementById("preConsumeModal").style.display =
         "flex";
 
 }
 
-function buildRandomValidation(container){
+function validateConsumeOrderBeforeOpen(){
 
-    const sequences =
-        container.sequencesConfirmed?.length
-        ? container.sequencesConfirmed
-        : container.sequences || [];
+    const suggestedId =
+        getSuggestedContainerToConsume(
+            getAvailableGroupedContainers()
+        );
 
-    if(container.dataQuality === "manual_final_sequence"){
+    const isSuggested =
+        selectedContainer.containerId === suggestedId;
 
-    const lastSequence =
-        container.lastSequence;
+    if(isSuggested){
+        openConsumeModal();
+        return;
+    }
 
-    return {
-        type:"manualLastSequence",
-        answer:lastSequence,
-        html:`
-            <div class="validation-card">
-                <div class="validation-question">
-                    Valida el contenedor antes de mover a PU
-                </div>
-                <div>Contenedor capturado manualmente.</div>
-                <div class="validation-chip">Última secuencia</div>
-                <label><b>Ingresa la secuencia final del contenedor</b></label>
-                <input
-                    id="consumeValidationInput"
-                    class="validation-input"
-                    inputmode="numeric"
-                    maxlength="4"
-                    placeholder="0000"
-                >
+    document.getElementById("preConsumeInfo").innerHTML = `
+        <div class="validation-card">
+            <div class="validation-question">
+                ⚠️ Contenedor fuera de secuencia sugerida
             </div>
-        `
-    };
+
+            <p>
+                El contenedor sugerido para consumo es:
+                <b>${suggestedId || "-"}</b>
+            </p>
+
+            <p>
+                Seleccionaste el contenedor:
+                <b>${selectedContainer.containerId}</b>
+            </p>
+
+            <p>
+                Puede existir un contenedor previo o secuencias anteriores pendientes.
+                Confirma solo si operación requiere consumir este contenedor.
+            </p>
+        </div>
+    `;
+
+    document.getElementById("preConsumeWarning").style.display =
+        "none";
+
+    document.getElementById("preConsumeModal").style.display =
+        "flex";
 
 }
 
-    const item =
-        sequences[
-            Math.floor(Math.random()*sequences.length)
-        ];
+function getAvailableGroupedContainers(){
 
-    const mode =
-        Math.floor(Math.random()*3);
+    const availableContainers =
+        containersCache.filter(container=>
+            container.status==="available"
+        );
 
-    if(mode===0){
-        return {
-            type:"positionToSequence",
-            answer:item.sequence,
-            html:`
-    <div class="validation-card">
-        <div class="validation-question">
-            Valida el contenedor antes de mover a PU
-        </div>
-        <div>Busca la posición:</div>
-        <div class="validation-chip">Posición ${item.position}</div>
-        <label><b>Ingresa la secuencia correspondiente</b></label>
-        <input
-            id="consumeValidationInput"
-            class="validation-input"
-            inputmode="numeric"
-            maxlength="4"
-            placeholder="0000"
-        >
-    </div>
-`
-        };
-    }
+    const groupedMap = {};
 
-    if(mode===1){
-        return {
-            type:"sequenceToPosition",
-            answer:String(item.position),
-            html:`
-    <div class="validation-card">
-        <div class="validation-question">
-            Valida el contenedor antes de mover a PU
-        </div>
-        <div>Busca la secuencia:</div>
-        <div class="validation-chip">${item.sequence}</div>
-        <label><b>Ingresa la posición correspondiente</b></label>
-        <input
-            id="consumeValidationInput"
-            class="validation-input"
-            inputmode="numeric"
-            placeholder="Posición"
-        >
-    </div>
-`
-        };
-    }
+    availableContainers.forEach(container=>{
 
-    const options =
-        [...new Set(sequences.map(x=>x.partNumber).filter(x=>x))];
+        const key =
+            `${container.materialId}_${container.warehouseId}_${container.containerId}`;
 
-    return {
-        type:"partNumber",
-        answer:item.partNumber,
-        html:`
-    <div class="validation-card">
-        <div class="validation-question">
-            Valida el contenedor antes de mover a PU
-        </div>
-        <div>Secuencia:</div>
-        <div class="validation-chip">${item.sequence}</div>
-        <label><b>Selecciona el número de parte correcto</b></label>
-        <select
-            id="consumeValidationInput"
-            class="validation-input"
-        >
-            <option value="">Selecciona...</option>
-            ${options.map(option=>`
-                <option value="${option}">${option}</option>
-            `).join("")}
-        </select>
-    </div>
-`
-    };
+        if(!groupedMap[key]){
+            groupedMap[key] = {
+                ...container,
+                groupKey:key,
+                groupDocs:[container]
+            };
+        }else{
+            groupedMap[key].groupDocs.push(container);
+        }
+
+    });
+
+    return Object.values(groupedMap);
 
 }
 
+function closePreConsumeModal(){
+
+    document.getElementById("preConsumeModal").style.display =
+        "none";
+
+}
+
+window.closePreConsumeModal =
+    closePreConsumeModal;
+
+function continueToConsumeValidation(){
+
+    closePreConsumeModal();
+    openConsumeModal();
+
+}
+
+window.continueToConsumeValidation =
+    continueToConsumeValidation;
+
+function openConsumeModal(){
 window.closeConsumeModal = function(){
 
     document.getElementById("consumeModal").style.display =
