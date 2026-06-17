@@ -2652,8 +2652,177 @@ function openConsumeModal(){
 
     document.getElementById("consumeModal").style.display =
         "flex";
+    
+}
+function buildRandomValidation(container){
+
+    const sequences =
+        container.sequencesConfirmed?.length
+        ? container.sequencesConfirmed
+        : container.sequences || [];
+
+    if(container.dataQuality === "manual_final_sequence"){
+
+        const lastSequence =
+            container.lastSequence;
+
+        return {
+            type:"manualLastSequence",
+            answer:lastSequence,
+            html:`
+                <div class="validation-card">
+                    <div class="validation-question">
+                        Valida el contenedor antes de mover a PU
+                    </div>
+
+                    <div>
+                        Contenedor capturado manualmente.
+                    </div>
+
+                    <div class="validation-chip">
+                        Última secuencia
+                    </div>
+
+                    <label>
+                        <b>Ingresa la secuencia final del contenedor</b>
+                    </label>
+
+                    <input
+                        id="consumeValidationInput"
+                        class="validation-input"
+                        inputmode="numeric"
+                        maxlength="4"
+                        placeholder="0000"
+                    >
+                </div>
+            `
+        };
+
+    }
+
+    const item =
+        sequences[
+            Math.floor(
+                Math.random()*sequences.length
+            )
+        ];
+
+    const mode =
+        Math.floor(Math.random()*3);
+
+    if(mode===0){
+
+        return {
+            type:"positionToSequence",
+            answer:item.sequence,
+            html:`
+                <div class="validation-card">
+                    <div class="validation-question">
+                        Valida el contenedor antes de mover a PU
+                    </div>
+
+                    <div>Busca la posición:</div>
+
+                    <div class="validation-chip">
+                        Posición ${item.position}
+                    </div>
+
+                    <label>
+                        <b>Ingresa la secuencia correspondiente</b>
+                    </label>
+
+                    <input
+                        id="consumeValidationInput"
+                        class="validation-input"
+                        inputmode="numeric"
+                        maxlength="4"
+                        placeholder="0000"
+                    >
+                </div>
+            `
+        };
+
+    }
+
+    if(mode===1){
+
+        return {
+            type:"sequenceToPosition",
+            answer:String(item.position),
+            html:`
+                <div class="validation-card">
+                    <div class="validation-question">
+                        Valida el contenedor antes de mover a PU
+                    </div>
+
+                    <div>Busca la secuencia:</div>
+
+                    <div class="validation-chip">
+                        ${item.sequence}
+                    </div>
+
+                    <label>
+                        <b>Ingresa la posición correspondiente</b>
+                    </label>
+
+                    <input
+                        id="consumeValidationInput"
+                        class="validation-input"
+                        inputmode="numeric"
+                        placeholder="Posición"
+                    >
+                </div>
+            `
+        };
+
+    }
+
+    const options =
+        [...new Set(
+            sequences
+                .map(x=>x.partNumber)
+                .filter(x=>x)
+        )];
+
+    return {
+        type:"partNumber",
+        answer:item.partNumber,
+        html:`
+            <div class="validation-card">
+                <div class="validation-question">
+                    Valida el contenedor antes de mover a PU
+                </div>
+
+                <div>Secuencia:</div>
+
+                <div class="validation-chip">
+                    ${item.sequence}
+                </div>
+
+                <label>
+                    <b>Selecciona el número de parte correcto</b>
+                </label>
+
+                <select
+                    id="consumeValidationInput"
+                    class="validation-input"
+                >
+                    <option value="">
+                        Selecciona...
+                    </option>
+
+                    ${options.map(option=>`
+                        <option value="${option}">
+                            ${option}
+                        </option>
+                    `).join("")}
+                </select>
+            </div>
+        `
+    };
 
 }
+    
 
 window.closeConsumeModal = function(){
 
