@@ -2607,6 +2607,29 @@ window.continueToConsumeValidation =
     continueToConsumeValidation;
 
 function openConsumeModal(){
+
+    document.getElementById("consumeTitle").innerText =
+        `Mover contenedor ${selectedContainer.containerId} a PU`;
+
+    document.getElementById("consumeInfo").innerHTML = `
+        <p>
+            Familia: <b>${selectedContainer.materialName}</b><br>
+            Contenedor: <b>${selectedContainer.containerId}</b><br>
+            Piezas: <b>${selectedContainer.sequenceCount}</b>
+        </p>
+    `;
+
+    consumeValidation =
+        buildRandomValidation(selectedContainer);
+
+    document.getElementById("consumeValidationBox").innerHTML =
+        consumeValidation.html;
+
+    document.getElementById("consumeModal").style.display =
+        "flex";
+
+}
+
 window.closeConsumeModal = function(){
 
     document.getElementById("consumeModal").style.display =
