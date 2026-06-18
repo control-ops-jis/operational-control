@@ -353,7 +353,57 @@ textarea{
 #containersPanel{
     min-height:70vh;
 }    
-    
+.ocr-frame-stage{
+    position:relative;
+    height:68vh;
+    background:#000;
+    overflow:hidden;
+}
+
+#ocrFrameVideo{
+    width:100%;
+    height:100%;
+    object-fit:cover;
+}
+
+.ocr-guide-frame{
+    position:absolute;
+    left:50%;
+    top:45%;
+    transform:translate(-50%,-50%);
+    width:82%;
+    max-width:620px;
+    aspect-ratio:1.18/1;
+    border:4px solid white;
+    border-radius:18px;
+    box-shadow:
+        0 0 0 9999px rgba(0,0,0,.45),
+        0 0 18px rgba(255,255,255,.35);
+    pointer-events:none;
+}
+
+.ocr-guide-title{
+    position:absolute;
+    top:14px;
+    width:100%;
+    text-align:center;
+    color:white;
+    font-size:18px;
+    font-weight:900;
+    text-shadow:0 2px 6px #000;
+}
+
+.ocr-guide-help{
+    position:absolute;
+    bottom:14px;
+    width:100%;
+    padding:0 18px;
+    text-align:center;
+    color:white;
+    font-size:13px;
+    font-weight:bold;
+    text-shadow:0 2px 6px #000;
+}    
 @media(max-width:600px){
 
     header h1{
@@ -532,7 +582,38 @@ textarea{
     capture="environment"
     style="display:none;"
     onchange="processOcrImage(event)"
->       
+>
+<div class="app-modal" id="ocrFrameModal">
+    <div class="modal-card" style="max-width:760px;padding:0;overflow:hidden;">
+        <div class="modal-header" style="padding:14px;margin:0;background:#FFCC00;">
+            <h2>Leer etiqueta</h2>
+            <button class="close-btn" onclick="closeOcrFrameCamera()">X</button>
+        </div>
+
+        <div class="ocr-frame-stage" id="ocrFrameStage">
+            <video id="ocrFrameVideo" autoplay playsinline muted></video>
+
+            <div class="ocr-guide-title">
+                Enmarca la etiqueta completa
+            </div>
+
+            <div class="ocr-guide-frame" id="ocrGuideFrame"></div>
+
+            <div class="ocr-guide-help">
+                Evita reflejos. La etiqueta debe verse completa y clara.
+            </div>
+        </div>
+
+        <div class="form-actions" style="padding:12px;margin:0;">
+            <button class="secondary-btn" onclick="restartOcrFrameCamera()">
+                Reintentar
+            </button>
+            <button class="primary-btn" onclick="captureOcrFrameAndProcess()">
+                Tomar foto
+            </button>
+        </div>
+    </div>
+</div>       
 </div>
 </div>
 
@@ -728,7 +809,8 @@ let ocrPositions = [];
 let ocrSequences = [];
 let pendingPhotoFile = null;
 let pendingPhotoUrl = "";
-let pendingPhotoPath = "";    
+let pendingPhotoPath = "";
+let ocrFrameStream = null;    
 
 const savedUser =
     localStorage.getItem("operationalUser");
@@ -1300,10 +1382,378 @@ window.openOcrCamera = function(){
         })
     );
 
-    document.getElementById("ocrImageInput").click();
+    openOcrFrameCamera();
 
 };
-    
+async function openOcrFrameCamera(){
+
+    const modal =
+        document.getElementById("ocrFrameModal");
+
+    const video =
+        document.getElementById("ocrFrameVideo");
+
+    const status =
+        document.getElementById("visionStatusBox");
+
+    try{
+
+        closeOcrFrameCamera();
+
+        modal.style.display =
+            "flex";
+
+        status.style.display =
+            "block";
+
+        status.innerText =
+            "Abriendo cámara...";
+
+        ocrFrameStream =
+            await navigator.mediaDevices.getUserMedia({
+                video:{
+                    facingMode:{
+                        ideal:"environment"
+                    },
+                    width:{
+                        ideal:1920
+                    },
+                    height:{
+                        ideal:1080
+                    }
+                },
+                audio:false
+            });
+
+        video.srcObject =
+            ocrFrameStream;
+
+        await video.play();
+
+        status.innerText =
+            "Encuadra la etiqueta completa y toma la foto.";
+
+    }catch(error){
+
+        console.error(error);
+
+        status.innerText =
+            "No fue posible abrir cámara. Usa carga manual de imagen.";
+
+        document.getElementById("ocrImageInput").click();
+
+    }
+
+}
+
+window.closeOcrFrameCamera = function(){
+
+    const modal =
+        document.getElementById("ocrFrameModal");
+
+    const video =
+        document.getElementById("ocrFrameVideo");
+
+    if(ocrFrameStream){
+        ocrFrameStream
+            .getTracks()
+            .forEach(track=>track.stop());
+    }
+
+    ocrFrameStream = null;
+
+    if(video){
+        video.srcObject = null;
+    }
+
+    if(modal){
+        modal.style.display =
+            "none";
+    }
+
+};
+
+window.restartOcrFrameCamera = function(){
+
+    openOcrFrameCamera();
+
+};
+
+window.captureOcrFrameAndProcess = async function(){
+
+    const status =
+        document.getElementById("visionStatusBox");
+
+    try{
+
+        status.style.display =
+            "block";
+
+        status.innerText =
+            "Procesando etiqueta...";
+
+        const base64Image =
+            captureOcrFrameBase64();
+
+        closeOcrFrameCamera();
+
+        await processOcrBase64Image(base64Image);
+
+    }catch(error){
+
+        console.error(error);
+
+        closeOcrFrameCamera();
+
+        status.innerText =
+            "Error al procesar imagen. Captura manualmente.";
+
+        openManualMode();
+
+    }
+
+};
+
+function captureOcrFrameBase64(){
+
+    const video =
+        document.getElementById("ocrFrameVideo");
+
+    const guide =
+        document.getElementById("ocrGuideFrame");
+
+    const stage =
+        document.getElementById("ocrFrameStage");
+
+    if(!video || !video.videoWidth){
+        throw new Error("Cámara no lista");
+    }
+
+    const canvas =
+        document.createElement("canvas");
+
+    const stageRect =
+        stage.getBoundingClientRect();
+
+    const guideRect =
+        guide.getBoundingClientRect();
+
+    const videoRatio =
+        video.videoWidth / video.videoHeight;
+
+    const stageRatio =
+        stageRect.width / stageRect.height;
+
+    let renderedVideoWidth;
+    let renderedVideoHeight;
+    let offsetX;
+    let offsetY;
+
+    if(videoRatio > stageRatio){
+
+        renderedVideoHeight =
+            stageRect.height;
+
+        renderedVideoWidth =
+            stageRect.height * videoRatio;
+
+        offsetX =
+            (stageRect.width - renderedVideoWidth) / 2;
+
+        offsetY =
+            0;
+
+    }else{
+
+        renderedVideoWidth =
+            stageRect.width;
+
+        renderedVideoHeight =
+            stageRect.width / videoRatio;
+
+        offsetX =
+            0;
+
+        offsetY =
+            (stageRect.height - renderedVideoHeight) / 2;
+
+    }
+
+    const scaleX =
+        video.videoWidth / renderedVideoWidth;
+
+    const scaleY =
+        video.videoHeight / renderedVideoHeight;
+
+    let sourceX =
+        (guideRect.left - stageRect.left - offsetX) * scaleX;
+
+    let sourceY =
+        (guideRect.top - stageRect.top - offsetY) * scaleY;
+
+    let sourceW =
+        guideRect.width * scaleX;
+
+    let sourceH =
+        guideRect.height * scaleY;
+
+    sourceX =
+        Math.max(0,sourceX);
+
+    sourceY =
+        Math.max(0,sourceY);
+
+    sourceW =
+        Math.min(video.videoWidth - sourceX,sourceW);
+
+    sourceH =
+        Math.min(video.videoHeight - sourceY,sourceH);
+
+    canvas.width =
+        Math.round(sourceW);
+
+    canvas.height =
+        Math.round(sourceH);
+
+    canvas
+        .getContext("2d")
+        .drawImage(
+            video,
+            sourceX,
+            sourceY,
+            sourceW,
+            sourceH,
+            0,
+            0,
+            canvas.width,
+            canvas.height
+        );
+
+    return canvas
+        .toDataURL("image/jpeg",0.92)
+        .split(",")[1];
+
+}
+async function processOcrBase64Image(base64Image){
+
+    const status =
+        document.getElementById("visionStatusBox") ||
+        document.getElementById("ocrStatus");
+
+    visionText = "";
+    visionRaw = null;
+    visionStatus = "started";
+    dataQuality = "pending";
+    parsedSequences = [];
+
+    try{
+
+        status.innerText =
+            "Validando disponibilidad de Vision...";
+
+        const usage =
+            await getVisionUsageStatus();
+
+        if(!usage.enabled || usage.used >= usage.limit){
+
+            visionStatus = "disabled_by_limit";
+            dataQuality = "manual_required";
+
+            status.innerText =
+                "Vision no disponible por límite mensual. Usa captura segura manual.";
+
+            openManualMode();
+            return;
+
+        }
+
+        status.innerText =
+            "Obteniendo información de la etiqueta, espera un momento...";
+
+        const result =
+            await callGoogleVision(base64Image);
+
+        visionRaw = null;
+
+        visionText =
+            result?.responses?.[0]?.fullTextAnnotation?.text ||
+            result?.responses?.[0]?.textAnnotations?.[0]?.description ||
+            "";
+
+        await incrementVisionUsage(usage);
+
+        if(!visionText){
+
+            visionStatus = "no_text";
+            dataQuality = "manual_required";
+
+            status.innerText =
+                "No se detectó información suficiente. Reintenta OCR o usa captura manual.";
+
+            openManualMode();
+            return;
+
+        }
+
+        parsedSequences =
+            parseVisionRows(result);
+
+        parsedSequences =
+            validateVisionRows(parsedSequences);
+
+        if(parsedSequences.length === 0){
+
+            visionStatus = "text_detected_no_rows";
+            dataQuality = "manual_required";
+
+            status.innerText =
+                "No se encontraron filas confiables. Reintenta OCR o usa captura manual.";
+
+            openManualMode();
+            renderVisionTextOnly();
+            renderVisionDebug(
+                "Vision devolvió texto, pero el parser no armó filas confiables."
+            );
+
+            document.querySelector(
+                "#createModal .primary-btn[onclick='confirmCreateContainer()']"
+            ).style.display =
+                "none";
+
+            return;
+
+        }
+
+        visionStatus = "rows_detected";
+
+        dataQuality =
+            parsedSequences.length >= 2
+            ? "vision_confirmable"
+            : "partial_confirmable";
+
+        status.innerText =
+            "Ya tenemos una vista preliminar. Revisa y confirma antes de guardar.";
+
+        renderCreateSummary();
+
+    }catch(error){
+
+        console.error(error);
+
+        visionStatus = "error";
+        dataQuality = "manual_required";
+
+        status.innerText =
+            "Error al consultar Google Vision. Captura manualmente.";
+
+        openManualMode();
+        renderVisionDebug(
+            error.message || "Error al consultar Google Vision."
+        );
+
+    }
+
+}    
 window.processOcrImage = async function(event){
 
     const file =
