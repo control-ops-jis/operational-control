@@ -1127,52 +1127,6 @@ function getContainerCreatedTime(container){
 
 }
 
-function sortContainersByCreationAsc(containers){
-
-    return [...containers].sort((a,b)=>
-        getContainerCreatedTime(a) - getContainerCreatedTime(b)
-    );
-
-}
-
-function sortContainersByCreationDesc(containers){
-
-    return [...containers].sort((a,b)=>
-        getContainerCreatedTime(b) - getContainerCreatedTime(a)
-    );
-
-}
-
-function getNextContainerIdAfter(containerId){
-
-    let next =
-        Number(containerId || 0) + 1;
-
-    if(next > 999){
-        next = 1;
-    }
-
-    return String(next).padStart(3,"0");
-
-}
-function getContainerCreatedTime(container){
-
-    if(container.createdAt?.toMillis){
-        return container.createdAt.toMillis();
-    }
-
-    if(container.createdAt?.seconds){
-        return container.createdAt.seconds * 1000;
-    }
-
-    if(container.createdAt){
-        return new Date(container.createdAt).getTime() || 0;
-    }
-
-    return 0;
-
-}
-
 function getOperationalContainerId(containerId,containers){
 
     const id =
