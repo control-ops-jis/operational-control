@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<title>DHL OCR Frame Lab</title>
+<title>DHL OCR Frame Lab V2</title>
 
 <style>
 :root{
@@ -26,27 +26,29 @@ body{
 }
 
 header{
+    height:52px;
     background:var(--dhl-yellow);
     color:var(--dhl-red);
-    padding:14px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
     font-weight:900;
     text-align:center;
 }
 
 .lab-wrap{
-    min-height:calc(100vh - 54px);
+    height:calc(100vh - 52px);
     display:flex;
     flex-direction:column;
+    overflow:hidden;
 }
 
 .camera-stage{
     position:relative;
     flex:1;
+    min-height:0;
     background:#000;
     overflow:hidden;
-    display:flex;
-    justify-content:center;
-    align-items:center;
 }
 
 video{
@@ -55,26 +57,20 @@ video{
     object-fit:cover;
 }
 
-.camera-overlay{
-    position:absolute;
-    inset:0;
-    pointer-events:none;
-    background:rgba(0,0,0,.28);
-}
-
 .guide-frame{
     position:absolute;
     left:50%;
-    top:47%;
+    top:46%;
     transform:translate(-50%,-50%);
-    width:88%;
-    max-width:720px;
-    aspect-ratio:1.65/1;
+    width:92%;
+    max-width:760px;
+    aspect-ratio:1.62/1;
     border:4px solid white;
-    border-radius:20px;
+    border-radius:18px;
     box-shadow:
-        0 0 0 9999px rgba(0,0,0,.42),
-        0 0 22px rgba(255,255,255,.45);
+        0 0 0 9999px rgba(0,0,0,.45),
+        0 0 18px rgba(255,255,255,.35);
+    pointer-events:none;
 }
 
 .guide-frame::before,
@@ -91,139 +87,150 @@ video{
     left:-5px;
     top:-5px;
     border-width:5px 0 0 5px;
-    border-radius:18px 0 0 0;
+    border-radius:16px 0 0 0;
 }
 
 .guide-frame::after{
     right:-5px;
     bottom:-5px;
     border-width:0 5px 5px 0;
-    border-radius:0 0 18px 0;
+    border-radius:0 0 16px 0;
 }
 
 .guide-title{
     position:absolute;
-    left:50%;
-    top:calc(47% - 34vw);
-    transform:translateX(-50%);
-    width:92%;
-    max-width:720px;
+    top:14px;
+    left:0;
+    width:100%;
+    padding:0 18px;
     text-align:center;
     font-weight:900;
-    font-size:20px;
-    text-shadow:0 2px 6px rgba(0,0,0,.8);
+    font-size:18px;
+    text-shadow:0 2px 6px rgba(0,0,0,.9);
+    pointer-events:none;
 }
 
 .guide-help{
     position:absolute;
-    left:50%;
-    top:calc(47% + 30vw);
-    transform:translateX(-50%);
-    width:92%;
-    max-width:720px;
+    bottom:16px;
+    left:0;
+    width:100%;
+    padding:0 20px;
     text-align:center;
-    font-size:14px;
+    font-size:13px;
     font-weight:bold;
     color:#eee;
-    text-shadow:0 2px 6px rgba(0,0,0,.8);
+    text-shadow:0 2px 6px rgba(0,0,0,.9);
+    pointer-events:none;
 }
 
 .bottom-panel{
+    flex:0 0 auto;
     background:#171717;
-    padding:14px;
-    display:flex;
-    gap:10px;
-    flex-wrap:wrap;
+    padding:10px;
+    display:grid;
+    grid-template-columns:1fr 1fr 1fr;
+    gap:8px;
 }
 
 button{
     border:none;
     border-radius:14px;
-    padding:14px;
+    padding:13px 8px;
     font-weight:900;
     cursor:pointer;
-    font-size:15px;
+    font-size:14px;
 }
 
 .primary-btn{
-    flex:1;
     background:var(--dhl-red);
     color:white;
 }
 
 .secondary-btn{
-    flex:1;
     background:#eee;
     color:#111;
 }
 
 .ok-btn{
-    flex:1;
     background:var(--ok);
     color:white;
 }
 
 .status{
-    width:100%;
-    font-size:13px;
+    grid-column:1 / -1;
+    font-size:12px;
     color:#ddd;
     text-align:center;
     font-weight:bold;
+    min-height:18px;
 }
 
-.preview-panel{
+.results{
     display:none;
+    height:calc(100vh - 52px);
+    overflow:auto;
     background:#111;
-    padding:14px;
+    padding:12px;
 }
 
-.preview-panel img{
-    width:100%;
+.result-card{
+    background:#1d1d1d;
     border-radius:18px;
-    border:3px solid white;
+    padding:12px;
+    margin-bottom:12px;
+}
+
+.result-card h3{
+    margin:0 0 10px;
+    color:var(--dhl-yellow);
+}
+
+.result-card img{
+    width:100%;
+    border-radius:14px;
+    border:2px solid white;
     display:block;
 }
 
-.preview-info{
-    background:#222;
-    border-radius:16px;
-    padding:12px;
-    margin-top:12px;
+.result-info{
     font-size:13px;
     color:#ddd;
+    line-height:1.45;
+}
+
+textarea{
+    width:100%;
+    min-height:150px;
+    border-radius:14px;
+    padding:12px;
+    font-size:13px;
+}
+
+.summary-table{
+    width:100%;
+    border-collapse:collapse;
+    margin-top:10px;
+    background:white;
+    color:#111;
+    border-radius:12px;
+    overflow:hidden;
+}
+
+.summary-table th,
+.summary-table td{
+    border-bottom:1px solid #ddd;
+    padding:8px;
+    text-align:center;
+    font-size:12px;
+}
+
+.summary-table th{
+    background:#fff2a8;
 }
 
 canvas{
     display:none;
-}
-
-@media(max-width:600px){
-
-    .guide-frame{
-        width:92%;
-        aspect-ratio:1.55/1;
-        border-radius:18px;
-    }
-
-    .guide-title{
-        top:18px;
-        font-size:18px;
-    }
-
-    .guide-help{
-        top:auto;
-        bottom:120px;
-        font-size:13px;
-    }
-
-    .bottom-panel{
-        padding:12px;
-    }
-
-    button{
-        width:100%;
-        flex:auto;
-    }
 }
 </style>
 </head>
@@ -231,10 +238,10 @@ canvas{
 <body>
 
 <header>
-    📷 DHL OCR Frame Lab
+    📷 DHL OCR Frame Lab V2
 </header>
 
-<div class="lab-wrap">
+<div class="lab-wrap" id="cameraView">
 
     <div class="camera-stage" id="cameraStage">
 
@@ -245,69 +252,93 @@ canvas{
             muted
         ></video>
 
-        <div class="camera-overlay"></div>
-
         <div class="guide-title">
             Enmarca la etiqueta completa
         </div>
 
-        <div class="guide-frame"></div>
+        <div class="guide-frame" id="guideFrame"></div>
 
         <div class="guide-help">
-            Alinea la etiqueta dentro del recuadro. Evita reflejos, sombras y cortes.
+            La imagen enviada a OCR será el recorte dentro del marco.
         </div>
 
     </div>
 
-    <div class="preview-panel" id="previewPanel">
-        <img id="previewImage" alt="Vista previa">
-        <div class="preview-info" id="previewInfo"></div>
-    </div>
-
     <div class="bottom-panel">
 
-        <button
-            class="secondary-btn"
-            onclick="startCamera()"
-        >
-            Iniciar cámara
+        <button class="secondary-btn" onclick="startCamera()">
+            Cámara
         </button>
 
-        <button
-            class="primary-btn"
-            onclick="capturePhoto()"
-        >
-            Tomar foto
+        <button class="primary-btn" onclick="captureAndCrop()">
+            Tomar
         </button>
 
-        <button
-            class="ok-btn"
-            onclick="usePhoto()"
-        >
-            Usar esta imagen
-        </button>
-
-        <button
-            class="secondary-btn"
-            onclick="resetPreview()"
-        >
-            Repetir
+        <button class="ok-btn" onclick="showResults()">
+            Ver resultado
         </button>
 
         <div class="status" id="status">
-            Laboratorio aislado. No usa Firebase, Vision ni containers.
+            Laboratorio aislado. No usa Firebase ni Containers.
         </div>
 
     </div>
 
 </div>
 
-<canvas id="captureCanvas"></canvas>
+<div class="results" id="resultsView">
+
+    <div class="result-card">
+        <h3>Recorte que se enviaría a OCR</h3>
+        <img id="cropPreview" alt="Recorte OCR">
+        <div class="result-info" id="cropInfo"></div>
+    </div>
+
+    <div class="result-card">
+        <h3>Foto completa capturada</h3>
+        <img id="fullPreview" alt="Foto completa">
+        <div class="result-info" id="fullInfo"></div>
+    </div>
+
+    <div class="result-card">
+        <h3>Prueba de parser PEDALES</h3>
+        <p class="result-info">
+            Pega aquí el texto que devuelva Vision para validar cómo quedaría el parser.
+        </p>
+
+        <textarea
+            id="visionTextInput"
+            placeholder="Pega aquí texto OCR..."
+        ></textarea>
+
+        <div style="display:flex;gap:8px;margin-top:10px;">
+            <button class="primary-btn" onclick="processVisionText()">
+                Procesar texto
+            </button>
+
+            <button class="secondary-btn" onclick="backToCamera()">
+                Repetir foto
+            </button>
+        </div>
+
+        <div id="parserResult"></div>
+    </div>
+
+</div>
+
+<canvas id="fullCanvas"></canvas>
+<canvas id="cropCanvas"></canvas>
 
 <script>
 let stream = null;
-let capturedBlob = null;
-let capturedBase64 = "";
+let fullImageBase64 = "";
+let cropImageBase64 = "";
+let fullBlobSize = 0;
+let cropBlobSize = 0;
+let fullWidth = 0;
+let fullHeight = 0;
+let cropWidth = 0;
+let cropHeight = 0;
 
 async function startCamera(){
 
@@ -346,14 +377,14 @@ async function startCamera(){
         await video.play();
 
         status.innerText =
-            "Cámara activa. Coloca la etiqueta dentro del recuadro.";
+            "Cámara activa. Encuadra la etiqueta completa.";
 
     }catch(error){
 
         console.error(error);
 
         status.innerText =
-            "No fue posible abrir la cámara. Revisa permisos o prueba en HTTPS/GitHub Pages.";
+            "No fue posible abrir la cámara. Usa HTTPS/GitHub Pages y revisa permisos.";
 
     }
 
@@ -371,13 +402,22 @@ function stopCamera(){
 
 }
 
-function capturePhoto(){
+function captureAndCrop(){
 
     const video =
         document.getElementById("cameraVideo");
 
-    const canvas =
-        document.getElementById("captureCanvas");
+    const guide =
+        document.getElementById("guideFrame");
+
+    const stage =
+        document.getElementById("cameraStage");
+
+    const fullCanvas =
+        document.getElementById("fullCanvas");
+
+    const cropCanvas =
+        document.getElementById("cropCanvas");
 
     const status =
         document.getElementById("status");
@@ -388,104 +428,452 @@ function capturePhoto(){
         return;
     }
 
-    canvas.width =
+    fullWidth =
         video.videoWidth;
 
-    canvas.height =
+    fullHeight =
         video.videoHeight;
 
-    const ctx =
-        canvas.getContext("2d");
+    fullCanvas.width =
+        fullWidth;
 
-    ctx.drawImage(
+    fullCanvas.height =
+        fullHeight;
+
+    const fullCtx =
+        fullCanvas.getContext("2d");
+
+    fullCtx.drawImage(
         video,
         0,
         0,
-        canvas.width,
-        canvas.height
+        fullWidth,
+        fullHeight
     );
 
-    canvas.toBlob(blob=>{
+    const stageRect =
+        stage.getBoundingClientRect();
 
-        if(!blob){
+    const guideRect =
+        guide.getBoundingClientRect();
+
+    const videoRatio =
+        video.videoWidth / video.videoHeight;
+
+    const stageRatio =
+        stageRect.width / stageRect.height;
+
+    let renderedVideoWidth;
+    let renderedVideoHeight;
+    let offsetX;
+    let offsetY;
+
+    if(videoRatio > stageRatio){
+
+        renderedVideoHeight =
+            stageRect.height;
+
+        renderedVideoWidth =
+            stageRect.height * videoRatio;
+
+        offsetX =
+            (stageRect.width - renderedVideoWidth) / 2;
+
+        offsetY =
+            0;
+
+    }else{
+
+        renderedVideoWidth =
+            stageRect.width;
+
+        renderedVideoHeight =
+            stageRect.width / videoRatio;
+
+        offsetX =
+            0;
+
+        offsetY =
+            (stageRect.height - renderedVideoHeight) / 2;
+
+    }
+
+    const cropXOnRenderedVideo =
+        guideRect.left - stageRect.left - offsetX;
+
+    const cropYOnRenderedVideo =
+        guideRect.top - stageRect.top - offsetY;
+
+    const scaleX =
+        video.videoWidth / renderedVideoWidth;
+
+    const scaleY =
+        video.videoHeight / renderedVideoHeight;
+
+    let sourceX =
+        cropXOnRenderedVideo * scaleX;
+
+    let sourceY =
+        cropYOnRenderedVideo * scaleY;
+
+    let sourceW =
+        guideRect.width * scaleX;
+
+    let sourceH =
+        guideRect.height * scaleY;
+
+    sourceX =
+        Math.max(0,sourceX);
+
+    sourceY =
+        Math.max(0,sourceY);
+
+    sourceW =
+        Math.min(video.videoWidth - sourceX,sourceW);
+
+    sourceH =
+        Math.min(video.videoHeight - sourceY,sourceH);
+
+    cropWidth =
+        Math.round(sourceW);
+
+    cropHeight =
+        Math.round(sourceH);
+
+    cropCanvas.width =
+        cropWidth;
+
+    cropCanvas.height =
+        cropHeight;
+
+    const cropCtx =
+        cropCanvas.getContext("2d");
+
+    cropCtx.drawImage(
+        video,
+        sourceX,
+        sourceY,
+        sourceW,
+        sourceH,
+        0,
+        0,
+        cropWidth,
+        cropHeight
+    );
+
+    fullCanvas.toBlob(fullBlob=>{
+
+        if(!fullBlob){
             status.innerText =
-                "No fue posible generar la imagen.";
+                "No se pudo generar foto completa.";
             return;
         }
 
-        capturedBlob =
-            blob;
+        fullBlobSize =
+            fullBlob.size;
 
-        const reader =
+        const fullReader =
             new FileReader();
 
-        reader.onload = event=>{
+        fullReader.onload = fullEvent=>{
 
-            capturedBase64 =
-                event.target.result;
+            fullImageBase64 =
+                fullEvent.target.result;
 
-            document.getElementById("previewImage").src =
-                capturedBase64;
+            cropCanvas.toBlob(cropBlob=>{
 
-            document.getElementById("previewPanel").style.display =
-                "block";
+                if(!cropBlob){
+                    status.innerText =
+                        "No se pudo generar recorte.";
+                    return;
+                }
 
-            document.getElementById("previewInfo").innerHTML =
-                `
-                    <b>Imagen capturada</b><br>
-                    Resolución: ${canvas.width} x ${canvas.height}<br>
-                    Tamaño aproximado: ${(blob.size/1024).toFixed(1)} KB<br>
-                    Formato: JPEG
-                `;
+                cropBlobSize =
+                    cropBlob.size;
 
-            status.innerText =
-                "Foto capturada. Revisa si la etiqueta se ve completa y enfocada.";
+                const cropReader =
+                    new FileReader();
+
+                cropReader.onload = cropEvent=>{
+
+                    cropImageBase64 =
+                        cropEvent.target.result;
+
+                    document.getElementById("fullPreview").src =
+                        fullImageBase64;
+
+                    document.getElementById("cropPreview").src =
+                        cropImageBase64;
+
+                    document.getElementById("fullInfo").innerHTML =
+                        `
+                            Resolución completa: <b>${fullWidth} x ${fullHeight}</b><br>
+                            Tamaño completo: <b>${(fullBlobSize/1024).toFixed(1)} KB</b>
+                        `;
+
+                    document.getElementById("cropInfo").innerHTML =
+                        `
+                            Resolución recorte: <b>${cropWidth} x ${cropHeight}</b><br>
+                            Tamaño recorte: <b>${(cropBlobSize/1024).toFixed(1)} KB</b><br>
+                            Este recorte es el candidato para enviar a Google Vision.
+                        `;
+
+                    localStorage.setItem(
+                        "ocrFrameLabFullImage",
+                        fullImageBase64
+                    );
+
+                    localStorage.setItem(
+                        "ocrFrameLabCropImage",
+                        cropImageBase64
+                    );
+
+                    status.innerText =
+                        "Captura lista. Toca Ver resultado.";
+
+                };
+
+                cropReader.readAsDataURL(cropBlob);
+
+            },"image/jpeg",0.92);
 
         };
 
-        reader.readAsDataURL(blob);
+        fullReader.readAsDataURL(fullBlob);
 
     },"image/jpeg",0.92);
 
 }
 
-function resetPreview(){
+function showResults(){
 
-    capturedBlob = null;
-    capturedBase64 = "";
-
-    document.getElementById("previewPanel").style.display =
-        "none";
-
-    document.getElementById("previewImage").src =
-        "";
-
-    document.getElementById("previewInfo").innerHTML =
-        "";
-
-    document.getElementById("status").innerText =
-        "Preview limpio. Toma una nueva foto.";
-
-}
-
-function usePhoto(){
-
-    const status =
-        document.getElementById("status");
-
-    if(!capturedBase64){
-        status.innerText =
+    if(!cropImageBase64){
+        document.getElementById("status").innerText =
             "Primero toma una foto.";
         return;
     }
 
-    localStorage.setItem(
-        "ocrFrameLabImage",
-        capturedBase64
-    );
+    document.getElementById("cameraView").style.display =
+        "none";
 
-    status.innerText =
-        "Imagen guardada temporalmente en localStorage como ocrFrameLabImage.";
+    document.getElementById("resultsView").style.display =
+        "block";
+
+}
+
+function backToCamera(){
+
+    document.getElementById("resultsView").style.display =
+        "none";
+
+    document.getElementById("cameraView").style.display =
+        "flex";
+
+    document.getElementById("parserResult").innerHTML =
+        "";
+
+}
+
+function processVisionText(){
+
+    const text =
+        document.getElementById("visionTextInput").value || "";
+
+    const rows =
+        parsePedalesTemplate(text);
+
+    const result =
+        document.getElementById("parserResult");
+
+    if(rows.length===0){
+
+        result.innerHTML =
+            `
+                <div class="result-card" style="background:#3a1b1b;">
+                    <h3>No se detectaron filas</h3>
+                    <p class="result-info">
+                        El texto pegado no produjo posiciones, secuencias y partes válidas.
+                    </p>
+                </div>
+            `;
+
+        return;
+
+    }
+
+    result.innerHTML =
+        `
+            <div class="result-card">
+                <h3>Resultado parser PEDALES</h3>
+
+                <div class="result-info">
+                    Filas detectadas: <b>${rows.length}</b><br>
+                    Primera secuencia: <b>${rows[0].sequence}</b><br>
+                    Última secuencia: <b>${rows[rows.length-1].sequence}</b>
+                </div>
+
+                <table class="summary-table">
+                    <thead>
+                        <tr>
+                            <th>Pos.</th>
+                            <th>Sec.</th>
+                            <th>Parte</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${rows.map(row=>`
+                            <tr>
+                                <td>${row.position}</td>
+                                <td>${row.sequence}</td>
+                                <td>${row.partNumber}</td>
+                            </tr>
+                        `).join("")}
+                    </tbody>
+                </table>
+            </div>
+        `;
+
+}
+
+function parsePedalesTemplate(text){
+
+    const lines =
+        text
+            .split("\n")
+            .map(line=>
+                line
+                    .replace(/\s+/g," ")
+                    .trim()
+            )
+            .filter(line=>line);
+
+    const rows = [];
+
+    for(let i=0;i<lines.length;i++){
+
+        const line =
+            lines[i];
+
+        const inlineMatch =
+            line.match(/^(\d{1,2})\s+(\d{4})\s+(.+)$/);
+
+        if(inlineMatch){
+
+            const position =
+                Number(inlineMatch[1]);
+
+            const sequence =
+                inlineMatch[2];
+
+            const partNumber =
+                normalizePartNumber(inlineMatch[3]);
+
+            if(isValidPedalesRow(position,sequence,partNumber)){
+                rows.push({
+                    position,
+                    sequence,
+                    partNumber,
+                    source:"pedales_inline"
+                });
+            }
+
+            continue;
+
+        }
+
+        if(!/^\d{1,2}$/.test(line)){
+            continue;
+        }
+
+        const sequenceLine =
+            lines[i+1] || "";
+
+        const partLine =
+            lines[i+2] || "";
+
+        if(!/^\d{4}$/.test(sequenceLine)){
+            continue;
+        }
+
+        const position =
+            Number(line);
+
+        const sequence =
+            sequenceLine;
+
+        const partNumber =
+            normalizePartNumber(partLine);
+
+        if(isValidPedalesRow(position,sequence,partNumber)){
+            rows.push({
+                position,
+                sequence,
+                partNumber,
+                source:"pedales_split"
+            });
+        }
+
+        i = i + 2;
+
+    }
+
+    return rows
+        .filter((row,index,self)=>
+            index === self.findIndex(item=>
+                item.position === row.position
+            )
+        )
+        .sort((a,b)=>a.position-b.position);
+
+}
+
+function normalizePartNumber(value){
+
+    const clean =
+        String(value || "")
+            .replace(/\s+/g," ")
+            .trim()
+            .toUpperCase();
+
+    const match =
+        clean.match(/\b([A-Z0-9]{2,4}\s*723\s*058(?:\s*[A-Z])?)\b/);
+
+    if(match){
+        return match[1]
+            .replace(/\s+/g," ")
+            .trim();
+    }
+
+    return clean;
+
+}
+
+function isValidPedalesRow(position,sequence,partNumber){
+
+    if(position < 1 || position > 99){
+        return false;
+    }
+
+    if(!/^\d{4}$/.test(sequence)){
+        return false;
+    }
+
+    if(!partNumber){
+        return false;
+    }
+
+    if(
+        partNumber.includes("MODEL") ||
+        partNumber.includes("TOTAL") ||
+        partNumber.includes("LINEA") ||
+        partNumber.includes("PEDALES") ||
+        partNumber.includes("SEC") ||
+        partNumber.includes("NUM")
+    ){
+        return false;
+    }
+
+    return true;
 
 }
 
