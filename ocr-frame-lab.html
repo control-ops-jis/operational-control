@@ -1,0 +1,514 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>DHL OCR Frame Lab</title>
+
+<style>
+:root{
+    --dhl-red:#D40511;
+    --dhl-yellow:#FFCC00;
+    --bg:#111;
+    --ok:#1f7a1f;
+}
+
+*{
+    box-sizing:border-box;
+    font-family:Arial,sans-serif;
+}
+
+body{
+    margin:0;
+    background:#111;
+    color:white;
+}
+
+header{
+    background:var(--dhl-yellow);
+    color:var(--dhl-red);
+    padding:14px;
+    font-weight:900;
+    text-align:center;
+}
+
+.lab-wrap{
+    min-height:calc(100vh - 54px);
+    display:flex;
+    flex-direction:column;
+}
+
+.camera-stage{
+    position:relative;
+    flex:1;
+    background:#000;
+    overflow:hidden;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+}
+
+video{
+    width:100%;
+    height:100%;
+    object-fit:cover;
+}
+
+.camera-overlay{
+    position:absolute;
+    inset:0;
+    pointer-events:none;
+    background:rgba(0,0,0,.28);
+}
+
+.guide-frame{
+    position:absolute;
+    left:50%;
+    top:47%;
+    transform:translate(-50%,-50%);
+    width:88%;
+    max-width:720px;
+    aspect-ratio:1.65/1;
+    border:4px solid white;
+    border-radius:20px;
+    box-shadow:
+        0 0 0 9999px rgba(0,0,0,.42),
+        0 0 22px rgba(255,255,255,.45);
+}
+
+.guide-frame::before,
+.guide-frame::after{
+    content:"";
+    position:absolute;
+    width:34px;
+    height:34px;
+    border-color:var(--dhl-yellow);
+    border-style:solid;
+}
+
+.guide-frame::before{
+    left:-5px;
+    top:-5px;
+    border-width:5px 0 0 5px;
+    border-radius:18px 0 0 0;
+}
+
+.guide-frame::after{
+    right:-5px;
+    bottom:-5px;
+    border-width:0 5px 5px 0;
+    border-radius:0 0 18px 0;
+}
+
+.guide-title{
+    position:absolute;
+    left:50%;
+    top:calc(47% - 34vw);
+    transform:translateX(-50%);
+    width:92%;
+    max-width:720px;
+    text-align:center;
+    font-weight:900;
+    font-size:20px;
+    text-shadow:0 2px 6px rgba(0,0,0,.8);
+}
+
+.guide-help{
+    position:absolute;
+    left:50%;
+    top:calc(47% + 30vw);
+    transform:translateX(-50%);
+    width:92%;
+    max-width:720px;
+    text-align:center;
+    font-size:14px;
+    font-weight:bold;
+    color:#eee;
+    text-shadow:0 2px 6px rgba(0,0,0,.8);
+}
+
+.bottom-panel{
+    background:#171717;
+    padding:14px;
+    display:flex;
+    gap:10px;
+    flex-wrap:wrap;
+}
+
+button{
+    border:none;
+    border-radius:14px;
+    padding:14px;
+    font-weight:900;
+    cursor:pointer;
+    font-size:15px;
+}
+
+.primary-btn{
+    flex:1;
+    background:var(--dhl-red);
+    color:white;
+}
+
+.secondary-btn{
+    flex:1;
+    background:#eee;
+    color:#111;
+}
+
+.ok-btn{
+    flex:1;
+    background:var(--ok);
+    color:white;
+}
+
+.status{
+    width:100%;
+    font-size:13px;
+    color:#ddd;
+    text-align:center;
+    font-weight:bold;
+}
+
+.preview-panel{
+    display:none;
+    background:#111;
+    padding:14px;
+}
+
+.preview-panel img{
+    width:100%;
+    border-radius:18px;
+    border:3px solid white;
+    display:block;
+}
+
+.preview-info{
+    background:#222;
+    border-radius:16px;
+    padding:12px;
+    margin-top:12px;
+    font-size:13px;
+    color:#ddd;
+}
+
+canvas{
+    display:none;
+}
+
+@media(max-width:600px){
+
+    .guide-frame{
+        width:92%;
+        aspect-ratio:1.55/1;
+        border-radius:18px;
+    }
+
+    .guide-title{
+        top:18px;
+        font-size:18px;
+    }
+
+    .guide-help{
+        top:auto;
+        bottom:120px;
+        font-size:13px;
+    }
+
+    .bottom-panel{
+        padding:12px;
+    }
+
+    button{
+        width:100%;
+        flex:auto;
+    }
+}
+</style>
+</head>
+
+<body>
+
+<header>
+    📷 DHL OCR Frame Lab
+</header>
+
+<div class="lab-wrap">
+
+    <div class="camera-stage" id="cameraStage">
+
+        <video
+            id="cameraVideo"
+            autoplay
+            playsinline
+            muted
+        ></video>
+
+        <div class="camera-overlay"></div>
+
+        <div class="guide-title">
+            Enmarca la etiqueta completa
+        </div>
+
+        <div class="guide-frame"></div>
+
+        <div class="guide-help">
+            Alinea la etiqueta dentro del recuadro. Evita reflejos, sombras y cortes.
+        </div>
+
+    </div>
+
+    <div class="preview-panel" id="previewPanel">
+        <img id="previewImage" alt="Vista previa">
+        <div class="preview-info" id="previewInfo"></div>
+    </div>
+
+    <div class="bottom-panel">
+
+        <button
+            class="secondary-btn"
+            onclick="startCamera()"
+        >
+            Iniciar cámara
+        </button>
+
+        <button
+            class="primary-btn"
+            onclick="capturePhoto()"
+        >
+            Tomar foto
+        </button>
+
+        <button
+            class="ok-btn"
+            onclick="usePhoto()"
+        >
+            Usar esta imagen
+        </button>
+
+        <button
+            class="secondary-btn"
+            onclick="resetPreview()"
+        >
+            Repetir
+        </button>
+
+        <div class="status" id="status">
+            Laboratorio aislado. No usa Firebase, Vision ni containers.
+        </div>
+
+    </div>
+
+</div>
+
+<canvas id="captureCanvas"></canvas>
+
+<script>
+let stream = null;
+let capturedBlob = null;
+let capturedBase64 = "";
+
+async function startCamera(){
+
+    const status =
+        document.getElementById("status");
+
+    try{
+
+        stopCamera();
+
+        status.innerText =
+            "Solicitando cámara trasera...";
+
+        stream =
+            await navigator.mediaDevices.getUserMedia({
+                video:{
+                    facingMode:{
+                        ideal:"environment"
+                    },
+                    width:{
+                        ideal:1920
+                    },
+                    height:{
+                        ideal:1080
+                    }
+                },
+                audio:false
+            });
+
+        const video =
+            document.getElementById("cameraVideo");
+
+        video.srcObject =
+            stream;
+
+        await video.play();
+
+        status.innerText =
+            "Cámara activa. Coloca la etiqueta dentro del recuadro.";
+
+    }catch(error){
+
+        console.error(error);
+
+        status.innerText =
+            "No fue posible abrir la cámara. Revisa permisos o prueba en HTTPS/GitHub Pages.";
+
+    }
+
+}
+
+function stopCamera(){
+
+    if(!stream){
+        return;
+    }
+
+    stream.getTracks().forEach(track=>track.stop());
+
+    stream = null;
+
+}
+
+function capturePhoto(){
+
+    const video =
+        document.getElementById("cameraVideo");
+
+    const canvas =
+        document.getElementById("captureCanvas");
+
+    const status =
+        document.getElementById("status");
+
+    if(!video.videoWidth || !video.videoHeight){
+        status.innerText =
+            "Primero inicia la cámara.";
+        return;
+    }
+
+    canvas.width =
+        video.videoWidth;
+
+    canvas.height =
+        video.videoHeight;
+
+    const ctx =
+        canvas.getContext("2d");
+
+    ctx.drawImage(
+        video,
+        0,
+        0,
+        canvas.width,
+        canvas.height
+    );
+
+    canvas.toBlob(blob=>{
+
+        if(!blob){
+            status.innerText =
+                "No fue posible generar la imagen.";
+            return;
+        }
+
+        capturedBlob =
+            blob;
+
+        const reader =
+            new FileReader();
+
+        reader.onload = event=>{
+
+            capturedBase64 =
+                event.target.result;
+
+            document.getElementById("previewImage").src =
+                capturedBase64;
+
+            document.getElementById("previewPanel").style.display =
+                "block";
+
+            document.getElementById("previewInfo").innerHTML =
+                `
+                    <b>Imagen capturada</b><br>
+                    Resolución: ${canvas.width} x ${canvas.height}<br>
+                    Tamaño aproximado: ${(blob.size/1024).toFixed(1)} KB<br>
+                    Formato: JPEG
+                `;
+
+            status.innerText =
+                "Foto capturada. Revisa si la etiqueta se ve completa y enfocada.";
+
+        };
+
+        reader.readAsDataURL(blob);
+
+    },"image/jpeg",0.92);
+
+}
+
+function resetPreview(){
+
+    capturedBlob = null;
+    capturedBase64 = "";
+
+    document.getElementById("previewPanel").style.display =
+        "none";
+
+    document.getElementById("previewImage").src =
+        "";
+
+    document.getElementById("previewInfo").innerHTML =
+        "";
+
+    document.getElementById("status").innerText =
+        "Preview limpio. Toma una nueva foto.";
+
+}
+
+function usePhoto(){
+
+    const status =
+        document.getElementById("status");
+
+    if(!capturedBase64){
+        status.innerText =
+            "Primero toma una foto.";
+        return;
+    }
+
+    localStorage.setItem(
+        "ocrFrameLabImage",
+        capturedBase64
+    );
+
+    status.innerText =
+        "Imagen guardada temporalmente en localStorage como ocrFrameLabImage.";
+
+}
+
+window.addEventListener("load",()=>{
+
+    if(
+        location.protocol === "https:" ||
+        location.hostname === "localhost"
+    ){
+        startCamera();
+    }else{
+        document.getElementById("status").innerText =
+            "Para usar cámara necesitas HTTPS. En GitHub Pages funcionará.";
+    }
+
+});
+
+window.addEventListener("beforeunload",()=>{
+
+    stopCamera();
+
+});
+</script>
+
+</body>
+</html>
