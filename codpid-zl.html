@@ -1,0 +1,1881 @@
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#D40511">
+
+<title>CodPid ZL · DHL Operational Control</title>
+
+<style>
+:root{
+    --dhl-red:#D40511;
+    --dhl-yellow:#FFCC00;
+    --bg:#f3f4f6;
+    --ink:#202124;
+    --muted:#667085;
+    --green:#16834a;
+    --border:#e5e7eb;
+}
+
+*{
+    box-sizing:border-box;
+    font-family:Arial,sans-serif;
+}
+
+body{
+    margin:0;
+    min-height:100vh;
+    background:var(--bg);
+    color:var(--ink);
+}
+
+header{
+    background:var(--dhl-red);
+    color:white;
+    padding:18px 16px;
+    text-align:center;
+    border-bottom:5px solid var(--dhl-yellow);
+}
+
+header h1{
+    margin:0;
+    font-size:22px;
+}
+
+header p{
+    margin:6px 0 0;
+    font-size:13px;
+}
+
+main{
+    width:min(100% - 24px,600px);
+    margin:18px auto 40px;
+}
+
+.card{
+    background:white;
+    border-radius:18px;
+    padding:17px;
+    box-shadow:0 5px 22px rgba(0,0,0,.06);
+    margin-bottom:15px;
+}
+
+h2{
+    font-size:17px;
+    margin:0 0 14px;
+}
+
+.user-info{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    gap:10px;
+    flex-wrap:wrap;
+}
+
+.user-name{
+    font-weight:bold;
+    font-size:15px;
+}
+
+.group-label{
+    color:var(--muted);
+    font-size:12px;
+    margin-top:5px;
+}
+
+.status{
+    background:#f1f3f5;
+    padding:12px;
+    border-radius:12px;
+    font-size:14px;
+    line-height:1.45;
+    color:#344054;
+    margin-bottom:12px;
+}
+
+.status.error{
+    background:#fff0f0;
+    color:#a40000;
+}
+
+.status.success{
+    background:#eaf7ef;
+    color:#116638;
+}
+
+.status.warning{
+    background:#fff7df;
+    color:#775500;
+}
+
+.camera-wrap{
+    position:relative;
+    width:100%;
+    aspect-ratio:4/5;
+    max-height:58vh;
+    background:#171717;
+    border-radius:14px;
+    overflow:hidden;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+}
+
+video{
+    width:100%;
+    height:100%;
+    object-fit:cover;
+    display:none;
+}
+
+.camera-placeholder{
+    color:white;
+    text-align:center;
+    padding:24px;
+    line-height:1.5;
+}
+
+.camera-placeholder .symbol{
+    font-size:52px;
+    display:block;
+    margin-bottom:12px;
+}
+
+.scan-frame{
+    display:none;
+    position:absolute;
+    width:min(68%,270px);
+    aspect-ratio:1;
+    border:3px solid var(--dhl-yellow);
+    border-radius:18px;
+    box-shadow:0 0 0 999px rgba(0,0,0,.16);
+    pointer-events:none;
+}
+
+.scan-frame::after{
+    content:"";
+    position:absolute;
+    left:8%;
+    right:8%;
+    top:50%;
+    height:2px;
+    background:white;
+    box-shadow:0 0 8px white;
+}
+
+.actions{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:10px;
+    margin-top:13px;
+}
+
+button{
+    border:0;
+    border-radius:12px;
+    padding:14px 12px;
+    font-size:15px;
+    font-weight:bold;
+    cursor:pointer;
+    min-height:48px;
+}
+
+button:disabled{
+    opacity:.45;
+    cursor:not-allowed;
+}
+
+.primary{
+    background:var(--dhl-red);
+    color:white;
+}
+
+.secondary{
+    background:#eceff3;
+    color:#252525;
+}
+
+.success-btn{
+    background:var(--green);
+    color:white;
+}
+
+.full{
+    width:100%;
+    margin-top:12px;
+}
+
+input{
+    width:100%;
+    padding:14px;
+    border:1px solid #ccc;
+    border-radius:12px;
+    font-size:17px;
+    margin-top:8px;
+}
+
+.result-box{
+    background:#f7f7f8;
+    border:1px solid var(--border);
+    border-radius:12px;
+    padding:14px;
+    margin-top:10px;
+}
+
+.result-label{
+    font-size:11px;
+    color:var(--muted);
+    font-weight:bold;
+    text-transform:uppercase;
+}
+
+.result-value{
+    font-size:25px;
+    font-weight:bold;
+    margin-top:6px;
+}
+
+.sheet-preview{
+    display:none;
+    border:2px solid var(--dhl-yellow);
+    border-radius:14px;
+    padding:16px;
+    margin-top:14px;
+    text-align:center;
+}
+
+.sheet-preview .number{
+    font-size:48px;
+    font-weight:bold;
+    color:var(--dhl-red);
+}
+
+.sheet-preview .description{
+    font-size:13px;
+    color:var(--muted);
+}
+
+.pool-header{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    gap:10px;
+}
+
+.counter{
+    background:#eaf7ef;
+    color:#116638;
+    padding:8px 12px;
+    border-radius:20px;
+    font-weight:bold;
+    font-size:13px;
+}
+
+.pool-list{
+    display:flex;
+    flex-direction:column;
+    gap:8px;
+    margin-top:14px;
+}
+
+.pool-item{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    gap:10px;
+    border:1px solid var(--border);
+    padding:12px;
+    border-radius:12px;
+}
+
+.pool-number{
+    font-size:18px;
+    font-weight:bold;
+}
+
+.pool-status{
+    background:#eaf7ef;
+    color:#116638;
+    border-radius:20px;
+    padding:6px 10px;
+    font-size:11px;
+    font-weight:bold;
+}
+
+.empty{
+    text-align:center;
+    color:var(--muted);
+    padding:20px 8px;
+    font-size:13px;
+}
+
+footer{
+    text-align:center;
+    color:#7b8190;
+    font-size:11px;
+    padding:0 12px 25px;
+}
+
+.hidden{
+    display:none !important;
+}
+
+@media(min-width:500px){
+    .camera-wrap{
+        aspect-ratio:4/3;
+        max-height:440px;
+    }
+}
+</style>
+</head>
+
+<body>
+
+<header>
+    <h1>📦 DHL Operational Control</h1>
+    <p>CodPid · Zona Logística (ZL)</p>
+</header>
+
+<main>
+
+    <!-- INFORMACIÓN DEL USUARIO -->
+
+    <section class="card">
+        <div class="user-info">
+            <div>
+                <div class="user-name" id="userName">
+                    Verificando usuario...
+                </div>
+                <div class="group-label" id="groupLabel">
+                    Consultando grupo...
+                </div>
+            </div>
+
+            <button class="secondary" id="refreshBtn">
+                ↻ Actualizar
+            </button>
+        </div>
+    </section>
+
+
+    <!-- LECTOR QR -->
+
+    <section class="card">
+
+        <h2>1. Registrar hoja viajera</h2>
+
+        <div class="status" id="cameraStatus">
+            Cámara apagada. Presiona Activar cámara para comenzar.
+        </div>
+
+        <div class="camera-wrap">
+
+            <video id="video" playsinline muted></video>
+
+            <div class="camera-placeholder" id="placeholder">
+                <span class="symbol">▦</span>
+                Escanea el QR de identificación de la hoja viajera.
+            </div>
+
+            <div class="scan-frame" id="scanFrame"></div>
+
+        </div>
+
+        <div class="actions">
+            <button class="primary" id="startBtn">
+                Activar cámara
+            </button>
+
+            <button class="secondary" id="stopBtn" disabled>
+                Detener cámara
+            </button>
+        </div>
+
+        <p class="group-label">
+            Se utilizará la cámara trasera del dispositivo.
+            El lector reconoce el QR y prepara la hoja para confirmación.
+        </p>
+
+    </section>
+
+
+    <!-- CAPTURA MANUAL -->
+
+    <section class="card">
+
+        <h2>2. Captura manual de hoja</h2>
+
+        <div class="status warning">
+            Opción provisional mientras generamos los QR definitivos
+            de las hojas viajeras.
+        </div>
+
+        <label for="manualSheet">
+            Número de hoja (01–100)
+        </label>
+
+        <input
+            type="number"
+            id="manualSheet"
+            min="1"
+            max="100"
+            step="1"
+            placeholder="Ejemplo: 98"
+        >
+
+        <button class="secondary full" id="manualBtn">
+            Validar número
+        </button>
+
+    </section>
+
+
+    <!-- VISTA PREVIA -->
+
+    <section class="card hidden" id="previewSection">
+
+        <h2>3. Confirmar registro</h2>
+
+        <div class="status success" id="previewStatus">
+            Hoja identificada correctamente.
+        </div>
+
+        <div class="sheet-preview" id="sheetPreview">
+            <div class="description">
+                HOJA VIAJERA
+            </div>
+
+            <div class="number" id="sheetNumberPreview">
+                01
+            </div>
+
+            <div class="description">
+                CODPID · NAVE 4
+            </div>
+        </div>
+
+        <button class="success-btn full" id="confirmBtn">
+            Confirmar y registrar hoja
+        </button>
+
+        <button class="secondary full" id="cancelBtn">
+            Cancelar
+        </button>
+
+    </section>
+
+
+    <!-- POOL -->
+
+    <section class="card">
+
+        <div class="pool-header">
+            <h2>4. Pool de hojas disponibles</h2>
+
+            <div class="counter" id="availableCounter">
+                0 disponibles
+            </div>
+        </div>
+
+        <div class="status" id="poolStatus">
+            Consultando hojas del grupo...
+        </div>
+
+        <div class="pool-list" id="poolList">
+            <div class="empty">
+                Cargando información...
+            </div>
+        </div>
+
+    </section>
+
+</main>
+
+<footer>
+    DHL Operational Control · CodPid ZL
+</footer>
+
+
+<script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
+
+
+<script type="module">
+
+import {
+    initializeApp
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+
+import {
+    getAuth,
+    onAuthStateChanged
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+
+import {
+    getFirestore,
+    doc,
+    collection,
+    getDoc,
+    getDocs,
+    query,
+    where,
+    runTransaction,
+    serverTimestamp,
+    addDoc
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+
+/* =====================================================
+   1. FIREBASE CONFIGURATION
+===================================================== */
+
+const firebaseConfig = {
+    apiKey: "AIzaSyC4yHubTO4ZPn2H80I1fG7H6qeR7SavNbM",
+    authDomain: "dhl-operational-control.firebaseapp.com",
+    projectId: "dhl-operational-control",
+    storageBucket: "dhl-operational-control.firebasestorage.app",
+    messagingSenderId: "830487097530",
+    appId: "1:830487097530:web:41e01b4d396678f0819283"
+};
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+
+
+/* =====================================================
+   2. CONFIGURACIÓN CODPID
+===================================================== */
+
+const CONFIG = {
+
+    minSheet: 1,
+
+    maxSheet: 100,
+
+    collectionUsers: "users",
+
+    collectionGroups: "codpidGroups",
+
+    collectionContainers: "codpidContainers",
+
+    collectionAudit: "codpidAudit",
+
+    groupId: null,
+
+    employeeId: null,
+
+    userName: null,
+
+    userEmail: null,
+
+    userRole: null
+
+};
+
+
+/* =====================================================
+   3. ELEMENTOS HTML
+===================================================== */
+
+const $ = id => document.getElementById(id);
+
+const video = $("video");
+const placeholder = $("placeholder");
+const scanFrame = $("scanFrame");
+
+const cameraStatus = $("cameraStatus");
+
+const startBtn = $("startBtn");
+const stopBtn = $("stopBtn");
+
+const manualSheet = $("manualSheet");
+const manualBtn = $("manualBtn");
+
+const previewSection = $("previewSection");
+const sheetPreview = $("sheetPreview");
+const sheetNumberPreview = $("sheetNumberPreview");
+const previewStatus = $("previewStatus");
+
+const confirmBtn = $("confirmBtn");
+const cancelBtn = $("cancelBtn");
+
+const poolList = $("poolList");
+const poolStatus = $("poolStatus");
+const availableCounter = $("availableCounter");
+
+const refreshBtn = $("refreshBtn");
+
+
+/* =====================================================
+   4. ESTADO DE LA APLICACIÓN
+===================================================== */
+
+let currentSheet = null;
+
+let stream = null;
+
+let animationId = null;
+
+let scanning = false;
+
+let registering = false;
+
+let authorized = false;
+
+let poolRefreshInProgress = false;
+
+const canvas = document.createElement("canvas");
+
+const ctx = canvas.getContext(
+    "2d",
+    { willReadFrequently: true }
+);
+
+
+/* =====================================================
+   5. UTILIDADES
+===================================================== */
+
+function setCameraStatus(message, type = "") {
+
+    cameraStatus.textContent = message;
+
+    cameraStatus.className =
+        "status" + (type ? " " + type : "");
+}
+
+
+function setPoolStatus(message, type = "") {
+
+    poolStatus.textContent = message;
+
+    poolStatus.className =
+        "status" + (type ? " " + type : "");
+}
+
+
+function padSheet(number) {
+
+    return String(number).padStart(2, "0");
+}
+
+
+function escapeHTML(value) {
+
+    return String(value)
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+}
+
+
+/* =====================================================
+   6. INTERPRETACIÓN DEL QR DE HOJA
+===================================================== */
+
+/*
+   IMPORTANTE:
+
+   Este lector corresponde al QR DE LA HOJA VIAJERA.
+
+   No acepta N41 como hoja porque ese identificador
+   corresponde provisionalmente a un QR de posición.
+
+   Formatos provisionales aceptados:
+
+   98
+   CODPID|HOJA|98
+   CODPID|NAVE4|TORRETA|98
+   NAVE4|TORRETA|98
+
+   Cuando se generen los QR definitivos, únicamente
+   necesitaremos adaptar esta función.
+
+   El dígito verificador todavía no está implementado.
+*/
+
+function parseSheetQR(rawValue) {
+
+    const value = String(rawValue || "")
+        .trim()
+        .toUpperCase();
+
+    let match = null;
+
+    if (/^\d{1,3}$/.test(value)) {
+
+        match = value;
+
+    } else {
+
+        const patterns = [
+
+            /^CODPID\|HOJA\|(\d{1,3})$/,
+
+            /^CODPID\|NAVE4\|TORRETA\|(\d{1,3})$/,
+
+            /^NAVE4\|TORRETA\|(\d{1,3})$/
+
+        ];
+
+        for (const pattern of patterns) {
+
+            const result = value.match(pattern);
+
+            if (result) {
+
+                match = result[1];
+
+                break;
+            }
+        }
+    }
+
+    if (match === null) {
+
+        throw new Error(
+            "El QR no corresponde a un formato reconocido de hoja viajera."
+        );
+    }
+
+    const number = Number(match);
+
+    if (
+        !Number.isInteger(number) ||
+        number < CONFIG.minSheet ||
+        number > CONFIG.maxSheet
+    ) {
+
+        throw new Error(
+            "El número de hoja debe estar entre 01 y 100."
+        );
+    }
+
+    return number;
+}
+
+
+/* =====================================================
+   7. PREPARAR HOJA PARA CONFIRMACIÓN
+===================================================== */
+
+function prepareSheet(number, source) {
+
+    if (!authorized) {
+
+        throw new Error(
+            "El usuario todavía no está autorizado."
+        );
+    }
+
+    if (
+        !Number.isInteger(number) ||
+        number < CONFIG.minSheet ||
+        number > CONFIG.maxSheet
+    ) {
+
+        throw new Error(
+            "Número de hoja inválido."
+        );
+    }
+
+    currentSheet = {
+
+        number,
+
+        source,
+
+        originalValue: String(number)
+
+    };
+
+    sheetNumberPreview.textContent =
+        padSheet(number);
+
+    previewSection.classList.remove("hidden");
+
+    sheetPreview.style.display = "block";
+
+    previewStatus.textContent =
+        source === "QR"
+            ? "QR leído correctamente. Confirma el registro."
+            : "Número capturado manualmente. Confirma el registro.";
+
+    previewStatus.className = "status success";
+
+    $("manualSheet").value = number;
+
+    previewSection.scrollIntoView({
+        behavior: "smooth",
+        block: "center"
+    });
+}
+
+
+function clearPreview() {
+
+    currentSheet = null;
+
+    previewSection.classList.add("hidden");
+
+    sheetPreview.style.display = "none";
+
+    confirmBtn.disabled = false;
+
+    confirmBtn.textContent =
+        "Confirmar y registrar hoja";
+}
+
+
+/* =====================================================
+   8. LECTOR DE CÁMARA
+===================================================== */
+
+function stopCamera(message = "Cámara detenida.") {
+
+    scanning = false;
+
+    if (animationId) {
+
+        cancelAnimationFrame(animationId);
+
+        animationId = null;
+    }
+
+    if (stream) {
+
+        stream.getTracks().forEach(track => {
+            track.stop();
+        });
+
+        stream = null;
+    }
+
+    video.pause();
+
+    video.srcObject = null;
+
+    video.style.display = "none";
+
+    placeholder.style.display = "block";
+
+    scanFrame.style.display = "none";
+
+    startBtn.disabled = false;
+
+    stopBtn.disabled = true;
+
+    setCameraStatus(message);
+}
+
+
+async function startCamera() {
+
+    if (!authorized) {
+
+        setCameraStatus(
+            "Primero debe validarse el usuario.",
+            "error"
+        );
+
+        return;
+    }
+
+    if (registering) return;
+
+    if (!window.isSecureContext) {
+
+        setCameraStatus(
+            "La cámara requiere HTTPS. Abre el sitio desde GitHub Pages.",
+            "error"
+        );
+
+        return;
+    }
+
+    if (
+        !navigator.mediaDevices ||
+        !navigator.mediaDevices.getUserMedia
+    ) {
+
+        setCameraStatus(
+            "Este navegador no permite acceder a la cámara.",
+            "error"
+        );
+
+        return;
+    }
+
+    if (typeof window.jsQR !== "function") {
+
+        setCameraStatus(
+            "No se pudo cargar el lector QR. Verifica tu conexión.",
+            "error"
+        );
+
+        return;
+    }
+
+    startBtn.disabled = true;
+
+    setCameraStatus(
+        "Solicitando permiso para utilizar la cámara..."
+    );
+
+    try {
+
+        try {
+
+            stream =
+                await navigator.mediaDevices.getUserMedia({
+
+                    audio: false,
+
+                    video: {
+
+                        facingMode: {
+                            ideal: "environment"
+                        },
+
+                        width: {
+                            ideal: 1280
+                        },
+
+                        height: {
+                            ideal: 720
+                        }
+                    }
+                });
+
+        } catch (firstError) {
+
+            stream =
+                await navigator.mediaDevices.getUserMedia({
+
+                    audio: false,
+
+                    video: true
+                });
+        }
+
+        video.srcObject = stream;
+
+        video.style.display = "block";
+
+        placeholder.style.display = "none";
+
+        scanFrame.style.display = "block";
+
+        await video.play();
+
+        scanning = true;
+
+        stopBtn.disabled = false;
+
+        setCameraStatus(
+            "Cámara activa. Apunta al QR de la hoja viajera."
+        );
+
+        scanLoop();
+
+    } catch (error) {
+
+        console.error("Error al abrir cámara:", error);
+
+        let message =
+            "No fue posible abrir la cámara.";
+
+        if (
+            error.name === "NotAllowedError" ||
+            error.name === "PermissionDeniedError"
+        ) {
+
+            message =
+                "Permiso denegado. Autoriza la cámara en Chrome.";
+
+        } else if (
+            error.name === "NotFoundError"
+        ) {
+
+            message =
+                "No se encontró una cámara disponible.";
+
+        } else if (
+            error.name === "NotReadableError"
+        ) {
+
+            message =
+                "La cámara está siendo utilizada por otra aplicación.";
+
+        }
+
+        stopCamera(message);
+
+        cameraStatus.classList.add("error");
+    }
+}
+
+
+function scanLoop() {
+
+    if (!scanning) return;
+
+    if (
+        video.readyState === video.HAVE_ENOUGH_DATA &&
+        video.videoWidth &&
+        video.videoHeight
+    ) {
+
+        canvas.width = video.videoWidth;
+
+        canvas.height = video.videoHeight;
+
+        ctx.drawImage(
+            video,
+            0,
+            0,
+            canvas.width,
+            canvas.height
+        );
+
+        const imageData =
+            ctx.getImageData(
+                0,
+                0,
+                canvas.width,
+                canvas.height
+            );
+
+        const code = window.jsQR(
+            imageData.data,
+            imageData.width,
+            imageData.height,
+            {
+                inversionAttempts: "attemptBoth"
+            }
+        );
+
+        if (code && code.data) {
+
+            stopCamera(
+                "Código QR detectado."
+            );
+
+            try {
+
+                const sheetNumber =
+                    parseSheetQR(code.data);
+
+                prepareSheet(sheetNumber, "QR");
+
+                setCameraStatus(
+                    "Hoja identificada correctamente.",
+                    "success"
+                );
+
+            } catch (error) {
+
+                setCameraStatus(
+                    error.message,
+                    "error"
+                );
+            }
+
+            return;
+        }
+    }
+
+    animationId =
+        requestAnimationFrame(scanLoop);
+}
+
+
+/* =====================================================
+   9. VALIDACIÓN MANUAL
+===================================================== */
+
+manualBtn.addEventListener("click", () => {
+
+    try {
+
+        const number =
+            Number(manualSheet.value);
+
+        if (!manualSheet.value.trim()) {
+
+            throw new Error(
+                "Ingresa el número de hoja."
+            );
+        }
+
+        prepareSheet(number, "MANUAL");
+
+    } catch (error) {
+
+        previewSection.classList.remove("hidden");
+
+        previewSection.scrollIntoView({
+            behavior: "smooth",
+            block: "center"
+        });
+
+        previewStatus.textContent = error.message;
+
+        previewStatus.className =
+            "status error";
+
+        sheetPreview.style.display = "none";
+    }
+});
+
+
+/* =====================================================
+   10. VALIDACIÓN DE USUARIO Y GRUPO
+===================================================== */
+
+async function validateUser(firebaseUser) {
+
+    authorized = false;
+
+    if (!firebaseUser) {
+
+        throw new Error(
+            "No existe una sesión activa. Ingresa nuevamente desde index.html."
+        );
+    }
+
+    const savedUser = JSON.parse(
+        localStorage.getItem("operationalUser") || "null"
+    );
+
+    if (!savedUser || !savedUser.employeeId) {
+
+        throw new Error(
+            "No se encontró la información de sesión. Ingresa nuevamente."
+        );
+    }
+
+    const employeeId =
+        String(savedUser.employeeId);
+
+    const userRef =
+        doc(db, CONFIG.collectionUsers, employeeId);
+
+    const userSnap =
+        await getDoc(userRef);
+
+    if (!userSnap.exists()) {
+
+        throw new Error(
+            "El usuario no existe en Firestore."
+        );
+    }
+
+    const userData =
+        userSnap.data();
+
+    if (userData.active !== true) {
+
+        throw new Error(
+            "El usuario se encuentra inactivo."
+        );
+    }
+
+    if (
+        !firebaseUser.email ||
+        firebaseUser.email.toLowerCase() !==
+        String(userData.email || "").toLowerCase()
+    ) {
+
+        throw new Error(
+            "La sesión de Firebase no coincide con el usuario registrado."
+        );
+    }
+
+    const roles =
+        Array.isArray(userData.codpidRoles)
+            ? userData.codpidRoles.map(role =>
+                String(role).toLowerCase()
+            )
+            : [];
+
+    if (!roles.includes("zl_cod")) {
+
+        throw new Error(
+            "El usuario no tiene asignado el perfil CodPid ZL."
+        );
+    }
+
+    const groupId =
+        String(userData.codpidGroupId || "").trim();
+
+    if (!groupId) {
+
+        throw new Error(
+            "El usuario no tiene un grupo CodPid asignado."
+        );
+    }
+
+    const selectedRole =
+        String(savedUser.selectedCodpidRole || "")
+            .toLowerCase();
+
+    if (
+        selectedRole &&
+        selectedRole !== "zl_cod"
+    ) {
+
+        throw new Error(
+            "El perfil seleccionado no corresponde a CodPid ZL."
+        );
+    }
+
+    const groupRef =
+        doc(db, CONFIG.collectionGroups, groupId);
+
+    const groupSnap =
+        await getDoc(groupRef);
+
+    if (!groupSnap.exists()) {
+
+        throw new Error(
+            "El grupo CodPid asignado no existe."
+        );
+    }
+
+    const groupData =
+        groupSnap.data();
+
+    if (groupData.active !== true) {
+
+        throw new Error(
+            "El grupo CodPid se encuentra inactivo."
+        );
+    }
+
+    CONFIG.employeeId = employeeId;
+
+    CONFIG.userName =
+        userData.name ||
+        userData.nombre ||
+        employeeId;
+
+    CONFIG.userEmail = userData.email;
+
+    CONFIG.userRole = "zl_cod";
+
+    CONFIG.groupId = groupId;
+
+    $("userName").textContent =
+        CONFIG.userName;
+
+    $("groupLabel").textContent =
+        "Grupo: " + groupId;
+
+    authorized = true;
+
+    return groupData;
+}
+
+
+/* =====================================================
+   11. CONSULTAR POOL DEL GRUPO
+===================================================== */
+
+async function loadPool() {
+
+    if (!authorized) return;
+
+    if (poolRefreshInProgress) return;
+
+    poolRefreshInProgress = true;
+
+    refreshBtn.disabled = true;
+
+    setPoolStatus(
+        "Consultando hojas disponibles..."
+    );
+
+    try {
+
+        const containersRef =
+            collection(
+                db,
+                CONFIG.collectionContainers
+            );
+
+        const poolQuery = query(
+            containersRef,
+            where("groupId", "==", CONFIG.groupId)
+        );
+
+        const snapshot =
+            await getDocs(poolQuery);
+
+        const availableSheets = [];
+
+        snapshot.forEach(documentSnap => {
+
+            const data = documentSnap.data();
+
+            if (data.status === "available") {
+
+                availableSheets.push({
+
+                    id: documentSnap.id,
+
+                    sheetNumber: Number(data.sheetNumber),
+
+                    status: data.status,
+
+                    createdBy: data.createdBy || ""
+
+                });
+            }
+        });
+
+        availableSheets.sort((a,b) =>
+            a.sheetNumber - b.sheetNumber
+        );
+
+        availableCounter.textContent =
+            availableSheets.length + " disponibles";
+
+        if (availableSheets.length === 0) {
+
+            poolList.innerHTML = `
+                <div class="empty">
+                    Todavía no hay hojas disponibles
+                    en este grupo.
+                </div>
+            `;
+
+        } else {
+
+            poolList.innerHTML =
+                availableSheets.map(item => `
+
+                    <div class="pool-item">
+
+                        <div>
+                            <div class="pool-number">
+                                Hoja ${padSheet(item.sheetNumber)}
+                            </div>
+
+                            <div class="group-label">
+                                ${escapeHTML(item.id)}
+                            </div>
+                        </div>
+
+                        <span class="pool-status">
+                            DISPONIBLE
+                        </span>
+
+                    </div>
+
+                `).join("");
+        }
+
+        setPoolStatus(
+            "Pool actualizado correctamente.",
+            "success"
+        );
+
+    } catch (error) {
+
+        console.error(
+            "Error consultando pool:",
+            error
+        );
+
+        setPoolStatus(
+            "No fue posible consultar el pool: " +
+            error.message,
+            "error"
+        );
+
+    } finally {
+
+        poolRefreshInProgress = false;
+
+        refreshBtn.disabled = false;
+    }
+}
+
+
+/* =====================================================
+   12. REGISTRAR INTENTO RECHAZADO EN AUDITORÍA
+===================================================== */
+
+async function registerRejectedAttempt(
+    sheetNumber,
+    reason
+) {
+
+    try {
+
+        await addDoc(
+            collection(db, CONFIG.collectionAudit),
+            {
+
+                action: "REGISTER",
+
+                details: reason,
+
+                groupId: CONFIG.groupId,
+
+                result: "REJECTED",
+
+                secondsSincePreviousConsumption: null,
+
+                sheetNumber: sheetNumber,
+
+                timestamp: serverTimestamp(),
+
+                userId: CONFIG.employeeId,
+
+                userName: CONFIG.userName,
+
+                userRole: "zl_cod"
+
+            }
+        );
+
+    } catch (error) {
+
+        console.error(
+            "No fue posible registrar el rechazo:",
+            error
+        );
+    }
+}
+
+
+/* =====================================================
+   13. REGISTRAR HOJA EN FIRESTORE
+===================================================== */
+
+async function registerSheet() {
+
+    if (!authorized) {
+
+        alert("Usuario no autorizado.");
+
+        return;
+    }
+
+    if (!currentSheet) {
+
+        alert("No hay una hoja seleccionada.");
+
+        return;
+    }
+
+    if (registering) return;
+
+    registering = true;
+
+    confirmBtn.disabled = true;
+
+    confirmBtn.textContent =
+        "Registrando...";
+
+    const sheetNumber =
+        currentSheet.number;
+
+    const formattedSheet =
+        padSheet(sheetNumber);
+
+    const containerId =
+        CONFIG.groupId +
+        "_hoja_" +
+        formattedSheet;
+
+    const containerRef =
+        doc(
+            db,
+            CONFIG.collectionContainers,
+            containerId
+        );
+
+    const groupRef =
+        doc(
+            db,
+            CONFIG.collectionGroups,
+            CONFIG.groupId
+        );
+
+    const auditRef =
+        doc(
+            collection(db, CONFIG.collectionAudit)
+        );
+
+    try {
+
+        const result = await runTransaction(
+            db,
+            async transaction => {
+
+                const groupSnap =
+                    await transaction.get(groupRef);
+
+                const containerSnap =
+                    await transaction.get(containerRef);
+
+                if (!groupSnap.exists()) {
+
+                    throw new Error(
+                        "GROUP_NOT_FOUND"
+                    );
+                }
+
+                if (
+                    groupSnap.data().active !== true
+                ) {
+
+                    throw new Error(
+                        "GROUP_INACTIVE"
+                    );
+                }
+
+                let previousData = {};
+
+                let isReuse = false;
+
+                if (containerSnap.exists()) {
+
+                    previousData =
+                        containerSnap.data();
+
+                    if (
+                        previousData.status === "available"
+                    ) {
+
+                        throw new Error(
+                            "DUPLICATE_AVAILABLE"
+                        );
+                    }
+
+                    if (
+                        previousData.status !== "consumed"
+                    ) {
+
+                        throw new Error(
+                            "INVALID_PREVIOUS_STATUS"
+                        );
+                    }
+
+                    isReuse = true;
+                }
+
+                const containerData = {
+
+                    groupId: CONFIG.groupId,
+
+                    sheetNumber: sheetNumber,
+
+                    status: "available",
+
+                    createdAt:
+                        previousData.createdAt ||
+                        serverTimestamp(),
+
+                    createdBy:
+                        previousData.createdBy ||
+                        CONFIG.employeeId,
+
+                    consumedAt: null,
+
+                    consumedBy: null,
+
+                    updatedAt: serverTimestamp(),
+
+                    lastRegisteredBy:
+                        CONFIG.employeeId,
+
+                    lastRegisteredByName:
+                        CONFIG.userName
+
+                };
+
+                transaction.set(
+                    containerRef,
+                    containerData
+                );
+
+                transaction.update(
+                    groupRef,
+                    {
+                        updatedAt: serverTimestamp()
+                    }
+                );
+
+                transaction.set(
+                    auditRef,
+                    {
+
+                        action: isReuse
+                            ? "REUSE"
+                            : "REGISTER",
+
+                        details: isReuse
+                            ? "Hoja consumida previamente y registrada nuevamente en el pool."
+                            : "Nueva hoja registrada en el pool CodPid.",
+
+                        groupId: CONFIG.groupId,
+
+                        result: "SUCCESS",
+
+                        secondsSincePreviousConsumption: null,
+
+                        sheetNumber: sheetNumber,
+
+                        timestamp: serverTimestamp(),
+
+                        userId: CONFIG.employeeId,
+
+                        userName: CONFIG.userName,
+
+                        userRole: "zl_cod"
+
+                    }
+                );
+
+                return {
+                    isReuse
+                };
+            }
+        );
+
+        const message = result.isReuse
+            ? "La hoja " + formattedSheet +
+              " fue reutilizada y registrada nuevamente."
+            : "La hoja " + formattedSheet +
+              " fue registrada correctamente.";
+
+        setCameraStatus(
+            message,
+            "success"
+        );
+
+        clearPreview();
+
+        manualSheet.value = "";
+
+        await loadPool();
+
+    } catch (error) {
+
+        console.error(
+            "Error registrando hoja:",
+            error
+        );
+
+        let message =
+            "No fue posible registrar la hoja: " +
+            error.message;
+
+        if (error.message === "DUPLICATE_AVAILABLE") {
+
+            message =
+                "La hoja " + formattedSheet +
+                " ya se encuentra disponible en este grupo.";
+
+            await registerRejectedAttempt(
+                sheetNumber,
+                "Intento de registro rechazado: la hoja ya estaba disponible."
+            );
+
+        } else if (
+            error.message === "GROUP_NOT_FOUND"
+        ) {
+
+            message =
+                "El grupo ya no existe.";
+
+        } else if (
+            error.message === "GROUP_INACTIVE"
+        ) {
+
+            message =
+                "El grupo se encuentra inactivo.";
+
+        } else if (
+            error.message === "INVALID_PREVIOUS_STATUS"
+        ) {
+
+            message =
+                "La hoja tiene un estado anterior no reconocido. Se requiere revisión.";
+        }
+
+        previewStatus.textContent = message;
+
+        previewStatus.className =
+            "status error";
+
+        setCameraStatus(
+            message,
+            "error"
+        );
+
+    } finally {
+
+        registering = false;
+
+        confirmBtn.disabled = false;
+
+        confirmBtn.textContent =
+            "Confirmar y registrar hoja";
+    }
+}
+
+
+/* =====================================================
+   14. EVENTOS
+===================================================== */
+
+startBtn.addEventListener(
+    "click",
+    startCamera
+);
+
+stopBtn.addEventListener(
+    "click",
+    () => stopCamera()
+);
+
+confirmBtn.addEventListener(
+    "click",
+    registerSheet
+);
+
+cancelBtn.addEventListener(
+    "click",
+    () => {
+
+        clearPreview();
+
+        setCameraStatus(
+            "Registro cancelado. Puedes escanear otra hoja."
+        );
+    }
+);
+
+refreshBtn.addEventListener(
+    "click",
+    loadPool
+);
+
+
+document.addEventListener(
+    "visibilitychange",
+    () => {
+
+        if (document.hidden && stream) {
+
+            stopCamera(
+                "La cámara se detuvo al salir de la página."
+            );
+        }
+    }
+);
+
+window.addEventListener(
+    "pagehide",
+    () => {
+
+        if (stream) {
+            stopCamera();
+        }
+    }
+);
+
+
+/* =====================================================
+   15. INICIALIZACIÓN Y AUTENTICACIÓN
+===================================================== */
+
+onAuthStateChanged(
+    auth,
+    async firebaseUser => {
+
+        if (!firebaseUser) {
+
+            authorized = false;
+
+            $("userName").textContent =
+                "Sesión no encontrada";
+
+            $("groupLabel").textContent =
+                "Debes ingresar desde index.html";
+
+            setCameraStatus(
+                "No existe una sesión activa. Regresa al inicio de sesión.",
+                "error"
+            );
+
+            setPoolStatus(
+                "No se puede consultar el pool sin iniciar sesión.",
+                "error"
+            );
+
+            return;
+        }
+
+        try {
+
+            $("userName").textContent =
+                "Verificando permisos...";
+
+            await validateUser(firebaseUser);
+
+            setCameraStatus(
+                "Usuario autorizado. Listo para registrar hojas.",
+                "success"
+            );
+
+            await loadPool();
+
+        } catch (error) {
+
+            console.error(
+                "Error de autorización:",
+                error
+            );
+
+            authorized = false;
+
+            $("userName").textContent =
+                "Acceso no autorizado";
+
+            $("groupLabel").textContent =
+                error.message;
+
+            setCameraStatus(
+                error.message,
+                "error"
+            );
+
+            setPoolStatus(
+                "No tienes acceso al pool CodPid ZL.",
+                "error"
+            );
+
+            startBtn.disabled = true;
+
+            manualBtn.disabled = true;
+
+            refreshBtn.disabled = true;
+        }
+    }
+);
+
+</script>
+
+</body>
+</html>
