@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -23,7 +24,8 @@ body{
     background:var(--bg);
 }
 
-.login-screen{
+.login-screen,
+.access-screen{
     min-height:100vh;
     display:flex;
     justify-content:center;
@@ -31,7 +33,8 @@ body{
     padding:20px;
 }
 
-.login-card{
+.login-card,
+.access-card{
     width:100%;
     max-width:420px;
     background:white;
@@ -40,7 +43,8 @@ body{
     box-shadow:0 8px 30px rgba(0,0,0,.12);
 }
 
-.login-card h1{
+.login-card h1,
+.access-card h1{
     color:var(--dhl-red);
     text-align:center;
     margin-bottom:25px;
@@ -55,7 +59,8 @@ body{
     font-size:16px;
 }
 
-.login-btn{
+.login-btn,
+.access-btn{
     width:100%;
     padding:15px;
     border:none;
@@ -65,6 +70,24 @@ body{
     font-size:16px;
     font-weight:bold;
     cursor:pointer;
+    margin-bottom:12px;
+}
+
+.access-btn.secondary{
+    background:#333;
+}
+
+.access-btn:hover,
+.login-btn:hover{
+    opacity:.9;
+}
+
+.access-description{
+    text-align:center;
+    color:#666;
+    font-size:14px;
+    margin-bottom:25px;
+    line-height:1.5;
 }
 
 .login-error{
@@ -74,6 +97,7 @@ body{
     margin-top:15px;
     font-weight:bold;
 }
+
 .app-version{
     position:fixed;
     left:10px;
@@ -86,27 +110,35 @@ body{
     z-index:500;
     font-weight:bold;
 }
-    
+
+@media(max-width:480px){
+    .login-card,
+    .access-card{
+        padding:25px;
+    }
+}
 </style>
 </head>
 
 <body>
 
-<div class="login-screen">
+<!-- LOGIN ORIGINAL -->
+
+<div class="login-screen" id="loginScreen">
     <div class="login-card">
 
         <h1>📦 DHL Operational Control</h1>
 
-        <input 
-            type="text" 
-            id="employeeId" 
+        <input
+            type="text"
+            id="employeeId"
             placeholder="Número de empleado"
             inputmode="numeric"
         >
 
-        <input 
-            type="password" 
-            id="password" 
+        <input
+            type="password"
+            id="password"
             placeholder="Contraseña"
         >
 
@@ -120,6 +152,28 @@ body{
 
     </div>
 </div>
+
+
+<!-- CODPID: SELECTOR DE OPERACIÓN -->
+
+<div
+    class="access-screen"
+    id="accessScreen"
+    style="display:none;"
+>
+    <div class="access-card">
+
+        <h1>📦 Seleccionar operación</h1>
+
+        <div class="access-description" id="accessDescription">
+            Selecciona el módulo al que deseas ingresar.
+        </div>
+
+        <div id="accessOptions"></div>
+
+    </div>
+</div>
+
 
 <script type="module">
 
@@ -139,6 +193,7 @@ import {
 }
 from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
+
 /* FIREBASE CONFIG */
 
 const firebaseConfig = {
@@ -154,6 +209,145 @@ const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
 
+
+/* CODPID: RUTAS DE LOS MÓDULOS */
+
+const CODPID_ROUTES = {
+    zl_cod: "codpid-zl.html",
+    pu_cod: "codpid-pu.html"
+};
+
+
+/* CODPID: GUARDAR PERFIL SELECCIONADO Y NAVEGAR */
+
+function navigateToCodpid(codpidRole){
+
+    const operationalUser =
+        JSON.parse(
+            localStorage.getItem("operationalUser") || "{}"
+        );
+
+    if(
+        !operationalUser.codpidRoles ||
+        !operationalUser.codpidRoles.includes(codpidRole)
+    ){
+        throw new Error("El usuario no tiene autorización para este perfil CodPid.");
+    }
+
+    const destination = CODPID_ROUTES[codpidRole];
+
+    if(!destination){
+        throw new Error("Ruta CodPid no configurada.");
+    }
+
+    operationalUser.selectedCodpidRole = codpidRole;
+
+    localStorage.setItem(
+        "operationalUser",
+        JSON.stringify(operationalUser)
+    );
+
+    window.location.href = destination;
+}
+
+
+/* CODPID: MOSTRAR SELECTOR DE OPERACIÓN */
+
+function showAccessSelector(userData){
+
+    const loginScreen =
+        document.getElementById("loginScreen");
+
+    const accessScreen =
+        document.getElementById("accessScreen");
+
+    const accessOptions =
+        document.getElementById("accessOptions");
+
+    const accessDescription =
+        document.getElementById("accessDescription");
+
+    const codpidRoles =
+        userData.codpidRoles || [];
+
+    const userRole =
+        userData.role || "";
+
+    const isAdmin = [
+        "admin",
+        "gerente",
+        "manager",
+        "supervisor",
+        "it"
+    ].includes(userRole);
+
+    loginScreen.style.display = "none";
+    accessScreen.style.display = "flex";
+
+    accessOptions.innerHTML = "";
+
+    accessDescription.innerText =
+        "Hola " + (userData.name || userData.employeeId) +
+        ". Selecciona el módulo al que deseas ingresar.";
+
+    if(codpidRoles.includes("zl_cod")){
+
+        const buttonZL =
+            document.createElement("button");
+
+        buttonZL.className = "access-btn";
+        buttonZL.innerText = "CodPid ZL";
+
+        buttonZL.addEventListener("click", () => {
+            navigateToCodpid("zl_cod");
+        });
+
+        accessOptions.appendChild(buttonZL);
+    }
+
+    if(codpidRoles.includes("pu_cod")){
+
+        const buttonPU =
+            document.createElement("button");
+
+        buttonPU.className = "access-btn";
+        buttonPU.innerText = "CodPid PU";
+
+        buttonPU.addEventListener("click", () => {
+            navigateToCodpid("pu_cod");
+        });
+
+        accessOptions.appendChild(buttonPU);
+    }
+
+    if(isAdmin){
+
+        const buttonAdmin =
+            document.createElement("button");
+
+        buttonAdmin.className =
+            "access-btn secondary";
+
+        buttonAdmin.innerText =
+            "Administración V4";
+
+        buttonAdmin.addEventListener("click", () => {
+
+            userData.selectedCodpidRole = null;
+
+            localStorage.setItem(
+                "operationalUser",
+                JSON.stringify(userData)
+            );
+
+            window.location.href = "dashboard.html";
+        });
+
+        accessOptions.appendChild(buttonAdmin);
+    }
+}
+
+
 /* LOGIN */
 
 async function login(){
@@ -167,7 +361,7 @@ async function login(){
     const loginError =
         document.getElementById("loginError");
 
-    loginError.style.display="none";
+    loginError.style.display = "none";
 
     try{
 
@@ -184,7 +378,7 @@ async function login(){
         const userData =
             userSnap.data();
 
-        if(userData.active!==true){
+        if(userData.active !== true){
             throw new Error("Usuario inactivo");
         }
 
@@ -194,98 +388,190 @@ async function login(){
             password
         );
 
-       const userRole =
-    String(userData.role || "")
-        .toLowerCase();
 
-const userArea =
-    String(userData.area || "")
-        .toUpperCase();
+        /* DATOS DEL USUARIO */
 
-localStorage.setItem(
-    "operationalUser",
-    JSON.stringify({
-        employeeId,
-        name:userData.name || userData.nombre || employeeId,
-        role:userRole,
-        area:userArea,
-        warehouse:userData.warehouse,
-        email:userData.email
-    })
-);
+        const userRole =
+            String(userData.role || "")
+                .toLowerCase();
 
-let captureFlow =
-    "containers";
+        const userArea =
+            String(userData.area || "")
+                .toUpperCase();
 
-try{
 
-    const settingsRef =
-        doc(db,"systemSettings","captureFlow");
+        /* CODPID: LEER PERFILES ASIGNADOS */
 
-    const settingsSnap =
-        await getDoc(settingsRef);
+        const allowedCodpidRoles =
+            Array.isArray(userData.codpidRoles)
+                ? userData.codpidRoles
+                    .map(role => String(role).toLowerCase())
+                    .filter(role =>
+                        role === "zl_cod" ||
+                        role === "pu_cod"
+                    )
+                : [];
 
-    if(settingsSnap.exists()){
 
-        const settingsData =
-            settingsSnap.data();
+        /* GUARDAR INFORMACIÓN DE SESIÓN */
 
-        captureFlow =
-            settingsData.activeFlow || "containers";
+        const operationalUser = {
 
-    }
+            employeeId,
 
-}catch(settingsError){
+            name:
+                userData.name ||
+                userData.nombre ||
+                employeeId,
 
-    console.warn(
-        "No se pudo leer captureFlow, usando containers por default",
-        settingsError
-    );
+            role:userRole,
 
-}
+            area:userArea,
 
-if(
-    userRole==="capturista_pu" ||
-    userRole==="capturista_zl" ||
-    userArea==="PU" ||
-    userArea==="ZL"
-){
+            warehouse:userData.warehouse,
 
-    if(captureFlow==="legacy"){
+            email:userData.email,
 
-        window.location.href="capture.html";
-        return;
+            codpidRoles:allowedCodpidRoles,
 
-    }
+            codpidGroupId:
+                userData.codpidGroupId || null,
 
-    window.location.href="containers.html";
-    return;
+            selectedCodpidRole:null
+        };
 
-}
-if(
-    userRole==="admin" ||
-    userRole==="gerente" ||
-    userRole==="manager" ||
-    userRole==="supervisor" ||
-    userRole==="it"
-){
-    window.location.href="dashboard.html";
-    return;
-}
-window.location.href="dashboard.html";
+        localStorage.setItem(
+            "operationalUser",
+            JSON.stringify(operationalUser)
+        );
+
+
+        /* CODPID: DETERMINAR ACCESO */
+
+        const isAdmin = [
+            "admin",
+            "gerente",
+            "manager",
+            "supervisor",
+            "it"
+        ].includes(userRole);
+
+
+        /*
+           Si tiene perfiles CodPid y además es administrador,
+           o tiene más de un perfil CodPid,
+           mostrar el selector de operaciones.
+        */
+
+        if(
+            allowedCodpidRoles.length > 0 &&
+            (
+                isAdmin ||
+                allowedCodpidRoles.length > 1
+            )
+        ){
+
+            showAccessSelector(operationalUser);
+            return;
+        }
+
+
+        /*
+           Si únicamente tiene un perfil CodPid,
+           ingresar directamente a ese módulo.
+        */
+
+        if(allowedCodpidRoles.length === 1){
+
+            navigateToCodpid(
+                allowedCodpidRoles[0]
+            );
+
+            return;
+        }
+
+
+        /* FLUJO ORIGINAL DE CAPTUREFLOW */
+
+        let captureFlow = "containers";
+
+        try{
+
+            const settingsRef =
+                doc(db,"systemSettings","captureFlow");
+
+            const settingsSnap =
+                await getDoc(settingsRef);
+
+            if(settingsSnap.exists()){
+
+                const settingsData =
+                    settingsSnap.data();
+
+                captureFlow =
+                    settingsData.activeFlow || "containers";
+            }
+
+        }catch(settingsError){
+
+            console.warn(
+                "No se pudo leer captureFlow, usando containers por default",
+                settingsError
+            );
+
+        }
+
+
+        /* CAPTURISTAS CONVENCIONALES */
+
+        if(
+            userRole === "capturista_pu" ||
+            userRole === "capturista_zl" ||
+            userArea === "PU" ||
+            userArea === "ZL"
+        ){
+
+            if(captureFlow === "legacy"){
+
+                window.location.href = "capture.html";
+                return;
+            }
+
+            window.location.href = "containers.html";
+            return;
+        }
+
+
+        /* ADMINISTRACIÓN CONVENCIONAL */
+
+        if(isAdmin){
+
+            window.location.href = "dashboard.html";
+            return;
+        }
+
+
+        /* RUTA POR DEFECTO ORIGINAL */
+
+        window.location.href = "dashboard.html";
+
 
     }catch(error){
 
         console.error(error);
-        loginError.style.display="block";
 
+        loginError.innerText =
+            "Usuario o contraseña incorrectos";
+
+        loginError.style.display = "block";
     }
 
 }
 
-window.login=login;
+window.login = login;
 
 </script>
+
 
 <div class="app-version" id="appVersion">
     Cargando versión...
@@ -297,6 +583,6 @@ window.login=login;
 document.getElementById("appVersion").innerText =
     `${window.APP_CONFIG.name} · ${window.APP_CONFIG.version}`;
 </script>
-    
+
 </body>
 </html>
