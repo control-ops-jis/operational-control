@@ -1,50 +1,1788 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><meta name="theme-color" content="#D40511">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#D40511">
 <title>CodPid PU · DHL Operational Control</title>
+
 <style>
-:root{--red:#D40511;--yellow:#FFCC00;--bg:#f3f4f6;--ink:#202124;--muted:#667085;--green:#16834a;--border:#e5e7eb}*{box-sizing:border-box;font-family:Arial,sans-serif}body{margin:0;min-height:100vh;background:var(--bg);color:var(--ink)}header{background:var(--red);color:white;padding:18px 16px;text-align:center;border-bottom:5px solid var(--yellow)}header h1{margin:0;font-size:22px}header p{margin:6px 0 0;font-size:13px}main{width:min(100% - 24px,640px);margin:18px auto 40px}.card{background:white;border-radius:18px;padding:17px;box-shadow:0 5px 22px #0000000f;margin-bottom:15px}h2{font-size:17px;margin:0 0 14px}.user-info,.pool-header{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}.user-name{font-weight:bold;font-size:15px}.muted{color:var(--muted);font-size:12px;margin-top:5px}.status{background:#f1f3f5;padding:12px;border-radius:12px;font-size:14px;line-height:1.45;color:#344054;margin-bottom:12px}.status.error{background:#fff0f0;color:#a40000}.status.success{background:#eaf7ef;color:#116638}.status.warning{background:#fff7df;color:#775500}.status.info{background:#eef4ff;color:#1849a9}button{border:0;border-radius:12px;padding:14px 12px;font-size:15px;font-weight:bold;cursor:pointer;min-height:48px}button:disabled{opacity:.45;cursor:not-allowed}.primary{background:var(--red);color:white}.secondary{background:#eceff3;color:#252525}.full{width:100%;margin-top:12px}.sequence{display:flex;justify-content:space-between;align-items:center;gap:12px;background:#fff8df;border:1px solid #f5d778;border-radius:12px;padding:13px;margin-bottom:12px}.sequence strong{font-size:27px;color:var(--red)}.result{background:#f7f7f8;border:1px solid var(--border);border-radius:12px;padding:14px;margin-top:10px}.result-label{font-size:11px;color:var(--muted);font-weight:bold;text-transform:uppercase}.result-value{font-size:25px;font-weight:bold;margin-top:6px}.challenge{border:2px solid var(--yellow);border-radius:14px;padding:16px;margin-top:12px;text-align:center;background:#fffdf5}.challenge .position{font-size:44px;font-weight:bold;color:var(--red);margin:5px 0}.camera-wrap{position:relative;width:100%;aspect-ratio:4/5;max-height:58vh;background:#171717;border-radius:14px;overflow:hidden;display:flex;align-items:center;justify-content:center}video{width:100%;height:100%;object-fit:cover;display:none}.placeholder{color:white;text-align:center;padding:24px;line-height:1.5}.placeholder span{font-size:52px;display:block;margin-bottom:12px}.frame{display:none;position:absolute;width:min(68%,270px);aspect-ratio:1;border:3px solid var(--yellow);border-radius:18px;box-shadow:0 0 0 999px #00000029;pointer-events:none}.frame:after{content:"";position:absolute;left:8%;right:8%;top:50%;height:2px;background:white}.actions{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:13px}.counter{background:#eaf7ef;color:#116638;padding:8px 12px;border-radius:20px;font-weight:bold;font-size:13px}.pool-list{display:flex;flex-direction:column;gap:8px;margin-top:14px}.pool-item{display:flex;justify-content:space-between;align-items:center;gap:10px;border:1px solid var(--border);padding:12px;border-radius:12px}.pool-number{font-size:18px;font-weight:bold}.pool-status{background:#eaf7ef;color:#116638;border-radius:20px;padding:6px 10px;font-size:11px;font-weight:bold}.empty{text-align:center;color:var(--muted);padding:20px 8px;font-size:13px}footer{text-align:center;color:#7b8190;font-size:11px;padding:0 12px 25px}.hidden{display:none!important}@media(min-width:500px){.camera-wrap{aspect-ratio:4/3;max-height:440px}}
-</style></head>
+:root{
+  --red:#D40511;
+  --yellow:#FFCC00;
+  --bg:#f3f4f6;
+  --ink:#202124;
+  --muted:#667085;
+  --green:#16834a;
+  --border:#e5e7eb;
+}
+
+*{box-sizing:border-box;font-family:Arial,sans-serif}
+
+body{
+  margin:0;
+  min-height:100vh;
+  background:var(--bg);
+  color:var(--ink)
+}
+
+header{
+  background:var(--red);
+  color:#fff;
+  padding:18px 16px;
+  text-align:center;
+  border-bottom:5px solid var(--yellow)
+}
+
+header h1{margin:0;font-size:22px}
+header p{margin:6px 0 0;font-size:13px}
+
+main{
+  width:min(100% - 24px,640px);
+  margin:18px auto 40px
+}
+
+.card{
+  background:#fff;
+  border-radius:18px;
+  padding:17px;
+  box-shadow:0 5px 22px #0000000f;
+  margin-bottom:15px
+}
+
+h2{font-size:17px;margin:0 0 14px}
+
+.user-info,.pool-header{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:10px;
+  flex-wrap:wrap
+}
+
+.user-name{font-weight:bold;font-size:15px}
+.muted{color:var(--muted);font-size:12px;margin-top:5px}
+
+button{
+  border:0;
+  border-radius:12px;
+  padding:13px 12px;
+  font-size:15px;
+  font-weight:bold;
+  cursor:pointer;
+  min-height:48px
+}
+
+button:disabled{opacity:.55;cursor:not-allowed}
+
+.secondary{background:#eceff3;color:#252525}
+
+.counter{
+  background:#f1f3f5;
+  color:#475467;
+  padding:8px 12px;
+  border-radius:20px;
+  font-weight:bold;
+  font-size:13px
+}
+
+.sequence{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:12px;
+  background:#fff8df;
+  border:1px solid #f5d778;
+  border-radius:14px;
+  padding:15px 17px
+}
+
+.sequence span{font-size:15px;font-weight:bold}
+.sequence strong{
+  font-size:34px;
+  color:var(--red);
+  line-height:1
+}
+
+.pool-list{
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:9px;
+  margin-top:14px
+}
+
+.pool-item{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:8px;
+  text-align:left;
+  border:1px solid var(--border);
+  background:#f7f7f8;
+  color:#667085;
+  padding:13px;
+  border-radius:12px;
+  min-height:62px
+}
+
+.pool-item .pool-number{
+  font-size:19px;
+  font-weight:bold;
+  color:#475467
+}
+
+.pool-item .pool-state{
+  font-size:10px;
+  font-weight:bold;
+  letter-spacing:.3px
+}
+
+.pool-item.suggested{
+  background:#eaf7ef;
+  border:2px solid var(--green);
+  color:#116638;
+  cursor:pointer
+}
+
+.pool-item.suggested .pool-number{color:#116638}
+.pool-item.suggested:active{transform:scale(.99)}
+.pool-item.other{cursor:default}
+
+.empty{
+  text-align:center;
+  color:var(--muted);
+  padding:20px 8px;
+  font-size:13px;
+  grid-column:1/-1
+}
+
+.note{
+  font-size:13px;
+  color:var(--muted);
+  line-height:1.4;
+  margin:12px 2px 0
+}
+
+.status{
+  padding:12px;
+  border-radius:12px;
+  font-size:14px;
+  line-height:1.45;
+  margin:0 0 12px;
+  background:#f1f3f5;
+  color:#344054
+}
+
+.status.error{background:#fff0f0;color:#a40000}
+.status.success{background:#eaf7ef;color:#116638}
+.status.warning{background:#fff7df;color:#775500}
+
+.challenge{
+  border:2px solid var(--yellow);
+  border-radius:14px;
+  padding:16px;
+  margin-top:12px;
+  text-align:center;
+  background:#fffdf5
+}
+
+.challenge .position{
+  font-size:44px;
+  font-weight:bold;
+  color:var(--red);
+  margin:5px 0
+}
+
+.challenge .qr{font-size:16px;font-weight:bold}
+
+.primary{
+  background:var(--red);
+  color:#fff;
+  width:100%;
+  margin-top:12px
+}
+
+.camera-wrap{
+  position:relative;
+  width:100%;
+  aspect-ratio:4/5;
+  max-height:58vh;
+  background:#171717;
+  border-radius:14px;
+  overflow:hidden;
+  display:flex;
+  align-items:center;
+  justify-content:center
+}
+
+video{
+  width:100%;
+  height:100%;
+  object-fit:cover;
+  display:none
+}
+
+.placeholder{
+  color:#fff;
+  text-align:center;
+  padding:24px;
+  line-height:1.5
+}
+
+.placeholder span{
+  font-size:52px;
+  display:block;
+  margin-bottom:12px
+}
+
+.frame{
+  display:none;
+  position:absolute;
+  width:min(68%,270px);
+  aspect-ratio:1;
+  border:3px solid var(--yellow);
+  border-radius:18px;
+  box-shadow:0 0 0 999px #00000029;
+  pointer-events:none
+}
+
+.frame:after{
+  content:"";
+  position:absolute;
+  left:8%;
+  right:8%;
+  top:50%;
+  height:2px;
+  background:#fff
+}
+
+.actions{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:10px;
+  margin-top:12px
+}
+
+footer{
+  text-align:center;
+  color:#7b8190;
+  font-size:11px;
+  padding:0 12px 25px
+}
+
+.hidden{display:none!important}
+
+@media(min-width:500px){
+  .camera-wrap{
+    aspect-ratio:4/3;
+    max-height:440px
+  }
+}
+</style>
+</head>
+
 <body>
-<header><h1>📦 DHL Operational Control</h1><p>CodPid · Punto de Uso (PU)</p></header>
+
+<header>
+  <h1>📦 DHL Operational Control</h1>
+  <p>CodPid · Punto de Uso (PU)</p>
+</header>
+
 <main>
-<section class="card"><div class="user-info"><div><div class="user-name" id="userName">Verificando usuario...</div><div class="muted" id="groupLabel">Consultando grupo...</div></div><button class="secondary" id="refreshBtn">↻ Actualizar</button></div></section>
-<section class="card"><h2>Secuencia autorizada</h2><div class="sequence"><div><div class="result-label">Siguiente hoja que debe consumirse</div><div class="muted">Secuencia circular obligatoria: 01 → 100 → 01</div></div><strong id="expectedSheet">--</strong></div><div class="status info" id="sequenceStatus">Consultando secuencia...</div></section>
-<section class="card"><h2>1. Escanear hoja viajera</h2><div class="status" id="flowStatus">Primero identifica la hoja viajera del gabinete.</div><div class="result"><div class="result-label">Hoja detectada</div><div class="result-value" id="sheetDetected">Pendiente</div></div><button class="primary full" id="scanSheetBtn">Activar cámara · Hoja viajera</button></section>
-<section class="card hidden" id="challengeSection"><h2>2. Verificar posición física</h2><div class="status warning">Dirígete a la posición solicitada y escanea el QR de su etiqueta física.</div><div class="challenge"><div class="result-label">Escanea esta posición</div><div class="position" id="requestedPosition">POS --</div><div id="expectedPositionQR"><b>QR esperado: --</b></div></div><div class="result"><div class="result-label">Resultado del escaneo</div><div class="result-value" id="positionResult">Pendiente</div></div><button class="primary full" id="scanPositionBtn">Activar cámara · Posición</button><button class="secondary full" id="cancelBtn">Cancelar operación</button></section>
-<section class="card"><h2>Lector QR</h2><div class="status" id="cameraStatus">Cámara apagada. Activa el lector desde el paso correspondiente.</div><div class="camera-wrap"><video id="video" playsinline muted></video><div class="placeholder" id="placeholder"><span>▦</span>El lector se activará al iniciar cada escaneo.</div><div class="frame" id="frame"></div></div><div class="actions"><button class="secondary" id="stopBtn" disabled>Detener cámara</button><button class="secondary" id="resetBtn">Restablecer lector</button></div></section>
-<section class="card"><div class="pool-header"><h2>Pool de hojas disponibles</h2><div class="counter" id="counter">0 disponibles</div></div><div class="status" id="poolStatus">Consultando hojas del grupo...</div><div class="pool-list" id="poolList"><div class="empty">Cargando información...</div></div></section>
-</main><footer>DHL Operational Control · CodPid PU</footer>
+
+  <section class="card">
+    <div class="user-info">
+      <div>
+        <div class="user-name" id="userName">Verificando usuario...</div>
+        <div class="muted" id="groupLabel">Consultando grupo...</div>
+      </div>
+      <button class="secondary" id="refreshBtn">↻ Actualizar</button>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2>Secuencia autorizada</h2>
+    <div class="sequence">
+      <span>Hoja que corresponde consumir</span>
+      <strong id="expectedSheet">--</strong>
+    </div>
+  </section>
+
+  <section class="card">
+    <div class="pool-header">
+      <h2>Pool de hojas disponibles</h2>
+      <div class="counter" id="counter">0 disponibles</div>
+    </div>
+
+    <div class="pool-list" id="poolList">
+      <div class="empty">Cargando hojas...</div>
+    </div>
+
+    <p class="note" id="poolNote">
+      Selecciona la hoja marcada en verde para comenzar.
+    </p>
+  </section>
+
+  <section class="card hidden" id="challengeSection">
+    <h2>Verificación de posición</h2>
+
+    <div class="challenge">
+      <div class="muted">Dirígete a la posición solicitada</div>
+      <div class="position" id="requestedPosition">POS --</div>
+      <div class="qr" id="expectedPositionQR">QR esperado: --</div>
+    </div>
+
+    <div id="flowStatus" class="status" style="margin-top:12px">
+      Escanea la etiqueta de la posición.
+    </div>
+
+    <button class="primary" id="scanPositionBtn">
+      Escanear posición
+    </button>
+
+    <button class="secondary" id="cancelBtn" style="width:100%;margin-top:10px">
+      Cancelar operación
+    </button>
+  </section>
+
+  <section class="card hidden" id="cameraSection">
+    <h2 id="cameraTitle">Lector QR</h2>
+
+    <div id="cameraStatus" class="status">
+      Preparando cámara...
+    </div>
+
+    <div class="camera-wrap">
+      <video id="video" playsinline muted></video>
+
+      <div class="placeholder" id="placeholder">
+        <span>▦</span>
+        Apunta al código QR.
+      </div>
+
+      <div class="frame" id="frame"></div>
+    </div>
+
+    <div class="actions">
+      <button class="secondary" id="stopBtn" disabled>
+        Detener cámara
+      </button>
+
+      <button class="secondary" id="retryBtn">
+        Reintentar escaneo
+      </button>
+    </div>
+  </section>
+
+</main>
+
+<footer>DHL Operational Control · CodPid PU</footer>
+
 <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
+
 <script type="module">
-import{initializeApp}from"https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-import{getAuth,onAuthStateChanged}from"https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-import{getFirestore,doc,collection,getDoc,getDocs,query,where,runTransaction,serverTimestamp,addDoc}from"https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-const firebaseConfig={apiKey:"AIzaSyC4yHubTO4ZPn2H80I1fG7H6qeR7SavNbM",authDomain:"dhl-operational-control.firebaseapp.com",projectId:"dhl-operational-control",storageBucket:"dhl-operational-control.firebasestorage.app",messagingSenderId:"830487097530",appId:"1:830487097530:web:41e01b4d396678f0819283"};
-const app=initializeApp(firebaseConfig),auth=getAuth(app),db=getFirestore(app);
-const C={min:1,max:100,users:"users",groups:"codpidGroups",containers:"codpidContainers",audit:"codpidAudit",positions:{POS1:"N41",POS2:"N42",POS3:"N43",POS4:"N44"},groupId:null,employeeId:null,userName:null};
-const $=id=>document.getElementById(id),video=$("video"),canvas=document.createElement("canvas"),ctx=canvas.getContext("2d",{willReadFrequently:true});
-let authorized=false,stream=null,raf=null,scanning=false,scanMode=null,locked=false,expected=null,currentSheet=null,challenge=null,busy=false,poolBusy=false;
-const pad=n=>String(n).padStart(2,"0"),next=n=>n>=C.max?C.min:n+1;
-function status(id,msg,type=""){const e=$(id);e.textContent=msg;e.className="status"+(type?" "+type:"")}
-function escapeHTML(v){return String(v).replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;").replaceAll('"',"&quot;").replaceAll("'","&#039;")}
-function setExpected(n){expected=n;$("expectedSheet").textContent=pad(n);status("sequenceStatus","La siguiente hoja autorizada es "+pad(n)+".","info")}
-function parseSheet(raw){const v=String(raw||"").trim().toUpperCase();let m=v.match(/^\d{1,3}$/)?v:null;if(m===null){for(const p of [/^CODPID\|HOJA\|(\d{1,3})$/,/^CODPID\|NAVE4\|TORRETA\|(\d{1,3})$/,/^NAVE4\|TORRETA\|(\d{1,3})$/]){const x=v.match(p);if(x){m=x[1];break}}}if(m===null)throw Error("El QR no corresponde a un formato reconocido de hoja viajera.");const n=Number(m);if(!Number.isInteger(n)||n<1||n>100)throw Error("El número de hoja debe estar entre 01 y 100.");return n}
-function parsePosition(raw){const v=String(raw||"").trim().toUpperCase();const found=Object.entries(C.positions).find(([,qr])=>qr===v);if(!found)throw Error("QR de posición no reconocido. Valor leído: "+v.slice(0,50));return{position:found[0],qr:found[1]}}
-function newChallenge(){const keys=Object.keys(C.positions),position=keys[Math.floor(Math.random()*keys.length)];challenge={position,qr:C.positions[position]};$("requestedPosition").textContent=position;$("expectedPositionQR").textContent="QR esperado: "+challenge.qr;$("positionResult").textContent="Pendiente"}
-function stopCamera(message="Cámara detenida."){scanning=false;locked=false;if(raf){cancelAnimationFrame(raf);raf=null}if(stream){stream.getTracks().forEach(t=>t.stop());stream=null}video.pause();video.srcObject=null;video.style.display="none";$("placeholder").style.display="block";$("frame").style.display="none";$("stopBtn").disabled=true;status("cameraStatus",message)}
-async function startCamera(mode){if(!authorized||busy)return;if(!window.isSecureContext){status("cameraStatus","La cámara requiere HTTPS. Abre GitHub Pages.","error");return}if(!navigator.mediaDevices?.getUserMedia||typeof window.jsQR!=="function"){status("cameraStatus","No está disponible la cámara o el lector QR.","error");return}stopCamera("Preparando cámara...");scanMode=mode;try{try{stream=await navigator.mediaDevices.getUserMedia({audio:false,video:{facingMode:{ideal:"environment"},width:{ideal:1280},height:{ideal:720}}})}catch{stream=await navigator.mediaDevices.getUserMedia({audio:false,video:true})}video.srcObject=stream;video.style.display="block";$("placeholder").style.display="none";$("frame").style.display="block";await video.play();scanning=true;$("stopBtn").disabled=false;status("cameraStatus",mode==="SHEET"?"Escanea el QR de la hoja viajera.":"Escanea "+challenge.position+" ("+challenge.qr+").","success");scanLoop()}catch(e){console.error(e);let m="No fue posible abrir la cámara.";if(["NotAllowedError","PermissionDeniedError"].includes(e.name))m="Permiso denegado. Autoriza la cámara en Chrome.";else if(e.name==="NotFoundError")m="No se encontró una cámara disponible.";else if(e.name==="NotReadableError")m="La cámara está siendo utilizada por otra aplicación.";stopCamera(m);status("cameraStatus",m,"error")}}
-function scanLoop(){if(!scanning||locked)return;if(video.readyState===video.HAVE_ENOUGH_DATA&&video.videoWidth&&video.videoHeight){canvas.width=video.videoWidth;canvas.height=video.videoHeight;ctx.drawImage(video,0,0,canvas.width,canvas.height);const d=ctx.getImageData(0,0,canvas.width,canvas.height),code=window.jsQR(d.data,d.width,d.height,{inversionAttempts:"attemptBoth"});if(code?.data){locked=true;stopCamera("QR detectado. Validando...");handleCode(code.data,scanMode);return}}raf=requestAnimationFrame(scanLoop)}
-async function auditRejected(action,sheet,details){try{await addDoc(collection(db,C.audit),{action,details,groupId:C.groupId,result:"REJECTED",secondsSincePreviousConsumption:null,sheetNumber:Number.isInteger(sheet)?sheet:null,timestamp:serverTimestamp(),userId:C.employeeId,userName:C.userName,userRole:"pu_cod"})}catch(e){console.error("Error guardando auditoría de rechazo",e)}}
-async function handleCode(raw,mode){if(!authorized||busy)return;if(mode==="SHEET"){let n;try{n=parseSheet(raw)}catch(e){status("flowStatus",e.message,"error");status("cameraStatus",e.message+" Puedes volver a escanear.","error");return}try{const gs=await getDoc(doc(db,C.groups,C.groupId));if(!gs.exists()||gs.data().active!==true)throw Error("El grupo no existe o está inactivo.");const live=Number(gs.data().nextExpectedSheet);if(!Number.isInteger(live)||live<1||live>100)throw Error("La secuencia del grupo no está configurada correctamente.");setExpected(live);if(n!==live){await auditRejected("CONSUME",n,"Hoja fuera de secuencia. Esperada: "+pad(live)+"; recibida: "+pad(n)+".");throw Error("Hoja fuera de secuencia. Debe consumirse la hoja "+pad(live)+", no la "+pad(n)+".")}const id=C.groupId+"_hoja_"+pad(n),cs=await getDoc(doc(db,C.containers,id));if(!cs.exists()||cs.data().status!=="available"){await auditRejected("CONSUME",n,"La hoja esperada no está disponible en el pool.");throw Error("La hoja "+pad(n)+" no está disponible en el pool. Solicita a ZL que la registre.")}currentSheet=n;$("sheetDetected").textContent="Hoja "+pad(n);newChallenge();$("challengeSection").classList.remove("hidden");status("flowStatus","Hoja "+pad(n)+" validada. Ahora escanea "+challenge.position+".","success");$("challengeSection").scrollIntoView({behavior:"smooth",block:"start"})}catch(e){console.error(e);currentSheet=null;$("sheetDetected").textContent="Pendiente";status("flowStatus",e.message,"error");status("cameraStatus",e.message,"error")}return}
-if(mode==="POSITION"){if(!currentSheet||!challenge){status("flowStatus","No hay una operación pendiente. Inicia nuevamente.","error");return}let p;try{p=parsePosition(raw)}catch(e){await auditRejected("POSITION_VERIFY",currentSheet,e.message);newChallenge();status("positionResult","QR no reconocido","error");status("flowStatus",e.message+" Se asignó otra posición aleatoria.","error");status("cameraStatus","Escanea la nueva posición solicitada.","warning");return}if(p.position!==challenge.position||p.qr!==challenge.qr){await auditRejected("POSITION_VERIFY",currentSheet,"Posición incorrecta. Solicitada: "+challenge.position+" ("+challenge.qr+"); escaneada: "+p.position+" ("+p.qr+").");newChallenge();status("positionResult","Posición incorrecta","error");status("flowStatus","La posición no coincide. Se asignó otra posición aleatoria.","error");status("cameraStatus","Revisa la nueva posición solicitada y vuelve a escanear.","warning");return}$("positionResult").textContent=p.position+" · "+p.qr;status("flowStatus","Posición correcta. Registrando consumo...","success");await consume(p)}}
-async function consume(p){if(busy||!authorized||!currentSheet||!challenge)return;busy=true;$("scanSheetBtn").disabled=true;$("scanPositionBtn").disabled=true;const n=currentSheet,ref=doc(db,C.containers,C.groupId+"_hoja_"+pad(n)),groupRef=doc(db,C.groups,C.groupId),auditRef=doc(collection(db,C.audit));try{const result=await runTransaction(db,async tx=>{const gs=await tx.get(groupRef),cs=await tx.get(ref);if(!gs.exists())throw Error("GROUP_NOT_FOUND");const gd=gs.data();if(gd.active!==true)throw Error("GROUP_INACTIVE");if(Number(gd.nextExpectedSheet)!==n)throw Error("SEQUENCE_CHANGED:"+pad(Number(gd.nextExpectedSheet)));if(!cs.exists())throw Error("CONTAINER_NOT_FOUND");const cd=cs.data();if(cd.groupId!==C.groupId||Number(cd.sheetNumber)!==n||cd.status!=="available")throw Error("CONTAINER_NOT_AVAILABLE");if(p.position!==challenge.position||p.qr!==C.positions[challenge.position])throw Error("POSITION_MISMATCH");let seconds=null;const previous=gd.lastConsumptionAt;if(previous?.toMillis)seconds=Math.max(0,Math.floor((Date.now()-previous.toMillis())/1000));tx.update(ref,{status:"consumed",consumedAt:serverTimestamp(),consumedBy:C.employeeId,consumedByName:C.userName,consumedPosition:challenge.position,positionQr:p.qr,updatedAt:serverTimestamp()});tx.update(groupRef,{nextExpectedSheet:next(n),lastConsumptionAt:serverTimestamp(),updatedAt:serverTimestamp()});tx.set(auditRef,{action:"CONSUME",details:"Consumo validado. Posición: "+challenge.position+"; QR físico: "+p.qr+".",groupId:C.groupId,result:"SUCCESS",secondsSincePreviousConsumption:seconds,sheetNumber:n,timestamp:serverTimestamp(),userId:C.employeeId,userName:C.userName,userRole:"pu_cod"});return{nextExpected:next(n)}});setExpected(result.nextExpected);status("flowStatus","¡Consumo registrado! Hoja "+pad(n)+" consumida. Siguiente hoja: "+pad(result.nextExpected)+".","success");status("cameraStatus","Operación completada correctamente.","success");$("sheetDetected").textContent="Hoja "+pad(n)+" · Consumida";$("positionResult").textContent=p.position+" · "+p.qr+" · Correcta";currentSheet=null;challenge=null;$("challengeSection").classList.add("hidden");await refreshAll()}catch(e){console.error(e);let m="No fue posible registrar el consumo: "+e.message;if(e.message==="GROUP_NOT_FOUND")m="El grupo ya no existe.";else if(e.message==="GROUP_INACTIVE")m="El grupo está inactivo.";else if(e.message.startsWith("SEQUENCE_CHANGED:"))m="La secuencia cambió durante la operación. La hoja autorizada ahora es "+e.message.split(":")[1]+". Actualiza e inicia nuevamente.";else if(["CONTAINER_NOT_FOUND","CONTAINER_NOT_AVAILABLE"].includes(e.message))m="La hoja ya no está disponible en el pool. Actualiza e inicia nuevamente.";else if(e.message==="POSITION_MISMATCH")m="La validación de posición no coincide. No se realizó el consumo.";await auditRejected("CONSUME",n,m);status("flowStatus",m,"error");status("cameraStatus",m,"error");currentSheet=null;challenge=null;$("challengeSection").classList.add("hidden");await refreshAll()}finally{busy=false;$("scanSheetBtn").disabled=false;$("scanPositionBtn").disabled=false}}
-function cancel(){stopCamera("Lector detenido.");currentSheet=null;challenge=null;$("sheetDetected").textContent="Pendiente";$("positionResult").textContent="Pendiente";$("challengeSection").classList.add("hidden");status("flowStatus","Operación cancelada. Puedes iniciar con otra hoja.","warning")}
-async function validateUser(fb){authorized=false;if(!fb)throw Error("No existe una sesión activa. Ingresa nuevamente desde index.html.");let saved;try{saved=JSON.parse(localStorage.getItem("operationalUser")||"null")}catch{throw Error("La información de sesión no es válida. Ingresa nuevamente.")}if(!saved?.employeeId)throw Error("No se encontró la información de sesión. Ingresa nuevamente.");const employeeId=String(saved.employeeId),us=await getDoc(doc(db,C.users,employeeId));if(!us.exists())throw Error("El usuario no existe en Firestore.");const u=us.data();if(u.active!==true)throw Error("El usuario se encuentra inactivo.");if(!fb.email||fb.email.toLowerCase()!==String(u.email||"").toLowerCase())throw Error("La sesión Firebase no coincide con el usuario registrado.");const roles=Array.isArray(u.codpidRoles)?u.codpidRoles.map(x=>String(x).toLowerCase()):[];if(!roles.includes("pu_cod"))throw Error("El usuario no tiene asignado el perfil CodPid PU.");const selected=String(saved.selectedCodpidRole||"").toLowerCase();if(selected&&selected!=="pu_cod")throw Error("El perfil seleccionado no corresponde a CodPid PU.");const groupId=String(u.codpidGroupId||"").trim();if(!groupId)throw Error("El usuario no tiene un grupo CodPid asignado.");const gs=await getDoc(doc(db,C.groups,groupId));if(!gs.exists())throw Error("El grupo CodPid asignado no existe.");const gd=gs.data();if(gd.active!==true)throw Error("El grupo CodPid se encuentra inactivo.");const seq=Number(gd.nextExpectedSheet);if(!Number.isInteger(seq)||seq<1||seq>100)throw Error("La secuencia del grupo no está configurada entre 01 y 100.");C.employeeId=employeeId;C.userName=u.name||u.nombre||employeeId;C.groupId=groupId;$("userName").textContent=C.userName;$("groupLabel").textContent="Grupo: "+groupId;authorized=true;setExpected(seq)}
-async function loadPool(){if(!authorized||poolBusy)return;poolBusy=true;$("refreshBtn").disabled=true;status("poolStatus","Consultando hojas disponibles...");try{const q=query(collection(db,C.containers),where("groupId","==",C.groupId)),snap=await getDocs(q),items=[];snap.forEach(d=>{const x=d.data();if(x.status==="available")items.push({id:d.id,n:Number(x.sheetNumber)})});items.sort((a,b)=>a.n-b.n);$("counter").textContent=items.length+" disponibles";$("poolList").innerHTML=items.length?items.map(x=>`<div class="pool-item"><div><div class="pool-number">Hoja ${pad(x.n)}</div><div class="muted">${escapeHTML(x.id)}</div></div><span class="pool-status">DISPONIBLE</span></div>`).join(""):'<div class="empty">Todavía no hay hojas disponibles en este grupo.</div>';status("poolStatus","Pool actualizado correctamente.","success")}catch(e){console.error(e);status("poolStatus","No fue posible consultar el pool: "+e.message,"error")}finally{poolBusy=false;$("refreshBtn").disabled=false}}
-async function refreshAll(){if(!authorized)return;try{const gs=await getDoc(doc(db,C.groups,C.groupId));if(!gs.exists()||gs.data().active!==true)throw Error("El grupo no existe o está inactivo.");const n=Number(gs.data().nextExpectedSheet);if(!Number.isInteger(n)||n<1||n>100)throw Error("La secuencia del grupo no es válida.");setExpected(n);await loadPool()}catch(e){status("sequenceStatus",e.message,"error")}}
-$("scanSheetBtn").addEventListener("click",()=>startCamera("SHEET"));$("scanPositionBtn").addEventListener("click",()=>{if(!currentSheet||!challenge){status("flowStatus","Primero escanea una hoja viajera válida.","error");return}startCamera("POSITION")});$("stopBtn").addEventListener("click",()=>stopCamera());$("resetBtn").addEventListener("click",()=>stopCamera("Lector restablecido."));$("cancelBtn").addEventListener("click",cancel);$("refreshBtn").addEventListener("click",refreshAll);
-document.addEventListener("visibilitychange",()=>{if(document.hidden&&stream)stopCamera("La cámara se detuvo al salir de la página.")});window.addEventListener("pagehide",()=>{if(stream)stopCamera()});
-onAuthStateChanged(auth,async fb=>{if(!fb){authorized=false;$("userName").textContent="Sesión no encontrada";$("groupLabel").textContent="Debes ingresar desde index.html";status("flowStatus","No existe una sesión activa. Regresa al inicio de sesión.","error");status("sequenceStatus","No se puede consultar la secuencia sin iniciar sesión.","error");status("poolStatus","No se puede consultar el pool sin iniciar sesión.","error");$("scanSheetBtn").disabled=true;$("refreshBtn").disabled=true;return}try{$("userName").textContent="Verificando permisos...";await validateUser(fb);status("flowStatus","Usuario autorizado. Escanea la hoja viajera indicada por la secuencia.","success");await loadPool()}catch(e){console.error("Autorización PU:",e);authorized=false;$("userName").textContent="Acceso no autorizado";$("groupLabel").textContent=e.message;status("flowStatus",e.message,"error");status("sequenceStatus","No tienes acceso a la secuencia CodPid PU.","error");status("poolStatus","No tienes acceso al pool CodPid PU.","error");$("scanSheetBtn").disabled=true;$("scanPositionBtn").disabled=true;$("refreshBtn").disabled=true}});
-</script></body></html>
+
+import {
+  initializeApp
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+
+import {
+  getAuth,
+  onAuthStateChanged
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+
+import {
+  getFirestore,
+  doc,
+  collection,
+  getDoc,
+  getDocs,
+  query,
+  where,
+  runTransaction,
+  serverTimestamp,
+  addDoc
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+
+/* ==========================================
+   FIREBASE
+========================================== */
+
+const firebaseConfig = {
+  apiKey: "AIzaSyC4yHubTO4ZPn2H80I1fG7H6qeR7SavNbM",
+  authDomain: "dhl-operational-control.firebaseapp.com",
+  projectId: "dhl-operational-control",
+  storageBucket: "dhl-operational-control.firebasestorage.app",
+  messagingSenderId: "830487097530",
+  appId: "1:830487097530:web:41e01b4d396678f0819283"
+};
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+
+
+/* ==========================================
+   CONFIGURACIÓN CODPID
+========================================== */
+
+const CONFIG = {
+  minSheet: 1,
+  maxSheet: 100,
+
+  users: "users",
+  groups: "codpidGroups",
+  containers: "codpidContainers",
+  audit: "codpidAudit",
+
+  // Mapeo provisional de etiquetas físicas.
+  positions: {
+    POS1: "N41",
+    POS2: "N42",
+    POS3: "N43",
+    POS4: "N44"
+  },
+
+  groupId: null,
+  employeeId: null,
+  userName: null
+};
+
+
+const $ = id => document.getElementById(id);
+
+const video = $("video");
+const canvas = document.createElement("canvas");
+const ctx = canvas.getContext("2d", {
+  willReadFrequently: true
+});
+
+
+let authorized = false;
+let stream = null;
+let animationId = null;
+let scanning = false;
+let scanMode = null;
+let scanLocked = false;
+
+let expectedSheet = null;
+let currentSheet = null;
+let currentChallenge = null;
+
+let processing = false;
+let poolBusy = false;
+
+
+const padSheet = n => String(n).padStart(2, "0");
+
+const nextSheet = n =>
+  n >= CONFIG.maxSheet ? CONFIG.minSheet : n + 1;
+
+
+/* ==========================================
+   MENSAJES Y ESTADO VISUAL
+========================================== */
+
+function setStatus(message, type = "") {
+  const element = $("flowStatus");
+  element.textContent = message;
+  element.className = "status" + (type ? " " + type : "");
+}
+
+function setCameraStatus(message, type = "") {
+  const element = $("cameraStatus");
+  element.textContent = message;
+  element.className = "status" + (type ? " " + type : "");
+}
+
+function setExpectedSheet(number) {
+  expectedSheet = number;
+  $("expectedSheet").textContent = padSheet(number);
+}
+
+
+/* ==========================================
+   LECTURA Y VALIDACIÓN DE QR
+========================================== */
+
+function parseSheetQR(rawValue) {
+
+  const value = String(rawValue || "").trim().toUpperCase();
+
+  let match = /^\d{1,3}$/.test(value) ? value : null;
+
+  if (match === null) {
+
+    const patterns = [
+      /^CODPID\|HOJA\|(\d{1,3})$/,
+      /^CODPID\|NAVE4\|TORRETA\|(\d{1,3})$/,
+      /^NAVE4\|TORRETA\|(\d{1,3})$/
+    ];
+
+    for (const pattern of patterns) {
+
+      const result = value.match(pattern);
+
+      if (result) {
+        match = result[1];
+        break;
+      }
+    }
+  }
+
+  if (match === null) {
+    throw new Error(
+      "El QR no corresponde a un formato reconocido de hoja viajera."
+    );
+  }
+
+  const number = Number(match);
+
+  if (!Number.isInteger(number) || number < 1 || number > 100) {
+    throw new Error(
+      "El número de hoja debe estar entre 01 y 100."
+    );
+  }
+
+  return number;
+}
+
+
+function parsePositionQR(rawValue) {
+
+  const value = String(rawValue || "").trim().toUpperCase();
+
+  const found = Object.entries(CONFIG.positions)
+    .find(([, qr]) => qr === value);
+
+  if (!found) {
+    throw new Error(
+      "El QR leído no corresponde a una posición física configurada."
+    );
+  }
+
+  return {
+    position: found[0],
+    qr: found[1]
+  };
+}
+
+
+function chooseRandomChallenge() {
+
+  const positions = Object.keys(CONFIG.positions);
+
+  const position =
+    positions[Math.floor(Math.random() * positions.length)];
+
+  currentChallenge = {
+    position,
+    qr: CONFIG.positions[position]
+  };
+
+  $("requestedPosition").textContent = position;
+
+  $("expectedPositionQR").textContent =
+    "QR esperado: " + currentChallenge.qr;
+}
+
+
+/* ==========================================
+   CONTROL DE CÁMARA
+========================================== */
+
+function stopCamera(message = "Cámara detenida.") {
+
+  scanning = false;
+  scanLocked = false;
+
+  if (animationId) {
+    cancelAnimationFrame(animationId);
+    animationId = null;
+  }
+
+  if (stream) {
+    stream.getTracks().forEach(track => track.stop());
+    stream = null;
+  }
+
+  video.pause();
+  video.srcObject = null;
+  video.style.display = "none";
+
+  $("placeholder").style.display = "block";
+  $("frame").style.display = "none";
+  $("stopBtn").disabled = true;
+
+  setCameraStatus(message);
+}
+
+
+async function startCamera(mode) {
+
+  if (!authorized || processing) return;
+
+  if (!window.isSecureContext) {
+
+    $("cameraSection").classList.remove("hidden");
+
+    setCameraStatus(
+      "La cámara requiere HTTPS. Abre el sitio desde GitHub Pages.",
+      "error"
+    );
+
+    return;
+  }
+
+  if (
+    !navigator.mediaDevices?.getUserMedia ||
+    typeof window.jsQR !== "function"
+  ) {
+
+    $("cameraSection").classList.remove("hidden");
+
+    setCameraStatus(
+      "No está disponible la cámara o el lector QR.",
+      "error"
+    );
+
+    return;
+  }
+
+  stopCamera("Preparando cámara...");
+
+  scanMode = mode;
+
+  $("cameraSection").classList.remove("hidden");
+
+  $("cameraTitle").textContent =
+    mode === "SHEET"
+      ? "Escanear hoja viajera"
+      : "Escanear posición física";
+
+  $("cameraSection").scrollIntoView({
+    behavior: "smooth",
+    block: "start"
+  });
+
+  try {
+
+    try {
+
+      stream = await navigator.mediaDevices.getUserMedia({
+        audio: false,
+        video: {
+          facingMode: { ideal: "environment" },
+          width: { ideal: 1280 },
+          height: { ideal: 720 }
+        }
+      });
+
+    } catch {
+
+      stream = await navigator.mediaDevices.getUserMedia({
+        audio: false,
+        video: true
+      });
+
+    }
+
+    video.srcObject = stream;
+    video.style.display = "block";
+
+    $("placeholder").style.display = "none";
+    $("frame").style.display = "block";
+
+    await video.play();
+
+    scanning = true;
+    $("stopBtn").disabled = false;
+
+    setCameraStatus(
+      mode === "SHEET"
+        ? "Apunta al QR de la hoja viajera."
+        : "Apunta al QR de " +
+          currentChallenge.position +
+          " (" + currentChallenge.qr + ").",
+      "success"
+    );
+
+    scanLoop();
+
+  } catch (error) {
+
+    console.error("Error al abrir cámara:", error);
+
+    let message = "No fue posible abrir la cámara.";
+
+    if (
+      ["NotAllowedError", "PermissionDeniedError"].includes(error.name)
+    ) {
+      message = "Permiso denegado. Autoriza la cámara en Chrome.";
+    } else if (error.name === "NotFoundError") {
+      message = "No se encontró una cámara disponible.";
+    } else if (error.name === "NotReadableError") {
+      message = "La cámara está siendo utilizada por otra aplicación.";
+    }
+
+    stopCamera(message);
+    setCameraStatus(message, "error");
+  }
+}
+
+
+function scanLoop() {
+
+  if (!scanning || scanLocked) return;
+
+  if (
+    video.readyState === video.HAVE_ENOUGH_DATA &&
+    video.videoWidth &&
+    video.videoHeight
+  ) {
+
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+
+    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+    const imageData = ctx.getImageData(
+      0,
+      0,
+      canvas.width,
+      canvas.height
+    );
+
+    const code = window.jsQR(
+      imageData.data,
+      imageData.width,
+      imageData.height,
+      { inversionAttempts: "attemptBoth" }
+    );
+
+    if (code?.data) {
+
+      scanLocked = true;
+
+      const detectedMode = scanMode;
+
+      stopCamera("QR detectado. Validando...");
+
+      handleScannedCode(code.data, detectedMode);
+
+      return;
+    }
+  }
+
+  animationId = requestAnimationFrame(scanLoop);
+}
+
+
+/* ==========================================
+   AUDITORÍA DE RECHAZOS
+========================================== */
+
+async function logRejected(action, sheetNumber, details) {
+
+  try {
+
+    await addDoc(collection(db, CONFIG.audit), {
+
+      action,
+      details,
+
+      groupId: CONFIG.groupId,
+      result: "REJECTED",
+
+      secondsSincePreviousConsumption: null,
+
+      sheetNumber:
+        Number.isInteger(sheetNumber) ? sheetNumber : null,
+
+      timestamp: serverTimestamp(),
+
+      userId: CONFIG.employeeId,
+      userName: CONFIG.userName,
+      userRole: "pu_cod"
+
+    });
+
+  } catch (error) {
+
+    console.error(
+      "No fue posible registrar el rechazo:",
+      error
+    );
+
+  }
+}
+
+
+/* ==========================================
+   PROCESAMIENTO DE QR
+========================================== */
+
+async function handleScannedCode(rawValue, mode) {
+
+  if (!authorized || processing) return;
+
+
+  /* ---------- QR DE HOJA ---------- */
+
+  if (mode === "SHEET") {
+
+    let number;
+
+    try {
+
+      number = parseSheetQR(rawValue);
+
+    } catch (error) {
+
+      setStatus(error.message, "error");
+
+      setCameraStatus(
+        error.message + " Puedes reintentar el escaneo.",
+        "error"
+      );
+
+      return;
+    }
+
+    try {
+
+      const groupSnap = await getDoc(
+        doc(db, CONFIG.groups, CONFIG.groupId)
+      );
+
+      if (
+        !groupSnap.exists() ||
+        groupSnap.data().active !== true
+      ) {
+        throw new Error("El grupo no existe o está inactivo.");
+      }
+
+      const liveExpected =
+        Number(groupSnap.data().nextExpectedSheet);
+
+      if (
+        !Number.isInteger(liveExpected) ||
+        liveExpected < 1 ||
+        liveExpected > 100
+      ) {
+        throw new Error(
+          "La secuencia del grupo no está configurada correctamente."
+        );
+      }
+
+      setExpectedSheet(liveExpected);
+
+      if (number !== liveExpected) {
+
+        await logRejected(
+          "CONSUME",
+          number,
+          "Hoja fuera de secuencia. Esperada: " +
+            padSheet(liveExpected) +
+            "; recibida: " +
+            padSheet(number) + "."
+        );
+
+        throw new Error(
+          "Hoja incorrecta. Debes escanear la hoja " +
+          padSheet(liveExpected) + "."
+        );
+      }
+
+      const containerId =
+        CONFIG.groupId + "_hoja_" + padSheet(number);
+
+      const containerSnap = await getDoc(
+        doc(db, CONFIG.containers, containerId)
+      );
+
+      if (
+        !containerSnap.exists() ||
+        containerSnap.data().status !== "available"
+      ) {
+
+        await logRejected(
+          "CONSUME",
+          number,
+          "La hoja esperada no está disponible en el pool."
+        );
+
+        throw new Error(
+          "La hoja " + padSheet(number) +
+          " ya no está disponible. Actualiza el pool."
+        );
+      }
+
+      currentSheet = number;
+
+      chooseRandomChallenge();
+
+      $("challengeSection").classList.remove("hidden");
+
+      setStatus(
+        "Hoja " + padSheet(number) +
+        " validada. Escanea la posición " +
+        currentChallenge.position + ".",
+        "success"
+      );
+
+      $("challengeSection").scrollIntoView({
+        behavior: "smooth",
+        block: "start"
+      });
+
+      // Al validar la hoja, abre automáticamente el lector
+      // para escanear la posición física aleatoria.
+      await startCamera("POSITION");
+
+    } catch (error) {
+
+      console.error("Validación de hoja:", error);
+
+      currentSheet = null;
+      currentChallenge = null;
+
+      setStatus(error.message, "error");
+      setCameraStatus(error.message, "error");
+
+    }
+
+    return;
+  }
+
+
+  /* ---------- QR DE POSICIÓN ---------- */
+
+  if (mode === "POSITION") {
+
+    if (!currentSheet || !currentChallenge) {
+
+      setStatus(
+        "No hay una operación pendiente. Selecciona nuevamente la hoja.",
+        "error"
+      );
+
+      return;
+    }
+
+    let scannedPosition;
+
+    try {
+
+      scannedPosition = parsePositionQR(rawValue);
+
+    } catch (error) {
+
+      await logRejected(
+        "POSITION_VERIFY",
+        currentSheet,
+        error.message
+      );
+
+      chooseRandomChallenge();
+
+      setStatus(
+        error.message + " Se asignó otra posición aleatoria.",
+        "error"
+      );
+
+      setCameraStatus(
+        "Nueva posición: " +
+          currentChallenge.position +
+          ". Reintenta el escaneo.",
+        "warning"
+      );
+
+      return;
+    }
+
+    if (
+      scannedPosition.position !== currentChallenge.position ||
+      scannedPosition.qr !== currentChallenge.qr
+    ) {
+
+      await logRejected(
+        "POSITION_VERIFY",
+        currentSheet,
+        "Posición incorrecta. Solicitada: " +
+          currentChallenge.position +
+          " (" + currentChallenge.qr +
+          "); escaneada: " +
+          scannedPosition.position +
+          " (" + scannedPosition.qr + ")."
+      );
+
+      chooseRandomChallenge();
+
+      setStatus(
+        "La posición no coincide. Se asignó otra posición aleatoria.",
+        "error"
+      );
+
+      setCameraStatus(
+        "Nueva posición: " +
+          currentChallenge.position +
+          ". Reintenta el escaneo.",
+        "warning"
+      );
+
+      return;
+    }
+
+    setStatus(
+      "Posición correcta. Registrando consumo...",
+      "success"
+    );
+
+    await consumeSheet(scannedPosition);
+  }
+}
+
+
+/* ==========================================
+   TRANSACCIÓN DE CONSUMO
+========================================== */
+
+async function consumeSheet(scannedPosition) {
+
+  if (
+    processing ||
+    !authorized ||
+    !currentSheet ||
+    !currentChallenge
+  ) return;
+
+  processing = true;
+
+  $("scanPositionBtn").disabled = true;
+  $("refreshBtn").disabled = true;
+
+  const sheetNumber = currentSheet;
+  const formattedSheet = padSheet(sheetNumber);
+
+  const containerRef = doc(
+    db,
+    CONFIG.containers,
+    CONFIG.groupId + "_hoja_" + formattedSheet
+  );
+
+  const groupRef = doc(
+    db,
+    CONFIG.groups,
+    CONFIG.groupId
+  );
+
+  const auditRef = doc(collection(db, CONFIG.audit));
+
+  try {
+
+    const result = await runTransaction(
+      db,
+      async transaction => {
+
+        const groupSnap = await transaction.get(groupRef);
+        const containerSnap = await transaction.get(containerRef);
+
+        if (!groupSnap.exists()) {
+          throw new Error("GROUP_NOT_FOUND");
+        }
+
+        const groupData = groupSnap.data();
+
+        if (groupData.active !== true) {
+          throw new Error("GROUP_INACTIVE");
+        }
+
+        if (
+          Number(groupData.nextExpectedSheet) !== sheetNumber
+        ) {
+          throw new Error(
+            "SEQUENCE_CHANGED:" +
+            padSheet(Number(groupData.nextExpectedSheet))
+          );
+        }
+
+        if (!containerSnap.exists()) {
+          throw new Error("CONTAINER_NOT_FOUND");
+        }
+
+        const containerData = containerSnap.data();
+
+        if (
+          containerData.groupId !== CONFIG.groupId ||
+          Number(containerData.sheetNumber) !== sheetNumber ||
+          containerData.status !== "available"
+        ) {
+          throw new Error("CONTAINER_NOT_AVAILABLE");
+        }
+
+        if (
+          scannedPosition.position !== currentChallenge.position ||
+          scannedPosition.qr !==
+            CONFIG.positions[currentChallenge.position]
+        ) {
+          throw new Error("POSITION_MISMATCH");
+        }
+
+        let secondsSincePreviousConsumption = null;
+
+        const previousTimestamp = groupData.lastConsumptionAt;
+
+        if (
+          previousTimestamp &&
+          typeof previousTimestamp.toMillis === "function"
+        ) {
+
+          secondsSincePreviousConsumption = Math.max(
+            0,
+            Math.floor(
+              (Date.now() - previousTimestamp.toMillis()) / 1000
+            )
+          );
+
+        }
+
+        transaction.update(containerRef, {
+
+          status: "consumed",
+
+          consumedAt: serverTimestamp(),
+          consumedBy: CONFIG.employeeId,
+          consumedByName: CONFIG.userName,
+
+          consumedPosition: currentChallenge.position,
+          positionQr: scannedPosition.qr,
+
+          updatedAt: serverTimestamp()
+
+        });
+
+        transaction.update(groupRef, {
+
+          nextExpectedSheet: nextSheet(sheetNumber),
+
+          lastConsumptionAt: serverTimestamp(),
+          updatedAt: serverTimestamp()
+
+        });
+
+        transaction.set(auditRef, {
+
+          action: "CONSUME",
+
+          details:
+            "Consumo validado. Posición: " +
+            currentChallenge.position +
+            "; QR físico: " +
+            scannedPosition.qr + ".",
+
+          groupId: CONFIG.groupId,
+          result: "SUCCESS",
+
+          secondsSincePreviousConsumption,
+
+          sheetNumber,
+
+          timestamp: serverTimestamp(),
+
+          userId: CONFIG.employeeId,
+          userName: CONFIG.userName,
+          userRole: "pu_cod"
+
+        });
+
+        return {
+          nextExpected: nextSheet(sheetNumber)
+        };
+
+      }
+    );
+
+    setExpectedSheet(result.nextExpected);
+
+    currentSheet = null;
+    currentChallenge = null;
+
+    $("challengeSection").classList.add("hidden");
+    $("cameraSection").classList.add("hidden");
+
+    await refreshAll();
+
+    $("poolNote").textContent =
+      "Consumo registrado correctamente. Selecciona la nueva hoja marcada en verde.";
+
+    $("poolNote").style.color = "#16834a";
+
+    $("poolNote").scrollIntoView({
+      behavior: "smooth",
+      block: "center"
+    });
+
+  } catch (error) {
+
+    console.error("Error al consumir hoja:", error);
+
+    let message =
+      "No fue posible registrar el consumo: " + error.message;
+
+    if (error.message === "GROUP_NOT_FOUND") {
+      message = "El grupo ya no existe.";
+    }
+
+    else if (error.message === "GROUP_INACTIVE") {
+      message = "El grupo está inactivo.";
+    }
+
+    else if (error.message.startsWith("SEQUENCE_CHANGED:")) {
+
+      message =
+        "La secuencia cambió. La hoja autorizada ahora es " +
+        error.message.split(":")[1] + ".";
+
+    }
+
+    else if (
+      ["CONTAINER_NOT_FOUND", "CONTAINER_NOT_AVAILABLE"]
+        .includes(error.message)
+    ) {
+      message = "La hoja ya no está disponible en el pool.";
+    }
+
+    else if (error.message === "POSITION_MISMATCH") {
+      message =
+        "La validación de posición no coincide. No se realizó el consumo.";
+    }
+
+    await logRejected(
+      "CONSUME",
+      sheetNumber,
+      message
+    );
+
+    setStatus(message, "error");
+
+    $("cameraSection").classList.remove("hidden");
+
+    setCameraStatus(message, "error");
+
+    currentSheet = null;
+    currentChallenge = null;
+
+    $("challengeSection").classList.add("hidden");
+
+    await refreshAll();
+
+  } finally {
+
+    processing = false;
+
+    $("scanPositionBtn").disabled = false;
+    $("refreshBtn").disabled = false;
+
+  }
+}
+
+
+/* ==========================================
+   CANCELAR OPERACIÓN
+========================================== */
+
+function cancelOperation() {
+
+  stopCamera("Operación cancelada.");
+
+  currentSheet = null;
+  currentChallenge = null;
+
+  $("challengeSection").classList.add("hidden");
+  $("cameraSection").classList.add("hidden");
+
+  setStatus(
+    "Operación cancelada. Selecciona nuevamente la hoja verde."
+  );
+}
+
+
+/* ==========================================
+   VALIDACIÓN DE USUARIO
+========================================== */
+
+async function validateUser(firebaseUser) {
+
+  authorized = false;
+
+  if (!firebaseUser) {
+    throw new Error(
+      "No existe una sesión activa. Ingresa nuevamente desde index.html."
+    );
+  }
+
+  let savedUser;
+
+  try {
+
+    savedUser = JSON.parse(
+      localStorage.getItem("operationalUser") || "null"
+    );
+
+  } catch {
+
+    throw new Error(
+      "La información de sesión no es válida. Ingresa nuevamente."
+    );
+
+  }
+
+  if (!savedUser?.employeeId) {
+    throw new Error(
+      "No se encontró la información de sesión. Ingresa nuevamente."
+    );
+  }
+
+  const employeeId = String(savedUser.employeeId);
+
+  const userSnap = await getDoc(
+    doc(db, CONFIG.users, employeeId)
+  );
+
+  if (!userSnap.exists()) {
+    throw new Error("El usuario no existe en Firestore.");
+  }
+
+  const userData = userSnap.data();
+
+  if (userData.active !== true) {
+    throw new Error("El usuario se encuentra inactivo.");
+  }
+
+  if (
+    !firebaseUser.email ||
+    firebaseUser.email.toLowerCase() !==
+      String(userData.email || "").toLowerCase()
+  ) {
+    throw new Error(
+      "La sesión de Firebase no coincide con el usuario registrado."
+    );
+  }
+
+  const roles = Array.isArray(userData.codpidRoles)
+    ? userData.codpidRoles.map(role => String(role).toLowerCase())
+    : [];
+
+  if (!roles.includes("pu_cod")) {
+    throw new Error(
+      "El usuario no tiene asignado el perfil CodPid PU."
+    );
+  }
+
+  const selectedRole =
+    String(savedUser.selectedCodpidRole || "").toLowerCase();
+
+  if (selectedRole && selectedRole !== "pu_cod") {
+    throw new Error(
+      "El perfil seleccionado no corresponde a CodPid PU."
+    );
+  }
+
+  const groupId =
+    String(userData.codpidGroupId || "").trim();
+
+  if (!groupId) {
+    throw new Error(
+      "El usuario no tiene un grupo CodPid asignado."
+    );
+  }
+
+  const groupSnap = await getDoc(
+    doc(db, CONFIG.groups, groupId)
+  );
+
+  if (!groupSnap.exists()) {
+    throw new Error(
+      "El grupo CodPid asignado no existe."
+    );
+  }
+
+  const groupData = groupSnap.data();
+
+  if (groupData.active !== true) {
+    throw new Error(
+      "El grupo CodPid se encuentra inactivo."
+    );
+  }
+
+  const sequence = Number(groupData.nextExpectedSheet);
+
+  if (
+    !Number.isInteger(sequence) ||
+    sequence < 1 ||
+    sequence > 100
+  ) {
+    throw new Error(
+      "La secuencia del grupo no está configurada entre 01 y 100."
+    );
+  }
+
+  CONFIG.employeeId = employeeId;
+  CONFIG.userName =
+    userData.name || userData.nombre || employeeId;
+  CONFIG.groupId = groupId;
+
+  $("userName").textContent = CONFIG.userName;
+  $("groupLabel").textContent = "Grupo: " + groupId;
+
+  authorized = true;
+
+  setExpectedSheet(sequence);
+}
+
+
+/* ==========================================
+   POOL DE HOJAS
+========================================== */
+
+async function loadPool() {
+
+  if (!authorized || poolBusy) return;
+
+  poolBusy = true;
+
+  $("refreshBtn").disabled = true;
+
+  try {
+
+    const poolQuery = query(
+      collection(db, CONFIG.containers),
+      where("groupId", "==", CONFIG.groupId)
+    );
+
+    const snapshot = await getDocs(poolQuery);
+
+    const available = [];
+
+    snapshot.forEach(documentSnap => {
+
+      const data = documentSnap.data();
+
+      if (data.status === "available") {
+
+        available.push({
+          id: documentSnap.id,
+          sheetNumber: Number(data.sheetNumber)
+        });
+
+      }
+
+    });
+
+    available.sort(
+      (a, b) => a.sheetNumber - b.sheetNumber
+    );
+
+    $("counter").textContent =
+      available.length + " disponibles";
+
+    const suggestedIsAvailable = available.some(
+      item => item.sheetNumber === expectedSheet
+    );
+
+    if (available.length === 0) {
+
+      $("poolList").innerHTML =
+        '<div class="empty">No hay hojas disponibles en este grupo.</div>';
+
+      $("poolNote").textContent =
+        "Cuando ZL registre una hoja, aparecerá aquí.";
+
+      $("poolNote").style.color = "";
+
+    } else {
+
+      $("poolList").innerHTML = available.map(item => {
+
+        const isSuggested =
+          item.sheetNumber === expectedSheet;
+
+        return `
+          <button
+            type="button"
+            class="pool-item ${isSuggested ? "suggested" : "other"}"
+            data-sheet="${item.sheetNumber}"
+            ${isSuggested ? "" : "disabled"}
+            aria-label="${
+              isSuggested ? "Seleccionar" : "No autorizada"
+            } hoja ${padSheet(item.sheetNumber)}">
+
+            <span class="pool-number">
+              Hoja ${padSheet(item.sheetNumber)}
+            </span>
+
+            <span class="pool-state">
+              ${isSuggested ? "CONSUMIR" : "DISPONIBLE"}
+            </span>
+
+          </button>
+        `;
+
+      }).join("");
+
+      if (suggestedIsAvailable) {
+
+        $("poolNote").textContent =
+          "Toca la hoja verde para comenzar.";
+
+        $("poolNote").style.color = "#16834a";
+
+      } else {
+
+        $("poolNote").textContent =
+          "La hoja " + padSheet(expectedSheet) +
+          " aún no está disponible. Las demás hojas no se pueden consumir todavía.";
+
+        $("poolNote").style.color = "#667085";
+
+      }
+    }
+
+    $("poolList")
+      .querySelectorAll(".pool-item.suggested")
+      .forEach(button => {
+
+        button.addEventListener("click", async () => {
+
+          if (processing || !authorized) return;
+
+          const selectedNumber =
+            Number(button.dataset.sheet);
+
+          if (selectedNumber !== expectedSheet) return;
+
+          stopCamera(
+            "Preparando escaneo de hoja viajera..."
+          );
+
+          currentSheet = null;
+          currentChallenge = null;
+
+          $("challengeSection").classList.add("hidden");
+
+          $("poolList")
+            .querySelectorAll("button")
+            .forEach(item => item.disabled = true);
+
+          await startCamera("SHEET");
+
+          $("poolList")
+            .querySelectorAll("button")
+            .forEach(item => {
+              item.disabled =
+                !item.classList.contains("suggested");
+            });
+
+        });
+
+      });
+
+  } catch (error) {
+
+    console.error("Error consultando pool:", error);
+
+    $("poolList").innerHTML =
+      '<div class="empty">No fue posible consultar el pool.</div>';
+
+    $("poolNote").textContent = error.message;
+    $("poolNote").style.color = "#a40000";
+
+  } finally {
+
+    poolBusy = false;
+    $("refreshBtn").disabled = false;
+
+  }
+}
+
+
+/* ==========================================
+   ACTUALIZAR SECUENCIA Y POOL
+========================================== */
+
+async function refreshAll() {
+
+  if (!authorized) return;
+
+  try {
+
+    const groupSnap = await getDoc(
+      doc(db, CONFIG.groups, CONFIG.groupId)
+    );
+
+    if (
+      !groupSnap.exists() ||
+      groupSnap.data().active !== true
+    ) {
+      throw new Error(
+        "El grupo no existe o está inactivo."
+      );
+    }
+
+    const sequence =
+      Number(groupSnap.data().nextExpectedSheet);
+
+    if (
+      !Number.isInteger(sequence) ||
+      sequence < 1 ||
+      sequence > 100
+    ) {
+      throw new Error(
+        "La secuencia del grupo no es válida."
+      );
+    }
+
+    setExpectedSheet(sequence);
+
+    await loadPool();
+
+  } catch (error) {
+
+    console.error("Error actualizando PU:", error);
+
+    $("poolNote").textContent = error.message;
+    $("poolNote").style.color = "#a40000";
+
+  }
+}
+
+
+/* ==========================================
+   EVENTOS
+========================================== */
+
+$("scanPositionBtn").addEventListener("click", () => {
+
+  if (!currentSheet || !currentChallenge) return;
+
+  startCamera("POSITION");
+
+});
+
+$("stopBtn").addEventListener("click", () => {
+  stopCamera();
+});
+
+$("retryBtn").addEventListener("click", () => {
+
+  if (
+    scanMode === "POSITION" &&
+    currentSheet &&
+    currentChallenge
+  ) {
+    startCamera("POSITION");
+  }
+
+  else if (scanMode === "SHEET") {
+    startCamera("SHEET");
+  }
+
+});
+
+$("cancelBtn").addEventListener(
+  "click",
+  cancelOperation
+);
+
+$("refreshBtn").addEventListener(
+  "click",
+  refreshAll
+);
+
+
+document.addEventListener("visibilitychange", () => {
+
+  if (document.hidden && stream) {
+    stopCamera(
+      "La cámara se detuvo al salir de la página."
+    );
+  }
+
+});
+
+window.addEventListener("pagehide", () => {
+
+  if (stream) {
+    stopCamera();
+  }
+
+});
+
+
+/* ==========================================
+   INICIO Y AUTENTICACIÓN
+========================================== */
+
+onAuthStateChanged(auth, async firebaseUser => {
+
+  if (!firebaseUser) {
+
+    authorized = false;
+
+    $("userName").textContent =
+      "Sesión no encontrada";
+
+    $("groupLabel").textContent =
+      "Ingresa desde index.html";
+
+    $("poolList").innerHTML =
+      '<div class="empty">Inicia sesión para consultar las hojas.</div>';
+
+    $("poolNote").textContent =
+      "No hay una sesión activa.";
+
+    $("refreshBtn").disabled = true;
+
+    return;
+  }
+
+  try {
+
+    $("userName").textContent =
+      "Verificando permisos...";
+
+    await validateUser(firebaseUser);
+
+    await loadPool();
+
+  } catch (error) {
+
+    console.error("Autorización PU:", error);
+
+    authorized = false;
+
+    $("userName").textContent =
+      "Acceso no autorizado";
+
+    $("groupLabel").textContent =
+      error.message;
+
+    $("poolList").innerHTML =
+      '<div class="empty">No se pudo cargar el pool.</div>';
+
+    $("poolNote").textContent =
+      error.message;
+
+    $("poolNote").style.color = "#a40000";
+
+    $("refreshBtn").disabled = true;
+
+  }
+
+});
+
+</script>
+</body>
+</html>
