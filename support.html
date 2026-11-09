@@ -530,7 +530,7 @@ th:first-child{
                 <table class="codpid-table">
                     <thead><tr>
                         <th>Movimiento</th><th>Fecha</th><th>Hora</th><th>Grupo</th><th>Hoja</th>
-                        <th>Usuario</th><th>Perfil</th><th>Resultado</th><th>Seg. desde consumo anterior</th><th>Detalle</th>
+                        <th>Usuario</th><th>Perfil</th><th>Resultado</th><th>Min. desde consumo anterior</th><th>Detalle</th>
                     </tr></thead>
                     <tbody id="codpidReportsTable"><tr><td colspan="10">Presiona “Consultar CodPid” para cargar los movimientos.</td></tr></tbody>
                 </table>
@@ -1923,7 +1923,7 @@ window.loadCodpidReports = async function(){
                     <td>${codpidEscape(row.userName||row.userId||"-")}</td>
                     <td>${codpidEscape(row.userRole||"-")}</td>
                     <td><span class="badge ${resultClass}">${codpidEscape(row.result||"-")}</span></td>
-                    <td>${row.secondsSincePreviousConsumption!=null?codpidEscape(row.secondsSincePreviousConsumption):"-"}</td>
+                    <td>${row.secondsSincePreviousConsumption!=null?codpidEscape((Number(row.secondsSincePreviousConsumption)/60).toLocaleString("es-MX",{minimumFractionDigits:0,maximumFractionDigits:2})+" min"):"-"}</td>
                     <td>${codpidEscape(row.details||"-")}</td>
                 </tr>`;
             }).join("");
@@ -1956,11 +1956,11 @@ window.exportCodpidReports = function(){
         if(to&&(!date||getLocalDateValue(date)>to))return false;
         return true;
     }).sort((a,b)=>(codpidDate(b.timestamp)?.getTime()||0)-(codpidDate(a.timestamp)?.getTime()||0));
-    const headers=["Movimiento","Fecha","Hora","Grupo","Hoja","Usuario","ID usuario","Perfil","Resultado","Segundos desde consumo anterior","Detalle"];
+    const headers=["Movimiento","Fecha","Hora","Grupo","Hoja","Usuario","ID usuario","Perfil","Resultado","Minutos desde consumo anterior","Detalle"];
     const data=rows.map(row=>{
         const date=codpidDate(row.timestamp);
         const groupName=codpidGroupRows.find(g=>g.id===row.groupId)?.name||row.groupId||"-";
-        return [codpidActionLabel(row.action),date?date.toLocaleDateString("es-MX"):"-",date?date.toLocaleTimeString("es-MX"):"-",groupName,row.sheetNumber!=null?String(row.sheetNumber).padStart(2,"0"):"-",row.userName||"-",row.userId||"-",row.userRole||"-",row.result||"-",row.secondsSincePreviousConsumption??"-",row.details||"-"];
+        return [codpidActionLabel(row.action),date?date.toLocaleDateString("es-MX"):"-",date?date.toLocaleTimeString("es-MX"):"-",groupName,row.sheetNumber!=null?String(row.sheetNumber).padStart(2,"0"):"-",row.userName||"-",row.userId||"-",row.userRole||"-",row.result||"-",row.secondsSincePreviousConsumption!=null?Number((Number(row.secondsSincePreviousConsumption)/60).toFixed(2)):"-",row.details||"-"];
     });
     const csv=[headers,...data].map(line=>line.map(value=>'"'+String(value??"").replaceAll('"','""')+'"').join(",")).join("\n");
     const blob=new Blob(["\ufeff"+csv],{type:"text/csv;charset=utf-8;"});
