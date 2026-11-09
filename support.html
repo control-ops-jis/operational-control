@@ -298,6 +298,18 @@ th:first-child{
     white-space:nowrap;
     pointer-events:none;
 }
+
+/* REPORTES CODPID */
+.report-subtabs{display:flex;gap:8px;flex-wrap:wrap;margin:8px 0 16px}
+.report-subtab{border:1px solid #ddd;background:#f5f5f5;padding:10px 15px;border-radius:999px;font-weight:bold;cursor:pointer}
+.report-subtab.active{background:var(--dhl-red);color:#fff;border-color:var(--dhl-red)}
+.codpid-kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin:12px 0 18px}
+.codpid-kpi{border:1px solid #e8e8e8;border-radius:15px;padding:14px;background:#fff}
+.codpid-kpi span{display:block;color:#666;font-size:12px;font-weight:bold}
+.codpid-kpi strong{display:block;font-size:27px;margin-top:6px;color:#202124}
+.codpid-note{padding:12px 14px;border-radius:12px;background:#fff8df;color:#705500;font-size:13px;line-height:1.45;margin:10px 0}
+.codpid-table{min-width:1050px}
+
 @media(max-width:600px){
     header{
         padding:12px;
@@ -417,6 +429,12 @@ th:first-child{
     <div class="panel" id="reportsPanel" style="display:none;">
         <h2>Reportes</h2>
 
+        <div class="report-subtabs">
+            <button class="report-subtab active" id="reportGeneralTab" onclick="openReportView('general')">Operación general</button>
+            <button class="report-subtab" id="reportCodpidTab" onclick="openReportView('codpid')">CodPid</button>
+        </div>
+
+        <section id="reportGeneralView">
         <div class="filters-grid">
             <select id="reportWarehouse">
                 <option value="ALL">Todas las naves</option>
@@ -472,6 +490,53 @@ th:first-child{
                 </tbody>
             </table>
         </div>
+        </section>
+
+        <section id="reportCodpidView" style="display:none;">
+            <h2>Reporte de operación CodPid</h2>
+            <div class="codpid-note">
+                Consulta administrativa de movimientos CodPid. Esta vista es de solo lectura y utiliza exclusivamente codpidAudit, codpidContainers y codpidGroups.
+            </div>
+            <div class="filters-grid">
+                <select id="codpidGroupFilter"><option value="ALL">Todos los grupos</option></select>
+                <select id="codpidActionFilter">
+                    <option value="ALL">Todos los movimientos</option>
+                    <option value="REGISTER">Registro</option>
+                    <option value="REUSE">Reutilización</option>
+                    <option value="CONSUME">Consumo</option>
+                    <option value="POSITION_VERIFY">Validación de posición</option>
+                </select>
+                <select id="codpidResultFilter">
+                    <option value="ALL">Todos los resultados</option>
+                    <option value="SUCCESS">Exitosos</option>
+                    <option value="REJECTED">Rechazados</option>
+                </select>
+                <input id="codpidDateFrom" type="date" aria-label="Fecha inicial CodPid">
+                <input id="codpidDateTo" type="date" aria-label="Fecha final CodPid">
+                <input id="codpidUserFilter" placeholder="Usuario / ID empleado">
+                <input id="codpidSheetFilter" type="number" min="1" max="100" placeholder="Hoja (01–100)">
+            </div>
+            <div class="form-actions">
+                <button class="primary-btn" onclick="loadCodpidReports()">Consultar CodPid</button>
+                <button class="secondary-btn" onclick="exportCodpidReports()">Exportar CSV</button>
+            </div>
+            <div class="codpid-kpis">
+                <div class="codpid-kpi"><span>Registros exitosos</span><strong id="codpidKpiRegistered">—</strong></div>
+                <div class="codpid-kpi"><span>Consumos exitosos</span><strong id="codpidKpiConsumed">—</strong></div>
+                <div class="codpid-kpi"><span>Hojas disponibles actuales</span><strong id="codpidKpiAvailable">—</strong></div>
+                <div class="codpid-kpi"><span>Intentos rechazados</span><strong id="codpidKpiRejected">—</strong></div>
+            </div>
+            <div class="table-wrap">
+                <table class="codpid-table">
+                    <thead><tr>
+                        <th>Movimiento</th><th>Fecha</th><th>Hora</th><th>Grupo</th><th>Hoja</th>
+                        <th>Usuario</th><th>Perfil</th><th>Resultado</th><th>Seg. desde consumo anterior</th><th>Detalle</th>
+                    </tr></thead>
+                    <tbody id="codpidReportsTable"><tr><td colspan="10">Presiona “Consultar CodPid” para cargar los movimientos.</td></tr></tbody>
+                </table>
+            </div>
+            <p id="codpidReportStatus" class="codpid-note">Los indicadores se calculan con los eventos disponibles en la auditoría.</p>
+        </section>
     </div>
 
     <div class="panel" id="usersPanel" style="display:none;">
@@ -735,8 +800,19 @@ function openTab(tab){
     document.getElementById("tabReports").classList.toggle("active",tab==="reports");
     document.getElementById("tabUsers").classList.toggle("active",tab==="users");
 
+    if(tab==="reports") openReportView("general");
 }
 
+function openReportView(view){
+    const isCodpid = view === "codpid";
+    document.getElementById("reportGeneralView").style.display = isCodpid ? "none" : "block";
+    document.getElementById("reportCodpidView").style.display = isCodpid ? "block" : "none";
+    document.getElementById("reportGeneralTab").classList.toggle("active", !isCodpid);
+    document.getElementById("reportCodpidTab").classList.toggle("active", isCodpid);
+    if(isCodpid && !codpidReportLoaded) loadCodpidReports();
+}
+
+window.openReportView = openReportView;
 window.openTab=openTab;
 let captureRows = [];
 
@@ -1742,6 +1818,156 @@ window.closeOcrModal = function(){
     document.getElementById("ocrModal").style.display =
         "none";
 
+};
+
+// =====================================================
+// REPORTES CODPID (solo lectura)
+// =====================================================
+let codpidAuditRows = [];
+let codpidContainerRows = [];
+let codpidGroupRows = [];
+let codpidReportLoaded = false;
+
+function codpidDate(value){
+    if(!value) return null;
+    if(typeof value.toDate === "function") return value.toDate();
+    if(value instanceof Date) return value;
+    if(typeof value.seconds === "number") return new Date(value.seconds * 1000);
+    const parsed = new Date(value);
+    return Number.isNaN(parsed.getTime()) ? null : parsed;
+}
+
+function codpidEscape(value){
+    return String(value ?? "-").replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;").replaceAll('"',"&quot;").replaceAll("'","&#039;");
+}
+
+function codpidActionLabel(action){
+    const labels = {REGISTER:"Registro", REUSE:"Reutilización", CONSUME:"Consumo", POSITION_VERIFY:"Validación de posición"};
+    return labels[action] || action || "Movimiento";
+}
+
+function populateCodpidGroups(){
+    const select = document.getElementById("codpidGroupFilter");
+    const selected = select.value || "ALL";
+    select.innerHTML = '<option value="ALL">Todos los grupos</option>';
+    codpidGroupRows.forEach(group=>{
+        const option = document.createElement("option");
+        option.value = group.id;
+        option.textContent = group.name || group.id;
+        select.appendChild(option);
+    });
+    if([...select.options].some(option=>option.value===selected)) select.value=selected;
+}
+
+window.loadCodpidReports = async function(){
+    const table = document.getElementById("codpidReportsTable");
+    const status = document.getElementById("codpidReportStatus");
+    table.innerHTML = '<tr><td colspan="10">Consultando auditoría CodPid...</td></tr>';
+    status.textContent = "Consultando movimientos e inventario CodPid...";
+    try{
+        const [auditSnap, containersSnap, groupsSnap] = await Promise.all([
+            getDocs(collection(db,"codpidAudit")),
+            getDocs(collection(db,"codpidContainers")),
+            getDocs(collection(db,"codpidGroups"))
+        ]);
+        codpidAuditRows = auditSnap.docs.map(d=>({id:d.id,...d.data()}));
+        codpidContainerRows = containersSnap.docs.map(d=>({id:d.id,...d.data()}));
+        codpidGroupRows = groupsSnap.docs.map(d=>({id:d.id,...d.data()}));
+        populateCodpidGroups();
+        codpidReportLoaded = true;
+
+        const group = document.getElementById("codpidGroupFilter").value;
+        const action = document.getElementById("codpidActionFilter").value;
+        const result = document.getElementById("codpidResultFilter").value;
+        const from = document.getElementById("codpidDateFrom").value;
+        const to = document.getElementById("codpidDateTo").value;
+        const user = document.getElementById("codpidUserFilter").value.trim().toLowerCase();
+        const sheet = document.getElementById("codpidSheetFilter").value.trim();
+
+        const filtered = codpidAuditRows.filter(row=>{
+            if(group!=="ALL" && row.groupId!==group) return false;
+            if(action!=="ALL" && row.action!==action) return false;
+            if(result!=="ALL" && row.result!==result) return false;
+            if(user && !String(row.userId||"").toLowerCase().includes(user) && !String(row.userName||"").toLowerCase().includes(user)) return false;
+            if(sheet && Number(row.sheetNumber)!==Number(sheet)) return false;
+            const date = codpidDate(row.timestamp);
+            if(from && (!date || getLocalDateValue(date)<from)) return false;
+            if(to && (!date || getLocalDateValue(date)>to)) return false;
+            return true;
+        }).sort((a,b)=>(codpidDate(b.timestamp)?.getTime()||0)-(codpidDate(a.timestamp)?.getTime()||0));
+
+        const groupName = id => codpidGroupRows.find(g=>g.id===id)?.name || id || "-";
+        const scopedAudit = codpidAuditRows.filter(r=>group==="ALL" || r.groupId===group);
+        const successful = scopedAudit.filter(r=>r.result==="SUCCESS");
+        const registered = successful.filter(r=>r.action==="REGISTER" || r.action==="REUSE").length;
+        const consumed = successful.filter(r=>r.action==="CONSUME").length;
+        const available = codpidContainerRows.filter(r=>r.status==="available" && (group==="ALL" || r.groupId===group)).length;
+        const rejected = scopedAudit.filter(r=>r.result==="REJECTED").length;
+        document.getElementById("codpidKpiRegistered").textContent = registered;
+        document.getElementById("codpidKpiConsumed").textContent = consumed;
+        document.getElementById("codpidKpiAvailable").textContent = available;
+        document.getElementById("codpidKpiRejected").textContent = rejected;
+
+        if(!filtered.length){
+            table.innerHTML='<tr><td colspan="10">No hay movimientos CodPid con los filtros seleccionados.</td></tr>';
+        }else{
+            table.innerHTML = filtered.map(row=>{
+                const date=codpidDate(row.timestamp);
+                const resultClass=row.result==="SUCCESS"?"ok":"warning";
+                return `<tr>
+                    <td>${codpidEscape(codpidActionLabel(row.action))}</td>
+                    <td>${date?date.toLocaleDateString("es-MX"):"-"}</td>
+                    <td>${date?date.toLocaleTimeString("es-MX",{hour:"2-digit",minute:"2-digit",second:"2-digit"}):"-"}</td>
+                    <td>${codpidEscape(groupName(row.groupId))}</td>
+                    <td>${row.sheetNumber!=null?String(row.sheetNumber).padStart(2,"0"):"-"}</td>
+                    <td>${codpidEscape(row.userName||row.userId||"-")}</td>
+                    <td>${codpidEscape(row.userRole||"-")}</td>
+                    <td><span class="badge ${resultClass}">${codpidEscape(row.result||"-")}</span></td>
+                    <td>${row.secondsSincePreviousConsumption!=null?codpidEscape(row.secondsSincePreviousConsumption):"-"}</td>
+                    <td>${codpidEscape(row.details||"-")}</td>
+                </tr>`;
+            }).join("");
+        }
+        status.textContent = `Auditoría: ${codpidAuditRows.length} eventos · Mostrando ${filtered.length} · Grupos consultados: ${codpidGroupRows.length}. Los indicadores de registro y consumo son acumulados históricos; disponibles es el estado actual del pool.`;
+    }catch(error){
+        console.error("Error cargando reportes CodPid:",error);
+        table.innerHTML=`<tr><td colspan="10">No fue posible consultar CodPid: ${codpidEscape(error.message)}</td></tr>`;
+        status.textContent="Verifica permisos de lectura y conexión con Firestore.";
+    }
+};
+
+window.exportCodpidReports = function(){
+    if(!codpidReportLoaded){alert("Primero consulta el reporte CodPid.");return;}
+    const group=document.getElementById("codpidGroupFilter").value;
+    const action=document.getElementById("codpidActionFilter").value;
+    const result=document.getElementById("codpidResultFilter").value;
+    const from=document.getElementById("codpidDateFrom").value;
+    const to=document.getElementById("codpidDateTo").value;
+    const user=document.getElementById("codpidUserFilter").value.trim().toLowerCase();
+    const sheet=document.getElementById("codpidSheetFilter").value.trim();
+    const rows=codpidAuditRows.filter(row=>{
+        if(group!=="ALL"&&row.groupId!==group)return false;
+        if(action!=="ALL"&&row.action!==action)return false;
+        if(result!=="ALL"&&row.result!==result)return false;
+        if(user&&!String(row.userId||"").toLowerCase().includes(user)&&!String(row.userName||"").toLowerCase().includes(user))return false;
+        if(sheet&&Number(row.sheetNumber)!==Number(sheet))return false;
+        const date=codpidDate(row.timestamp);
+        if(from&&(!date||getLocalDateValue(date)<from))return false;
+        if(to&&(!date||getLocalDateValue(date)>to))return false;
+        return true;
+    }).sort((a,b)=>(codpidDate(b.timestamp)?.getTime()||0)-(codpidDate(a.timestamp)?.getTime()||0));
+    const headers=["Movimiento","Fecha","Hora","Grupo","Hoja","Usuario","ID usuario","Perfil","Resultado","Segundos desde consumo anterior","Detalle"];
+    const data=rows.map(row=>{
+        const date=codpidDate(row.timestamp);
+        const groupName=codpidGroupRows.find(g=>g.id===row.groupId)?.name||row.groupId||"-";
+        return [codpidActionLabel(row.action),date?date.toLocaleDateString("es-MX"):"-",date?date.toLocaleTimeString("es-MX"):"-",groupName,row.sheetNumber!=null?String(row.sheetNumber).padStart(2,"0"):"-",row.userName||"-",row.userId||"-",row.userRole||"-",row.result||"-",row.secondsSincePreviousConsumption??"-",row.details||"-"];
+    });
+    const csv=[headers,...data].map(line=>line.map(value=>'"'+String(value??"").replaceAll('"','""')+'"').join(",")).join("\n");
+    const blob=new Blob(["\ufeff"+csv],{type:"text/csv;charset=utf-8;"});
+    const url=URL.createObjectURL(blob);
+    const link=document.createElement("a");
+    link.href=url;link.download=`reporte_codpid_${new Date().toISOString().slice(0,10)}.csv`;
+    document.body.appendChild(link);link.click();document.body.removeChild(link);URL.revokeObjectURL(url);
 };
 
 window.exportReportsExcel = function(){
