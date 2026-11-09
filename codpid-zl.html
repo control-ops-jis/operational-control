@@ -6,7 +6,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#D40511">
 
-<title>CodPid ZL · DHL Operational Control</title>
+<title>Cockpit TRANSFER · DHL Operational Control</title>
 
 <style>
 :root{
@@ -336,7 +336,7 @@ footer{
 
 <header>
     <h1>📦 DHL Operational Control</h1>
-    <p>CodPid · Zona Logística (ZL)</p>
+    <p>Cockpit · Transfer (PE)</p>
 </header>
 
 <main>
@@ -453,7 +453,7 @@ footer{
             </div>
 
             <div class="description">
-                CODPID · NAVE 4
+                Cockpit · NAVE 4
             </div>
         </div>
 
@@ -495,7 +495,7 @@ footer{
 </main>
 
 <footer>
-    DHL Operational Control · CodPid ZL
+    DHL Operational Control · Cockpit TRANSFER
 </footer>
 
 
@@ -1207,7 +1207,7 @@ async function validateUser(firebaseUser) {
     if (!roles.includes("zl_cod")) {
 
         throw new Error(
-            "El usuario no tiene asignado el perfil CodPid ZL."
+            "El usuario no tiene asignado el perfil Cockpit ZL."
         );
     }
 
@@ -1217,7 +1217,7 @@ async function validateUser(firebaseUser) {
     if (!groupId) {
 
         throw new Error(
-            "El usuario no tiene un grupo CodPid asignado."
+            "El usuario no tiene un grupo Cockpit asignado."
         );
     }
 
@@ -1231,7 +1231,7 @@ async function validateUser(firebaseUser) {
     ) {
 
         throw new Error(
-            "El perfil seleccionado no corresponde a CodPid ZL."
+            "El perfil seleccionado no corresponde a Cockpit ZL."
         );
     }
 
@@ -1244,7 +1244,7 @@ async function validateUser(firebaseUser) {
     if (!groupSnap.exists()) {
 
         throw new Error(
-            "El grupo CodPid asignado no existe."
+            "El grupo Cockpit asignado no existe."
         );
     }
 
@@ -1254,7 +1254,7 @@ async function validateUser(firebaseUser) {
     if (groupData.active !== true) {
 
         throw new Error(
-            "El grupo CodPid se encuentra inactivo."
+            "El grupo Cockpit se encuentra inactivo."
         );
     }
 
@@ -1625,7 +1625,7 @@ async function registerSheet() {
 
                         details: isReuse
                             ? "Hoja consumida previamente y registrada nuevamente en el pool."
-                            : "Nueva hoja registrada en el pool CodPid.",
+                            : "Nueva hoja registrada en el pool Cockpit.",
 
                         groupId: CONFIG.groupId,
 
@@ -1862,7 +1862,7 @@ onAuthStateChanged(
             );
 
             setPoolStatus(
-                "No tienes acceso al pool CodPid ZL.",
+                "No tienes acceso al pool Cockpit ZL.",
                 "error"
             );
 
