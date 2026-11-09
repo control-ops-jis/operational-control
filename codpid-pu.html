@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#D40511">
-<title>CodPid PU · DHL Operational Control</title>
+<title>Cockpit PU · DHL Operational Control</title>
 
 <style>
 :root{
@@ -285,7 +285,7 @@ footer{
 
 <header>
   <h1>📦 DHL Operational Control</h1>
-  <p>CodPid · Punto de Uso (PU)</p>
+  <p>Cockpit · Punto de Uso (PU)</p>
 </header>
 
 <main>
@@ -376,7 +376,7 @@ footer{
 
 </main>
 
-<footer>DHL Operational Control · CodPid PU</footer>
+<footer>DHL Operational Control · Cockpit PU</footer>
 
 <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
 
@@ -1377,7 +1377,7 @@ async function validateUser(firebaseUser) {
 
   if (!roles.includes("pu_cod")) {
     throw new Error(
-      "El usuario no tiene asignado el perfil CodPid PU."
+      "El usuario no tiene asignado el perfil Cockpit PU."
     );
   }
 
@@ -1386,7 +1386,7 @@ async function validateUser(firebaseUser) {
 
   if (selectedRole && selectedRole !== "pu_cod") {
     throw new Error(
-      "El perfil seleccionado no corresponde a CodPid PU."
+      "El perfil seleccionado no corresponde a Cockpit PU."
     );
   }
 
@@ -1395,7 +1395,7 @@ async function validateUser(firebaseUser) {
 
   if (!groupId) {
     throw new Error(
-      "El usuario no tiene un grupo CodPid asignado."
+      "El usuario no tiene un grupo Cockpit asignado."
     );
   }
 
@@ -1405,7 +1405,7 @@ async function validateUser(firebaseUser) {
 
   if (!groupSnap.exists()) {
     throw new Error(
-      "El grupo CodPid asignado no existe."
+      "El grupo Cockpit asignado no existe."
     );
   }
 
@@ -1413,7 +1413,7 @@ async function validateUser(firebaseUser) {
 
   if (groupData.active !== true) {
     throw new Error(
-      "El grupo CodPid se encuentra inactivo."
+      "El grupo Cockpit se encuentra inactivo."
     );
   }
 
