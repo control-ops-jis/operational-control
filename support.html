@@ -530,9 +530,9 @@ th:first-child{
                 <table class="codpid-table">
                     <thead><tr>
                         <th>Movimiento</th><th>Fecha</th><th>Hora</th><th>Grupo</th><th>Hoja</th>
-                        <th>Usuario</th><th>Perfil</th><th>Resultado</th><th>Min. desde consumo anterior</th><th>Detalle</th>
+                        <th>Usuario</th><th>Perfil</th><th>Resultado</th><th>QR ZL</th><th>QR PU</th><th>Min. desde consumo anterior</th><th>Detalle</th>
                     </tr></thead>
-                    <tbody id="codpidReportsTable"><tr><td colspan="10">Presiona “Consultar CodPid” para cargar los movimientos.</td></tr></tbody>
+                    <tbody id="codpidReportsTable"><tr><td colspan="12">Presiona “Consultar CodPid” para cargar los movimientos.</td></tr></tbody>
                 </table>
             </div>
             <p id="codpidReportStatus" class="codpid-note">Los indicadores se calculan con los eventos disponibles en la auditoría.</p>
@@ -1846,6 +1846,14 @@ function codpidActionLabel(action){
     return labels[action] || action || "Movimiento";
 }
 
+function codpidFindContainer(row){
+    // Relaciona el evento con su hoja dentro del grupo, sin modificar Firestore.
+    return codpidContainerRows.find(container =>
+        container.groupId === row.groupId &&
+        Number(container.sheetNumber) === Number(row.sheetNumber)
+    ) || null;
+}
+
 function populateCodpidGroups(){
     const select = document.getElementById("codpidGroupFilter");
     const selected = select.value || "ALL";
@@ -1862,7 +1870,7 @@ function populateCodpidGroups(){
 window.loadCodpidReports = async function(){
     const table = document.getElementById("codpidReportsTable");
     const status = document.getElementById("codpidReportStatus");
-    table.innerHTML = '<tr><td colspan="10">Consultando auditoría CodPid...</td></tr>';
+    table.innerHTML = '<tr><td colspan="12">Consultando auditoría CodPid...</td></tr>';
     status.textContent = "Consultando movimientos e inventario CodPid...";
     try{
         const [auditSnap, containersSnap, groupsSnap] = await Promise.all([
@@ -1909,11 +1917,14 @@ window.loadCodpidReports = async function(){
         document.getElementById("codpidKpiRejected").textContent = rejected;
 
         if(!filtered.length){
-            table.innerHTML='<tr><td colspan="10">No hay movimientos CodPid con los filtros seleccionados.</td></tr>';
+            table.innerHTML='<tr><td colspan="12">No hay movimientos CodPid con los filtros seleccionados.</td></tr>';
         }else{
             table.innerHTML = filtered.map(row=>{
                 const date=codpidDate(row.timestamp);
                 const resultClass=row.result==="SUCCESS"?"ok":"warning";
+                const container=codpidFindContainer(row);
+                const qrZL=container?.materialQr || "-";
+                const qrPU=(row.action==="CONSUME" && row.result==="SUCCESS") ? (container?.consumedMaterialQr || "-") : "-";
                 return `<tr>
                     <td>${codpidEscape(codpidActionLabel(row.action))}</td>
                     <td>${date?date.toLocaleDateString("es-MX"):"-"}</td>
@@ -1923,6 +1934,8 @@ window.loadCodpidReports = async function(){
                     <td>${codpidEscape(row.userName||row.userId||"-")}</td>
                     <td>${codpidEscape(row.userRole||"-")}</td>
                     <td><span class="badge ${resultClass}">${codpidEscape(row.result||"-")}</span></td>
+                    <td>${codpidEscape(qrZL)}</td>
+                    <td>${codpidEscape(qrPU)}</td>
                     <td>${row.secondsSincePreviousConsumption!=null?codpidEscape((Number(row.secondsSincePreviousConsumption)/60).toLocaleString("es-MX",{minimumFractionDigits:0,maximumFractionDigits:2})+" min"):"-"}</td>
                     <td>${codpidEscape(row.details||"-")}</td>
                 </tr>`;
@@ -1931,7 +1944,7 @@ window.loadCodpidReports = async function(){
         status.textContent = `Auditoría: ${codpidAuditRows.length} eventos · Mostrando ${filtered.length} · Grupos consultados: ${codpidGroupRows.length}. Los indicadores de registro y consumo son acumulados históricos; disponibles es el estado actual del pool.`;
     }catch(error){
         console.error("Error cargando reportes CodPid:",error);
-        table.innerHTML=`<tr><td colspan="10">No fue posible consultar CodPid: ${codpidEscape(error.message)}</td></tr>`;
+        table.innerHTML=`<tr><td colspan="12">No fue posible consultar CodPid: ${codpidEscape(error.message)}</td></tr>`;
         status.textContent="Verifica permisos de lectura y conexión con Firestore.";
     }
 };
@@ -1956,11 +1969,14 @@ window.exportCodpidReports = function(){
         if(to&&(!date||getLocalDateValue(date)>to))return false;
         return true;
     }).sort((a,b)=>(codpidDate(b.timestamp)?.getTime()||0)-(codpidDate(a.timestamp)?.getTime()||0));
-    const headers=["Movimiento","Fecha","Hora","Grupo","Hoja","Usuario","ID usuario","Perfil","Resultado","Minutos desde consumo anterior","Detalle"];
+    const headers=["Movimiento","Fecha","Hora","Grupo","Hoja","Usuario","ID usuario","Perfil","Resultado","QR ZL","QR PU","Minutos desde consumo anterior","Detalle"];
     const data=rows.map(row=>{
         const date=codpidDate(row.timestamp);
         const groupName=codpidGroupRows.find(g=>g.id===row.groupId)?.name||row.groupId||"-";
-        return [codpidActionLabel(row.action),date?date.toLocaleDateString("es-MX"):"-",date?date.toLocaleTimeString("es-MX"):"-",groupName,row.sheetNumber!=null?String(row.sheetNumber).padStart(2,"0"):"-",row.userName||"-",row.userId||"-",row.userRole||"-",row.result||"-",row.secondsSincePreviousConsumption!=null?Number((Number(row.secondsSincePreviousConsumption)/60).toFixed(2)):"-",row.details||"-"];
+        const container=codpidFindContainer(row);
+        const qrZL=container?.materialQr||"-";
+        const qrPU=(row.action==="CONSUME"&&row.result==="SUCCESS")?(container?.consumedMaterialQr||"-"):"-";
+        return [codpidActionLabel(row.action),date?date.toLocaleDateString("es-MX"):"-",date?date.toLocaleTimeString("es-MX"):"-",groupName,row.sheetNumber!=null?String(row.sheetNumber).padStart(2,"0"):"-",row.userName||"-",row.userId||"-",row.userRole||"-",row.result||"-",qrZL,qrPU,row.secondsSincePreviousConsumption!=null?Number((Number(row.secondsSincePreviousConsumption)/60).toFixed(2)):"-",row.details||"-"];
     });
     const csv=[headers,...data].map(line=>line.map(value=>'"'+String(value??"").replaceAll('"','""')+'"').join(",")).join("\n");
     const blob=new Blob(["\ufeff"+csv],{type:"text/csv;charset=utf-8;"});
