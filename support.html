@@ -1,3 +1,4 @@
+```html
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -283,6 +284,7 @@ th:first-child{
     font-size:12px;
     padding:8px;
 }
+
 .app-version{
     position:fixed;
     left:10px;
@@ -505,6 +507,7 @@ th:first-child{
                     <option value="REUSE">Reutilización</option>
                     <option value="CONSUME">Consumo</option>
                     <option value="POSITION_VERIFY">Validación de posición</option>
+                    <option value="MATERIAL_QR_VERIFY">Validación de QR de material</option>
                 </select>
                 <select id="codpidResultFilter">
                     <option value="ALL">Todos los resultados</option>
@@ -1842,8 +1845,29 @@ function codpidEscape(value){
 }
 
 function codpidActionLabel(action){
-    const labels = {REGISTER:"Registro", REUSE:"Reutilización", CONSUME:"Consumo", POSITION_VERIFY:"Validación de posición"};
+    const labels = {
+        REGISTER:"Registro",
+        REUSE:"Reutilización",
+        CONSUME:"Consumo",
+        POSITION_VERIFY:"Validación de posición",
+        MATERIAL_QR_VERIFY:"Validación de QR de material"
+    };
     return labels[action] || action || "Movimiento";
+}
+
+function codpidDetails(row){
+
+    if(
+        row.action === "MATERIAL_QR_VERIFY" &&
+        row.result === "REJECTED" &&
+        row.materialQrScanned
+    ){
+        const position = row.materialPosition || "material";
+
+        return `QR de material ${position} incorrecto. El valor escaneado "${row.materialQrScanned}" no coincide con el registro de ZL.`;
+    }
+
+    return row.details || "-";
 }
 
 function codpidFindContainer(row){
@@ -1924,7 +1948,13 @@ window.loadCodpidReports = async function(){
                 const resultClass=row.result==="SUCCESS"?"ok":"warning";
                 const container=codpidFindContainer(row);
                 const qrZL=container?.materialQr || "-";
-                const qrPU=(row.action==="CONSUME" && row.result==="SUCCESS") ? (container?.consumedMaterialQr || "-") : "-";
+
+                const qrPU = row.action === "MATERIAL_QR_VERIFY"
+                    ? (row.materialQrScanned || "-")
+                    : (row.action === "CONSUME" && row.result === "SUCCESS")
+                        ? (container?.consumedMaterialQr || "-")
+                        : "-";
+
                 return `<tr>
                     <td>${codpidEscape(codpidActionLabel(row.action))}</td>
                     <td>${date?date.toLocaleDateString("es-MX"):"-"}</td>
@@ -1937,7 +1967,7 @@ window.loadCodpidReports = async function(){
                     <td>${codpidEscape(qrZL)}</td>
                     <td>${codpidEscape(qrPU)}</td>
                     <td>${row.secondsSincePreviousConsumption!=null?codpidEscape((Number(row.secondsSincePreviousConsumption)/60).toLocaleString("es-MX",{minimumFractionDigits:0,maximumFractionDigits:2})+" min"):"-"}</td>
-                    <td>${codpidEscape(row.details||"-")}</td>
+                    <td>${codpidEscape(codpidDetails(row))}</td>
                 </tr>`;
             }).join("");
         }
@@ -1975,8 +2005,14 @@ window.exportCodpidReports = function(){
         const groupName=codpidGroupRows.find(g=>g.id===row.groupId)?.name||row.groupId||"-";
         const container=codpidFindContainer(row);
         const qrZL=container?.materialQr||"-";
-        const qrPU=(row.action==="CONSUME"&&row.result==="SUCCESS")?(container?.consumedMaterialQr||"-"):"-";
-        return [codpidActionLabel(row.action),date?date.toLocaleDateString("es-MX"):"-",date?date.toLocaleTimeString("es-MX"):"-",groupName,row.sheetNumber!=null?String(row.sheetNumber).padStart(2,"0"):"-",row.userName||"-",row.userId||"-",row.userRole||"-",row.result||"-",qrZL,qrPU,row.secondsSincePreviousConsumption!=null?Number((Number(row.secondsSincePreviousConsumption)/60).toFixed(2)):"-",row.details||"-"];
+
+        const qrPU = row.action === "MATERIAL_QR_VERIFY"
+            ? (row.materialQrScanned || "-")
+            : (row.action === "CONSUME" && row.result === "SUCCESS")
+                ? (container?.consumedMaterialQr || "-")
+                : "-";
+
+        return [codpidActionLabel(row.action),date?date.toLocaleDateString("es-MX"):"-",date?date.toLocaleTimeString("es-MX"):"-",groupName,row.sheetNumber!=null?String(row.sheetNumber).padStart(2,"0"):"-",row.userName||"-",row.userId||"-",row.userRole||"-",row.result||"-",qrZL,qrPU,row.secondsSincePreviousConsumption!=null?Number((Number(row.secondsSincePreviousConsumption)/60).toFixed(2)):"-",codpidDetails(row)];
     });
     const csv=[headers,...data].map(line=>line.map(value=>'"'+String(value??"").replaceAll('"','""')+'"').join(",")).join("\n");
     const blob=new Blob(["\ufeff"+csv],{type:"text/csv;charset=utf-8;"});
@@ -2113,3 +2149,4 @@ document.getElementById("appVersion").innerText =
 </script>
 </body>
 </html>
+```
