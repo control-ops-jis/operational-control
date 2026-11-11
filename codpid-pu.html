@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -193,7 +194,11 @@ button:disabled{opacity:.55;cursor:not-allowed}
   margin:5px 0
 }
 
-.challenge .qr{font-size:16px;font-weight:bold}
+.challenge .qr{
+  font-size:14px;
+  font-weight:bold;
+  color:#475467
+}
 
 .primary{
   background:var(--red);
@@ -323,29 +328,41 @@ footer{
     </p>
   </section>
 
+  <!-- VALIDACIÓN DE MATERIAL POS1 -->
+
   <section class="card hidden" id="challengeSection">
-    <h2>Verificación de posición</h2>
+
+    <h2>Verificación de material</h2>
 
     <div class="challenge">
-      <div class="muted">Dirígete a la posición solicitada</div>
-      <div class="position" id="requestedPosition">POS --</div>
-      <div class="qr" id="expectedPositionQR">QR esperado: --</div>
+      <div class="muted">Material que debes verificar</div>
+
+      <div class="position">POS1</div>
+
+      <div class="qr">
+        Escanea el QR único de identificación de la pieza.
+      </div>
     </div>
 
-    <div id="flowStatus" class="status" style="margin-top:12px">
-      Escanea la etiqueta de la posición.
+    <div id="flowStatus" class="status warning" style="margin-top:12px">
+      Escanea el QR del material POS1 para validar la hoja.
     </div>
 
     <button class="primary" id="scanPositionBtn">
-      Escanear posición
+      Escanear material POS1
     </button>
 
-    <button class="secondary" id="cancelBtn" style="width:100%;margin-top:10px">
+    <button class="secondary" id="cancelBtn"
+      style="width:100%;margin-top:10px">
       Cancelar operación
     </button>
+
   </section>
 
+  <!-- CÁMARA -->
+
   <section class="card hidden" id="cameraSection">
+
     <h2 id="cameraTitle">Lector QR</h2>
 
     <div id="cameraStatus" class="status">
@@ -353,6 +370,7 @@ footer{
     </div>
 
     <div class="camera-wrap">
+
       <video id="video" playsinline muted></video>
 
       <div class="placeholder" id="placeholder">
@@ -361,9 +379,11 @@ footer{
       </div>
 
       <div class="frame" id="frame"></div>
+
     </div>
 
     <div class="actions">
+
       <button class="secondary" id="stopBtn" disabled>
         Detener cámara
       </button>
@@ -371,7 +391,9 @@ footer{
       <button class="secondary" id="retryBtn">
         Reintentar escaneo
       </button>
+
     </div>
+
   </section>
 
 </main>
@@ -406,7 +428,7 @@ import {
 
 
 /* ==========================================
-   FIREBASE
+   1. FIREBASE
 ========================================== */
 
 const firebaseConfig = {
@@ -424,10 +446,11 @@ const db = getFirestore(app);
 
 
 /* ==========================================
-   CONFIGURACIÓN CODPID
+   2. CONFIGURACIÓN CODPID
 ========================================== */
 
 const CONFIG = {
+
   minSheet: 1,
   maxSheet: 100,
 
@@ -436,88 +459,143 @@ const CONFIG = {
   containers: "codpidContainers",
   audit: "codpidAudit",
 
-  // Mapeo provisional de etiquetas físicas.
-  positions: {
-    POS1: "N41",
-    POS2: "N42",
-    POS3: "N43",
-    POS4: "N44"
-  },
+  materialPosition: "POS1",
 
   groupId: null,
   employeeId: null,
   userName: null
+
 };
 
+
+/* ==========================================
+   3. ELEMENTOS HTML
+========================================== */
 
 const $ = id => document.getElementById(id);
 
 const video = $("video");
+
 const canvas = document.createElement("canvas");
+
 const ctx = canvas.getContext("2d", {
   willReadFrequently: true
 });
 
 
+/* ==========================================
+   4. ESTADO DE APLICACIÓN
+========================================== */
+
 let authorized = false;
+
 let stream = null;
+
 let animationId = null;
+
 let scanning = false;
+
 let scanMode = null;
+
 let scanLocked = false;
 
 let expectedSheet = null;
+
 let currentSheet = null;
-let currentChallenge = null;
+
+/*
+  QR registrado por ZL en Firestore.
+  Nunca se muestra al operador.
+*/
+
+let expectedMaterialQr = null;
+
+/*
+  QR que acaba de leer el operador PU.
+*/
+
+let scannedMaterialQr = null;
 
 let processing = false;
+
 let poolBusy = false;
 
 
-const padSheet = n => String(n).padStart(2, "0");
+const padSheet = n =>
+  String(n).padStart(2, "0");
 
 const nextSheet = n =>
-  n >= CONFIG.maxSheet ? CONFIG.minSheet : n + 1;
+  n >= CONFIG.maxSheet
+    ? CONFIG.minSheet
+    : n + 1;
 
 
 /* ==========================================
-   MENSAJES Y ESTADO VISUAL
+   5. MENSAJES Y ESTADO VISUAL
 ========================================== */
 
 function setStatus(message, type = "") {
+
   const element = $("flowStatus");
+
   element.textContent = message;
-  element.className = "status" + (type ? " " + type : "");
+
+  element.className =
+    "status" + (type ? " " + type : "");
 }
+
 
 function setCameraStatus(message, type = "") {
+
   const element = $("cameraStatus");
+
   element.textContent = message;
-  element.className = "status" + (type ? " " + type : "");
+
+  element.className =
+    "status" + (type ? " " + type : "");
 }
 
+
 function setExpectedSheet(number) {
+
   expectedSheet = number;
-  $("expectedSheet").textContent = padSheet(number);
+
+  $("expectedSheet").textContent =
+    padSheet(number);
 }
 
 
 /* ==========================================
-   LECTURA Y VALIDACIÓN DE QR
+   6. LECTURA Y VALIDACIÓN DE QR
 ========================================== */
+
+/*
+  QR DE HOJA VIAJERA
+
+  Se conserva la lógica original.
+*/
 
 function parseSheetQR(rawValue) {
 
-  const value = String(rawValue || "").trim().toUpperCase();
+  const value = String(rawValue || "")
+    .trim()
+    .toUpperCase();
 
-  let match = /^\d{1,3}$/.test(value) ? value : null;
+  let match =
+    /^\d{1,3}$/.test(value)
+      ? value
+      : null;
 
   if (match === null) {
 
     const patterns = [
+
       /^CODPID\|HOJA\|(\d{1,3})$/,
+
       /^CODPID\|NAVE4\|TORRETA\|(\d{1,3})$/,
+
       /^NAVE4\|TORRETA\|(\d{1,3})$/
+
     ];
 
     for (const pattern of patterns) {
@@ -525,13 +603,16 @@ function parseSheetQR(rawValue) {
       const result = value.match(pattern);
 
       if (result) {
+
         match = result[1];
+
         break;
       }
     }
   }
 
   if (match === null) {
+
     throw new Error(
       "El QR no corresponde a un formato reconocido de hoja viajera."
     );
@@ -539,7 +620,12 @@ function parseSheetQR(rawValue) {
 
   const number = Number(match);
 
-  if (!Number.isInteger(number) || number < 1 || number > 100) {
+  if (
+    !Number.isInteger(number) ||
+    number < CONFIG.minSheet ||
+    number > CONFIG.maxSheet
+  ) {
+
     throw new Error(
       "El número de hoja debe estar entre 01 y 100."
     );
@@ -549,70 +635,64 @@ function parseSheetQR(rawValue) {
 }
 
 
-function parsePositionQR(rawValue) {
+/*
+  QR DE MATERIAL POS1
 
-  const value = String(rawValue || "").trim().toUpperCase();
+  El código puede ser cualquier identificador
+  no vacío capturado previamente por ZL.
 
-  const found = Object.entries(CONFIG.positions)
-    .find(([, qr]) => qr === value);
+  No se declara ningún catálogo de códigos.
+*/
 
-  if (!found) {
+function parseMaterialQR(rawValue) {
+
+  const value = String(rawValue ?? "").trim();
+
+  if (!value) {
+
     throw new Error(
-      "El QR leído no corresponde a una posición física configurada."
+      "El QR del material POS1 está vacío o no es válido."
     );
   }
 
-  return {
-    position: found[0],
-    qr: found[1]
-  };
-}
-
-
-function chooseRandomChallenge() {
-
-  const positions = Object.keys(CONFIG.positions);
-
-  const position =
-    positions[Math.floor(Math.random() * positions.length)];
-
-  currentChallenge = {
-    position,
-    qr: CONFIG.positions[position]
-  };
-
-  $("requestedPosition").textContent = position;
-
-  $("expectedPositionQR").textContent =
-    "QR esperado: " + currentChallenge.qr;
+  return value;
 }
 
 
 /* ==========================================
-   CONTROL DE CÁMARA
+   7. CONTROL DE CÁMARA
 ========================================== */
 
 function stopCamera(message = "Cámara detenida.") {
 
   scanning = false;
+
   scanLocked = false;
 
   if (animationId) {
+
     cancelAnimationFrame(animationId);
+
     animationId = null;
   }
 
   if (stream) {
+
     stream.getTracks().forEach(track => track.stop());
+
     stream = null;
   }
 
   video.pause();
+
   video.srcObject = null;
+
   video.style.display = "none";
 
   $("placeholder").style.display = "block";
+
   $("frame").style.display = "none";
+
   $("stopBtn").disabled = true;
 
   setCameraStatus(message);
@@ -659,7 +739,7 @@ async function startCamera(mode) {
   $("cameraTitle").textContent =
     mode === "SHEET"
       ? "Escanear hoja viajera"
-      : "Escanear posición física";
+      : "Escanear material POS1";
 
   $("cameraSection").scrollIntoView({
     behavior: "smooth",
@@ -671,41 +751,61 @@ async function startCamera(mode) {
     try {
 
       stream = await navigator.mediaDevices.getUserMedia({
+
         audio: false,
+
         video: {
-          facingMode: { ideal: "environment" },
-          width: { ideal: 1280 },
-          height: { ideal: 720 }
+
+          facingMode: {
+            ideal: "environment"
+          },
+
+          width: {
+            ideal: 1280
+          },
+
+          height: {
+            ideal: 720
+          }
+
         }
+
       });
 
     } catch {
 
       stream = await navigator.mediaDevices.getUserMedia({
+
         audio: false,
+
         video: true
+
       });
 
     }
 
     video.srcObject = stream;
+
     video.style.display = "block";
 
     $("placeholder").style.display = "none";
+
     $("frame").style.display = "block";
 
     await video.play();
 
     scanning = true;
+
     $("stopBtn").disabled = false;
 
     setCameraStatus(
+
       mode === "SHEET"
         ? "Apunta al QR de la hoja viajera."
-        : "Apunta al QR de " +
-          currentChallenge.position +
-          " (" + currentChallenge.qr + ").",
+        : "Apunta exclusivamente al QR del material POS1.",
+
       "success"
+
     );
 
     scanLoop();
@@ -719,14 +819,23 @@ async function startCamera(mode) {
     if (
       ["NotAllowedError", "PermissionDeniedError"].includes(error.name)
     ) {
-      message = "Permiso denegado. Autoriza la cámara en Chrome.";
+
+      message =
+        "Permiso denegado. Autoriza la cámara en Chrome.";
+
     } else if (error.name === "NotFoundError") {
+
       message = "No se encontró una cámara disponible.";
+
     } else if (error.name === "NotReadableError") {
-      message = "La cámara está siendo utilizada por otra aplicación.";
+
+      message =
+        "La cámara está siendo utilizada por otra aplicación.";
+
     }
 
     stopCamera(message);
+
     setCameraStatus(message, "error");
   }
 }
@@ -743,9 +852,16 @@ function scanLoop() {
   ) {
 
     canvas.width = video.videoWidth;
+
     canvas.height = video.videoHeight;
 
-    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+    ctx.drawImage(
+      video,
+      0,
+      0,
+      canvas.width,
+      canvas.height
+    );
 
     const imageData = ctx.getImageData(
       0,
@@ -758,7 +874,9 @@ function scanLoop() {
       imageData.data,
       imageData.width,
       imageData.height,
-      { inversionAttempts: "attemptBoth" }
+      {
+        inversionAttempts: "attemptBoth"
+      }
     );
 
     if (code?.data) {
@@ -769,7 +887,10 @@ function scanLoop() {
 
       stopCamera("QR detectado. Validando...");
 
-      handleScannedCode(code.data, detectedMode);
+      handleScannedCode(
+        code.data,
+        detectedMode
+      );
 
       return;
     }
@@ -780,33 +901,55 @@ function scanLoop() {
 
 
 /* ==========================================
-   AUDITORÍA DE RECHAZOS
+   8. AUDITORÍA DE RECHAZOS
 ========================================== */
 
-async function logRejected(action, sheetNumber, details) {
+async function logRejected(
+  action,
+  sheetNumber,
+  details,
+  extra = {}
+) {
 
   try {
 
-    await addDoc(collection(db, CONFIG.audit), {
+    await addDoc(
+      collection(db, CONFIG.audit),
+      {
 
-      action,
-      details,
+        action,
 
-      groupId: CONFIG.groupId,
-      result: "REJECTED",
+        details,
 
-      secondsSincePreviousConsumption: null,
+        groupId: CONFIG.groupId,
 
-      sheetNumber:
-        Number.isInteger(sheetNumber) ? sheetNumber : null,
+        result: "REJECTED",
 
-      timestamp: serverTimestamp(),
+        secondsSincePreviousConsumption: null,
 
-      userId: CONFIG.employeeId,
-      userName: CONFIG.userName,
-      userRole: "pu_cod"
+        sheetNumber:
+          Number.isInteger(sheetNumber)
+            ? sheetNumber
+            : null,
 
-    });
+        materialPosition: CONFIG.materialPosition,
+
+        materialQrScanned:
+          extra.materialQrScanned || null,
+
+        materialQrExpectedLast4:
+          extra.materialQrExpectedLast4 || null,
+
+        timestamp: serverTimestamp(),
+
+        userId: CONFIG.employeeId,
+
+        userName: CONFIG.userName,
+
+        userRole: "pu_cod"
+
+      }
+    );
 
   } catch (error) {
 
@@ -820,7 +963,175 @@ async function logRejected(action, sheetNumber, details) {
 
 
 /* ==========================================
-   PROCESAMIENTO DE QR
+   9. VALIDAR QR DE HOJA Y RECUPERAR POS1
+========================================== */
+
+async function validateSheet(number) {
+
+  const groupSnap = await getDoc(
+    doc(db, CONFIG.groups, CONFIG.groupId)
+  );
+
+  if (
+    !groupSnap.exists() ||
+    groupSnap.data().active !== true
+  ) {
+
+    throw new Error(
+      "El grupo no existe o está inactivo."
+    );
+  }
+
+  const liveExpected =
+    Number(groupSnap.data().nextExpectedSheet);
+
+  if (
+    !Number.isInteger(liveExpected) ||
+    liveExpected < 1 ||
+    liveExpected > 100
+  ) {
+
+    throw new Error(
+      "La secuencia del grupo no está configurada correctamente."
+    );
+  }
+
+  setExpectedSheet(liveExpected);
+
+  if (number !== liveExpected) {
+
+    await logRejected(
+
+      "CONSUME",
+
+      number,
+
+      "Hoja fuera de secuencia. Esperada: " +
+        padSheet(liveExpected) +
+        "; recibida: " +
+        padSheet(number) + "."
+
+    );
+
+    throw new Error(
+      "Hoja incorrecta. Debes escanear la hoja " +
+      padSheet(liveExpected) + "."
+    );
+  }
+
+  const containerId =
+    CONFIG.groupId +
+    "_hoja_" +
+    padSheet(number);
+
+  const containerRef = doc(
+    db,
+    CONFIG.containers,
+    containerId
+  );
+
+  const containerSnap = await getDoc(containerRef);
+
+  if (
+    !containerSnap.exists() ||
+    containerSnap.data().status !== "available"
+  ) {
+
+    await logRejected(
+
+      "CONSUME",
+
+      number,
+
+      "La hoja esperada no está disponible en el pool."
+
+    );
+
+    throw new Error(
+      "La hoja " +
+      padSheet(number) +
+      " ya no está disponible. Actualiza el pool."
+    );
+  }
+
+  const containerData = containerSnap.data();
+
+  /*
+    VALIDACIÓN IMPORTANTE:
+
+    El materialQr debe existir en el documento
+    que registró ZL.
+
+    Si no existe, PU NO permite consumir.
+  */
+
+  const registeredMaterialQr =
+    String(containerData.materialQr ?? "").trim();
+
+  if (!registeredMaterialQr) {
+
+    await logRejected(
+
+      "MATERIAL_QR_MISSING",
+
+      number,
+
+      "La hoja está disponible, pero no contiene materialQr registrado por ZL."
+
+    );
+
+    throw new Error(
+      "Esta hoja no tiene un QR de material POS1 registrado por ZL. No se permite consumirla."
+    );
+  }
+
+  if (
+    containerData.materialPosition !== "POS1"
+  ) {
+
+    await logRejected(
+
+      "MATERIAL_POSITION_INVALID",
+
+      number,
+
+      "El registro de ZL no corresponde a POS1."
+
+    );
+
+    throw new Error(
+      "El registro de la hoja no tiene configurada la posición POS1. Solicita revisión de ZL."
+    );
+  }
+
+  currentSheet = number;
+
+  expectedMaterialQr = registeredMaterialQr;
+
+  scannedMaterialQr = null;
+
+  $("challengeSection").classList.remove("hidden");
+
+  setStatus(
+    "Hoja " +
+    padSheet(number) +
+    " validada. Ahora escanea el QR único del material POS1.",
+    "warning"
+  );
+
+  $("challengeSection").scrollIntoView({
+    behavior: "smooth",
+    block: "start"
+  });
+
+  // Abrir automáticamente el lector del material POS1.
+
+  await startCamera("MATERIAL");
+}
+
+
+/* ==========================================
+   10. PROCESAMIENTO DE QR
 ========================================== */
 
 async function handleScannedCode(rawValue, mode) {
@@ -852,103 +1163,20 @@ async function handleScannedCode(rawValue, mode) {
 
     try {
 
-      const groupSnap = await getDoc(
-        doc(db, CONFIG.groups, CONFIG.groupId)
-      );
-
-      if (
-        !groupSnap.exists() ||
-        groupSnap.data().active !== true
-      ) {
-        throw new Error("El grupo no existe o está inactivo.");
-      }
-
-      const liveExpected =
-        Number(groupSnap.data().nextExpectedSheet);
-
-      if (
-        !Number.isInteger(liveExpected) ||
-        liveExpected < 1 ||
-        liveExpected > 100
-      ) {
-        throw new Error(
-          "La secuencia del grupo no está configurada correctamente."
-        );
-      }
-
-      setExpectedSheet(liveExpected);
-
-      if (number !== liveExpected) {
-
-        await logRejected(
-          "CONSUME",
-          number,
-          "Hoja fuera de secuencia. Esperada: " +
-            padSheet(liveExpected) +
-            "; recibida: " +
-            padSheet(number) + "."
-        );
-
-        throw new Error(
-          "Hoja incorrecta. Debes escanear la hoja " +
-          padSheet(liveExpected) + "."
-        );
-      }
-
-      const containerId =
-        CONFIG.groupId + "_hoja_" + padSheet(number);
-
-      const containerSnap = await getDoc(
-        doc(db, CONFIG.containers, containerId)
-      );
-
-      if (
-        !containerSnap.exists() ||
-        containerSnap.data().status !== "available"
-      ) {
-
-        await logRejected(
-          "CONSUME",
-          number,
-          "La hoja esperada no está disponible en el pool."
-        );
-
-        throw new Error(
-          "La hoja " + padSheet(number) +
-          " ya no está disponible. Actualiza el pool."
-        );
-      }
-
-      currentSheet = number;
-
-      chooseRandomChallenge();
-
-      $("challengeSection").classList.remove("hidden");
-
-      setStatus(
-        "Hoja " + padSheet(number) +
-        " validada. Escanea la posición " +
-        currentChallenge.position + ".",
-        "success"
-      );
-
-      $("challengeSection").scrollIntoView({
-        behavior: "smooth",
-        block: "start"
-      });
-
-      // Al validar la hoja, abre automáticamente el lector
-      // para escanear la posición física aleatoria.
-      await startCamera("POSITION");
+      await validateSheet(number);
 
     } catch (error) {
 
       console.error("Validación de hoja:", error);
 
       currentSheet = null;
-      currentChallenge = null;
+
+      expectedMaterialQr = null;
+
+      scannedMaterialQr = null;
 
       setStatus(error.message, "error");
+
       setCameraStatus(error.message, "error");
 
     }
@@ -957,119 +1185,139 @@ async function handleScannedCode(rawValue, mode) {
   }
 
 
-  /* ---------- QR DE POSICIÓN ---------- */
+  /* ---------- QR DE MATERIAL POS1 ---------- */
 
-  if (mode === "POSITION") {
+  if (mode === "MATERIAL") {
 
-    if (!currentSheet || !currentChallenge) {
+    if (
+      currentSheet === null ||
+      !expectedMaterialQr
+    ) {
 
       setStatus(
-        "No hay una operación pendiente. Selecciona nuevamente la hoja.",
+        "No existe una hoja validada. Inicia nuevamente la operación.",
         "error"
       );
 
       return;
     }
 
-    let scannedPosition;
+    let materialQr;
 
     try {
 
-      scannedPosition = parsePositionQR(rawValue);
+      materialQr = parseMaterialQR(rawValue);
 
     } catch (error) {
 
-      await logRejected(
-        "POSITION_VERIFY",
-        currentSheet,
-        error.message
-      );
-
-      chooseRandomChallenge();
-
-      setStatus(
-        error.message + " Se asignó otra posición aleatoria.",
-        "error"
-      );
+      setStatus(error.message, "error");
 
       setCameraStatus(
-        "Nueva posición: " +
-          currentChallenge.position +
-          ". Reintenta el escaneo.",
-        "warning"
+        error.message,
+        "error"
       );
 
       return;
     }
 
-    if (
-      scannedPosition.position !== currentChallenge.position ||
-      scannedPosition.qr !== currentChallenge.qr
-    ) {
+    scannedMaterialQr = materialQr;
+
+    /*
+      COMPARACIÓN EXACTA:
+
+      QR capturado en ZL
+      contra
+      QR escaneado en PU.
+    */
+
+    if (materialQr !== expectedMaterialQr) {
+
+      const expectedLast4 =
+        expectedMaterialQr.slice(-4);
 
       await logRejected(
-        "POSITION_VERIFY",
+
+        "MATERIAL_QR_VERIFY",
+
         currentSheet,
-        "Posición incorrecta. Solicitada: " +
-          currentChallenge.position +
-          " (" + currentChallenge.qr +
-          "); escaneada: " +
-          scannedPosition.position +
-          " (" + scannedPosition.qr + ")."
+
+        "QR de material POS1 incorrecto. El valor escaneado no coincide con el registro de ZL.",
+
+        {
+
+          materialQrScanned: materialQr,
+
+          materialQrExpectedLast4: expectedLast4
+
+        }
+
       );
 
-      chooseRandomChallenge();
+      scannedMaterialQr = null;
 
       setStatus(
-        "La posición no coincide. Se asignó otra posición aleatoria.",
+        "QR INCORRECTO. El material escaneado no corresponde al registrado en ZL. La hoja continúa disponible y puedes volver a intentarlo.",
         "error"
       );
 
       setCameraStatus(
-        "Nueva posición: " +
-          currentChallenge.position +
-          ". Reintenta el escaneo.",
+        "Validación rechazada. Escanea nuevamente el QR del material POS1.",
         "warning"
       );
 
+      $("challengeSection").scrollIntoView({
+        behavior: "smooth",
+        block: "center"
+      });
+
       return;
     }
+
+    /*
+      COINCIDENCIA CORRECTA
+
+      Se procede a registrar el consumo.
+    */
 
     setStatus(
-      "Posición correcta. Registrando consumo...",
+      "QR POS1 correcto. Coincide con el registro de ZL. Registrando consumo...",
       "success"
     );
 
-    await consumeSheet(scannedPosition);
+    await consumeSheet(materialQr);
   }
 }
 
 
 /* ==========================================
-   TRANSACCIÓN DE CONSUMO
+   11. TRANSACCIÓN DE CONSUMO
 ========================================== */
 
-async function consumeSheet(scannedPosition) {
+async function consumeSheet(materialQrScanned) {
 
   if (
     processing ||
     !authorized ||
-    !currentSheet ||
-    !currentChallenge
+    currentSheet === null ||
+    !expectedMaterialQr
   ) return;
 
   processing = true;
 
   $("scanPositionBtn").disabled = true;
+
   $("refreshBtn").disabled = true;
 
   const sheetNumber = currentSheet;
+
   const formattedSheet = padSheet(sheetNumber);
 
   const containerRef = doc(
     db,
     CONFIG.containers,
-    CONFIG.groupId + "_hoja_" + formattedSheet
+    CONFIG.groupId +
+    "_hoja_" +
+    formattedSheet
   );
 
   const groupRef = doc(
@@ -1078,7 +1326,9 @@ async function consumeSheet(scannedPosition) {
     CONFIG.groupId
   );
 
-  const auditRef = doc(collection(db, CONFIG.audit));
+  const auditRef = doc(
+    collection(db, CONFIG.audit)
+  );
 
   try {
 
@@ -1086,29 +1336,38 @@ async function consumeSheet(scannedPosition) {
       db,
       async transaction => {
 
-        const groupSnap = await transaction.get(groupRef);
-        const containerSnap = await transaction.get(containerRef);
+        const groupSnap =
+          await transaction.get(groupRef);
+
+        const containerSnap =
+          await transaction.get(containerRef);
 
         if (!groupSnap.exists()) {
+
           throw new Error("GROUP_NOT_FOUND");
         }
 
         const groupData = groupSnap.data();
 
         if (groupData.active !== true) {
+
           throw new Error("GROUP_INACTIVE");
         }
 
         if (
           Number(groupData.nextExpectedSheet) !== sheetNumber
         ) {
+
           throw new Error(
             "SEQUENCE_CHANGED:" +
-            padSheet(Number(groupData.nextExpectedSheet))
+            padSheet(
+              Number(groupData.nextExpectedSheet)
+            )
           );
         }
 
         if (!containerSnap.exists()) {
+
           throw new Error("CONTAINER_NOT_FOUND");
         }
 
@@ -1119,20 +1378,44 @@ async function consumeSheet(scannedPosition) {
           Number(containerData.sheetNumber) !== sheetNumber ||
           containerData.status !== "available"
         ) {
+
           throw new Error("CONTAINER_NOT_AVAILABLE");
         }
 
+        /*
+          SEGUNDA VALIDACIÓN DEL QR:
+
+          Se recupera nuevamente el valor directamente
+          de Firestore dentro de la transacción.
+        */
+
+        const currentRegisteredQr =
+          String(containerData.materialQr ?? "").trim();
+
+        if (!currentRegisteredQr) {
+
+          throw new Error("MATERIAL_QR_MISSING");
+        }
+
         if (
-          scannedPosition.position !== currentChallenge.position ||
-          scannedPosition.qr !==
-            CONFIG.positions[currentChallenge.position]
+          containerData.materialPosition !== "POS1"
         ) {
-          throw new Error("POSITION_MISMATCH");
+
+          throw new Error("MATERIAL_POSITION_INVALID");
+        }
+
+        if (
+          currentRegisteredQr !== expectedMaterialQr ||
+          currentRegisteredQr !== materialQrScanned
+        ) {
+
+          throw new Error("MATERIAL_QR_MISMATCH");
         }
 
         let secondsSincePreviousConsumption = null;
 
-        const previousTimestamp = groupData.lastConsumptionAt;
+        const previousTimestamp =
+          groupData.lastConsumptionAt;
 
         if (
           previousTimestamp &&
@@ -1140,76 +1423,118 @@ async function consumeSheet(scannedPosition) {
         ) {
 
           secondsSincePreviousConsumption = Math.max(
-            0,
-            Math.floor(
-              (Date.now() - previousTimestamp.toMillis()) / 1000
-            )
-          );
 
+            0,
+
+            Math.floor(
+              (
+                Date.now() -
+                previousTimestamp.toMillis()
+              ) / 1000
+            )
+
+          );
         }
+
+        /*
+          ACTUALIZAR HOJA
+        */
 
         transaction.update(containerRef, {
 
           status: "consumed",
 
           consumedAt: serverTimestamp(),
+
           consumedBy: CONFIG.employeeId,
+
           consumedByName: CONFIG.userName,
 
-          consumedPosition: currentChallenge.position,
-          positionQr: scannedPosition.qr,
+          consumedPosition: CONFIG.materialPosition,
+
+          consumedMaterialQr: materialQrScanned,
 
           updatedAt: serverTimestamp()
 
         });
+
+        /*
+          AVANZAR SECUENCIA
+        */
 
         transaction.update(groupRef, {
 
           nextExpectedSheet: nextSheet(sheetNumber),
 
           lastConsumptionAt: serverTimestamp(),
+
           updatedAt: serverTimestamp()
 
         });
+
+        /*
+          AUDITORÍA EXITOSA
+        */
 
         transaction.set(auditRef, {
 
           action: "CONSUME",
 
           details:
-            "Consumo validado. Posición: " +
-            currentChallenge.position +
-            "; QR físico: " +
-            scannedPosition.qr + ".",
+            "Consumo validado correctamente. QR de material POS1 coincide con el registro de ZL.",
 
           groupId: CONFIG.groupId,
+
           result: "SUCCESS",
 
           secondsSincePreviousConsumption,
 
           sheetNumber,
 
+          materialPosition: CONFIG.materialPosition,
+
+          materialQr: materialQrScanned,
+
+          materialQrLast4:
+            materialQrScanned.slice(-4),
+
+          materialCaptureMode: "QR",
+
           timestamp: serverTimestamp(),
 
           userId: CONFIG.employeeId,
+
           userName: CONFIG.userName,
+
           userRole: "pu_cod"
 
         });
 
         return {
+
           nextExpected: nextSheet(sheetNumber)
+
         };
 
       }
     );
 
+    /*
+      CONSUMO COMPLETADO
+    */
+
     setExpectedSheet(result.nextExpected);
 
     currentSheet = null;
-    currentChallenge = null;
+
+    expectedMaterialQr = null;
+
+    scannedMaterialQr = null;
+
+    stopCamera("Consumo registrado correctamente.");
 
     $("challengeSection").classList.add("hidden");
+
     $("cameraSection").classList.add("hidden");
 
     await refreshAll();
@@ -1226,20 +1551,30 @@ async function consumeSheet(scannedPosition) {
 
   } catch (error) {
 
-    console.error("Error al consumir hoja:", error);
+    console.error(
+      "Error al consumir hoja:",
+      error
+    );
 
     let message =
-      "No fue posible registrar el consumo: " + error.message;
+      "No fue posible registrar el consumo: " +
+      error.message;
 
     if (error.message === "GROUP_NOT_FOUND") {
+
       message = "El grupo ya no existe.";
+
     }
 
     else if (error.message === "GROUP_INACTIVE") {
+
       message = "El grupo está inactivo.";
+
     }
 
-    else if (error.message.startsWith("SEQUENCE_CHANGED:")) {
+    else if (
+      error.message.startsWith("SEQUENCE_CHANGED:")
+    ) {
 
       message =
         "La secuencia cambió. La hoja autorizada ahora es " +
@@ -1248,33 +1583,89 @@ async function consumeSheet(scannedPosition) {
     }
 
     else if (
-      ["CONTAINER_NOT_FOUND", "CONTAINER_NOT_AVAILABLE"]
-        .includes(error.message)
+      [
+        "CONTAINER_NOT_FOUND",
+        "CONTAINER_NOT_AVAILABLE"
+      ].includes(error.message)
     ) {
-      message = "La hoja ya no está disponible en el pool.";
+
+      message =
+        "La hoja ya no está disponible en el pool.";
+
     }
 
-    else if (error.message === "POSITION_MISMATCH") {
+    else if (error.message === "MATERIAL_QR_MISSING") {
+
       message =
-        "La validación de posición no coincide. No se realizó el consumo.";
+        "El registro de ZL no contiene un QR de material. No se realizó el consumo.";
+
+    }
+
+    else if (
+      error.message === "MATERIAL_POSITION_INVALID"
+    ) {
+
+      message =
+        "El registro no corresponde a POS1. No se realizó el consumo.";
+
+    }
+
+    else if (
+      error.message === "MATERIAL_QR_MISMATCH"
+    ) {
+
+      message =
+        "El QR del material cambió o no coincide con el registro de ZL. No se realizó el consumo.";
+
     }
 
     await logRejected(
+
       "CONSUME",
+
       sheetNumber,
-      message
+
+      message,
+
+      {
+
+        materialQrScanned,
+
+        materialQrExpectedLast4:
+          expectedMaterialQr
+            ? expectedMaterialQr.slice(-4)
+            : null
+
+      }
+
     );
 
     setStatus(message, "error");
 
-    $("cameraSection").classList.remove("hidden");
+    /*
+      Si la operación sigue pendiente, conservamos
+      la hoja y el QR esperado para permitir reintentar.
+    */
 
-    setCameraStatus(message, "error");
+    if (
+      currentSheet !== null &&
+      expectedMaterialQr
+    ) {
 
-    currentSheet = null;
-    currentChallenge = null;
+      $("challengeSection").classList.remove("hidden");
 
-    $("challengeSection").classList.add("hidden");
+      $("cameraSection").classList.remove("hidden");
+
+      setCameraStatus(
+        "No se realizó el consumo. Puedes volver a escanear POS1.",
+        "warning"
+      );
+
+    } else {
+
+      $("challengeSection").classList.add("hidden");
+
+    }
 
     await refreshAll();
 
@@ -1283,6 +1674,7 @@ async function consumeSheet(scannedPosition) {
     processing = false;
 
     $("scanPositionBtn").disabled = false;
+
     $("refreshBtn").disabled = false;
 
   }
@@ -1290,7 +1682,7 @@ async function consumeSheet(scannedPosition) {
 
 
 /* ==========================================
-   CANCELAR OPERACIÓN
+   12. CANCELAR OPERACIÓN
 ========================================== */
 
 function cancelOperation() {
@@ -1298,9 +1690,13 @@ function cancelOperation() {
   stopCamera("Operación cancelada.");
 
   currentSheet = null;
-  currentChallenge = null;
+
+  expectedMaterialQr = null;
+
+  scannedMaterialQr = null;
 
   $("challengeSection").classList.add("hidden");
+
   $("cameraSection").classList.add("hidden");
 
   setStatus(
@@ -1310,7 +1706,7 @@ function cancelOperation() {
 
 
 /* ==========================================
-   VALIDACIÓN DE USUARIO
+   13. VALIDACIÓN DE USUARIO
 ========================================== */
 
 async function validateUser(firebaseUser) {
@@ -1318,6 +1714,7 @@ async function validateUser(firebaseUser) {
   authorized = false;
 
   if (!firebaseUser) {
+
     throw new Error(
       "No existe una sesión activa. Ingresa nuevamente desde index.html."
     );
@@ -1340,6 +1737,7 @@ async function validateUser(firebaseUser) {
   }
 
   if (!savedUser?.employeeId) {
+
     throw new Error(
       "No se encontró la información de sesión. Ingresa nuevamente."
     );
@@ -1352,12 +1750,14 @@ async function validateUser(firebaseUser) {
   );
 
   if (!userSnap.exists()) {
+
     throw new Error("El usuario no existe en Firestore.");
   }
 
   const userData = userSnap.data();
 
   if (userData.active !== true) {
+
     throw new Error("El usuario se encuentra inactivo.");
   }
 
@@ -1366,16 +1766,22 @@ async function validateUser(firebaseUser) {
     firebaseUser.email.toLowerCase() !==
       String(userData.email || "").toLowerCase()
   ) {
+
     throw new Error(
       "La sesión de Firebase no coincide con el usuario registrado."
     );
   }
 
   const roles = Array.isArray(userData.codpidRoles)
-    ? userData.codpidRoles.map(role => String(role).toLowerCase())
+
+    ? userData.codpidRoles.map(
+        role => String(role).toLowerCase()
+      )
+
     : [];
 
   if (!roles.includes("pu_cod")) {
+
     throw new Error(
       "El usuario no tiene asignado el perfil Cockpit PU."
     );
@@ -1384,7 +1790,11 @@ async function validateUser(firebaseUser) {
   const selectedRole =
     String(savedUser.selectedCodpidRole || "").toLowerCase();
 
-  if (selectedRole && selectedRole !== "pu_cod") {
+  if (
+    selectedRole &&
+    selectedRole !== "pu_cod"
+  ) {
+
     throw new Error(
       "El perfil seleccionado no corresponde a Cockpit PU."
     );
@@ -1394,6 +1804,7 @@ async function validateUser(firebaseUser) {
     String(userData.codpidGroupId || "").trim();
 
   if (!groupId) {
+
     throw new Error(
       "El usuario no tiene un grupo Cockpit asignado."
     );
@@ -1404,6 +1815,7 @@ async function validateUser(firebaseUser) {
   );
 
   if (!groupSnap.exists()) {
+
     throw new Error(
       "El grupo Cockpit asignado no existe."
     );
@@ -1412,6 +1824,7 @@ async function validateUser(firebaseUser) {
   const groupData = groupSnap.data();
 
   if (groupData.active !== true) {
+
     throw new Error(
       "El grupo Cockpit se encuentra inactivo."
     );
@@ -1424,18 +1837,25 @@ async function validateUser(firebaseUser) {
     sequence < 1 ||
     sequence > 100
   ) {
+
     throw new Error(
       "La secuencia del grupo no está configurada entre 01 y 100."
     );
   }
 
   CONFIG.employeeId = employeeId;
+
   CONFIG.userName =
-    userData.name || userData.nombre || employeeId;
+    userData.name ||
+    userData.nombre ||
+    employeeId;
+
   CONFIG.groupId = groupId;
 
   $("userName").textContent = CONFIG.userName;
-  $("groupLabel").textContent = "Grupo: " + groupId;
+
+  $("groupLabel").textContent =
+    "Grupo: " + groupId;
 
   authorized = true;
 
@@ -1444,7 +1864,7 @@ async function validateUser(firebaseUser) {
 
 
 /* ==========================================
-   POOL DE HOJAS
+   14. POOL DE HOJAS
 ========================================== */
 
 async function loadPool() {
@@ -1458,8 +1878,11 @@ async function loadPool() {
   try {
 
     const poolQuery = query(
+
       collection(db, CONFIG.containers),
+
       where("groupId", "==", CONFIG.groupId)
+
     );
 
     const snapshot = await getDocs(poolQuery);
@@ -1473,8 +1896,11 @@ async function loadPool() {
       if (data.status === "available") {
 
         available.push({
+
           id: documentSnap.id,
+
           sheetNumber: Number(data.sheetNumber)
+
         });
 
       }
@@ -1489,7 +1915,9 @@ async function loadPool() {
       available.length + " disponibles";
 
     const suggestedIsAvailable = available.some(
+
       item => item.sheetNumber === expectedSheet
+
     );
 
     if (available.length === 0) {
@@ -1510,6 +1938,7 @@ async function loadPool() {
           item.sheetNumber === expectedSheet;
 
         return `
+
           <button
             type="button"
             class="pool-item ${isSuggested ? "suggested" : "other"}"
@@ -1528,6 +1957,7 @@ async function loadPool() {
             </span>
 
           </button>
+
         `;
 
       }).join("");
@@ -1542,7 +1972,9 @@ async function loadPool() {
       } else {
 
         $("poolNote").textContent =
-          "La hoja " + padSheet(expectedSheet) +
+
+          "La hoja " +
+          padSheet(expectedSheet) +
           " aún no está disponible. Las demás hojas no se pueden consumir todavía.";
 
         $("poolNote").style.color = "#667085";
@@ -1568,21 +2000,28 @@ async function loadPool() {
           );
 
           currentSheet = null;
-          currentChallenge = null;
+
+          expectedMaterialQr = null;
+
+          scannedMaterialQr = null;
 
           $("challengeSection").classList.add("hidden");
 
           $("poolList")
             .querySelectorAll("button")
-            .forEach(item => item.disabled = true);
+            .forEach(item => {
+              item.disabled = true;
+            });
 
           await startCamera("SHEET");
 
           $("poolList")
             .querySelectorAll("button")
             .forEach(item => {
+
               item.disabled =
                 !item.classList.contains("suggested");
+
             });
 
         });
@@ -1597,11 +2036,13 @@ async function loadPool() {
       '<div class="empty">No fue posible consultar el pool.</div>';
 
     $("poolNote").textContent = error.message;
+
     $("poolNote").style.color = "#a40000";
 
   } finally {
 
     poolBusy = false;
+
     $("refreshBtn").disabled = false;
 
   }
@@ -1609,7 +2050,7 @@ async function loadPool() {
 
 
 /* ==========================================
-   ACTUALIZAR SECUENCIA Y POOL
+   15. ACTUALIZAR SECUENCIA Y POOL
 ========================================== */
 
 async function refreshAll() {
@@ -1626,6 +2067,7 @@ async function refreshAll() {
       !groupSnap.exists() ||
       groupSnap.data().active !== true
     ) {
+
       throw new Error(
         "El grupo no existe o está inactivo."
       );
@@ -1639,6 +2081,7 @@ async function refreshAll() {
       sequence < 1 ||
       sequence > 100
     ) {
+
       throw new Error(
         "La secuencia del grupo no es válida."
       );
@@ -1653,6 +2096,7 @@ async function refreshAll() {
     console.error("Error actualizando PU:", error);
 
     $("poolNote").textContent = error.message;
+
     $("poolNote").style.color = "#a40000";
 
   }
@@ -1660,41 +2104,54 @@ async function refreshAll() {
 
 
 /* ==========================================
-   EVENTOS
+   16. EVENTOS
 ========================================== */
 
 $("scanPositionBtn").addEventListener("click", () => {
 
-  if (!currentSheet || !currentChallenge) return;
+  if (
+    currentSheet === null ||
+    !expectedMaterialQr
+  ) return;
 
-  startCamera("POSITION");
+  startCamera("MATERIAL");
 
 });
+
 
 $("stopBtn").addEventListener("click", () => {
+
   stopCamera();
+
 });
+
 
 $("retryBtn").addEventListener("click", () => {
 
   if (
-    scanMode === "POSITION" &&
-    currentSheet &&
-    currentChallenge
+    scanMode === "MATERIAL" &&
+    currentSheet !== null &&
+    expectedMaterialQr
   ) {
-    startCamera("POSITION");
+
+    startCamera("MATERIAL");
+
   }
 
   else if (scanMode === "SHEET") {
+
     startCamera("SHEET");
+
   }
 
 });
+
 
 $("cancelBtn").addEventListener(
   "click",
   cancelOperation
 );
+
 
 $("refreshBtn").addEventListener(
   "click",
@@ -1705,24 +2162,29 @@ $("refreshBtn").addEventListener(
 document.addEventListener("visibilitychange", () => {
 
   if (document.hidden && stream) {
+
     stopCamera(
       "La cámara se detuvo al salir de la página."
     );
+
   }
 
 });
 
+
 window.addEventListener("pagehide", () => {
 
   if (stream) {
+
     stopCamera();
+
   }
 
 });
 
 
 /* ==========================================
-   INICIO Y AUTENTICACIÓN
+   17. INICIO Y AUTENTICACIÓN
 ========================================== */
 
 onAuthStateChanged(auth, async firebaseUser => {
