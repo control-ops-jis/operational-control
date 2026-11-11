@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -217,6 +216,18 @@ input{
     margin-top:8px;
 }
 
+.qr-value{
+    background:#f7f7f8;
+    border:1px dashed #c7cbd1;
+    border-radius:12px;
+    padding:14px;
+    margin-top:10px;
+    font-size:17px;
+    font-weight:bold;
+    overflow-wrap:anywhere;
+    word-break:break-word;
+}
+
 .result-box{
     background:#f7f7f8;
     border:1px solid var(--border);
@@ -433,11 +444,31 @@ footer{
     </section>
 
 
+    <!-- LECTURA OBLIGATORIA DE MATERIAL POS1 -->
+
+    <section class="card hidden" id="materialSection">
+
+        <h2>3. Leer QR de Material POS1</h2>
+
+        <div class="status warning" id="materialStatus">
+            Después de identificar la hoja, escanea el QR del material POS1.
+            Esta lectura es obligatoria para registrar la hoja.
+        </div>
+
+        <div class="qr-value hidden" id="materialQrPreview"></div>
+
+        <button class="primary full" id="materialScanBtn">
+            Leer QR de Material POS1
+        </button>
+
+    </section>
+
+
     <!-- VISTA PREVIA -->
 
     <section class="card hidden" id="previewSection">
 
-        <h2>3. Confirmar registro</h2>
+        <h2>4. Confirmar registro</h2>
 
         <div class="status success" id="previewStatus">
             Hoja identificada correctamente.
@@ -473,7 +504,7 @@ footer{
     <section class="card">
 
         <div class="pool-header">
-            <h2>4. Pool de hojas disponibles</h2>
+            <h2>5. Pool de hojas disponibles</h2>
 
             <div class="counter" id="availableCounter">
                 0 disponibles
@@ -594,6 +625,11 @@ const stopBtn = $("stopBtn");
 const manualSheet = $("manualSheet");
 const manualBtn = $("manualBtn");
 
+const materialSection = $("materialSection");
+const materialStatus = $("materialStatus");
+const materialQrPreview = $("materialQrPreview");
+const materialScanBtn = $("materialScanBtn");
+
 const previewSection = $("previewSection");
 const sheetPreview = $("sheetPreview");
 const sheetNumberPreview = $("sheetNumberPreview");
@@ -620,6 +656,8 @@ let stream = null;
 let animationId = null;
 
 let scanning = false;
+
+let scanMode = "SHEET";
 
 let registering = false;
 
@@ -790,27 +828,42 @@ function prepareSheet(number, source) {
 
         source,
 
-        originalValue: String(number)
+        originalValue: String(number),
+
+        materialQr: null
 
     };
 
     sheetNumberPreview.textContent =
         padSheet(number);
 
+    materialSection.classList.remove("hidden");
+
+    materialStatus.textContent =
+        "Hoja " + padSheet(number) + " identificada. Ahora escanea el QR del material POS1.";
+
+    materialStatus.className = "status warning";
+
+    materialQrPreview.textContent = "";
+    materialQrPreview.classList.add("hidden");
+
+    materialScanBtn.disabled = false;
+    materialScanBtn.textContent = "Leer QR de Material POS1";
+
     previewSection.classList.remove("hidden");
 
     sheetPreview.style.display = "block";
 
     previewStatus.textContent =
-        source === "QR"
-            ? "QR leído correctamente. Confirma el registro."
-            : "Número capturado manualmente. Confirma el registro.";
+        "Pendiente: debes leer el QR del material POS1 para habilitar el registro.";
 
-    previewStatus.className = "status success";
+    previewStatus.className = "status warning";
+
+    confirmBtn.disabled = true;
 
     $("manualSheet").value = number;
 
-    previewSection.scrollIntoView({
+    materialSection.scrollIntoView({
         behavior: "smooth",
         block: "center"
     });
@@ -820,6 +873,15 @@ function prepareSheet(number, source) {
 function clearPreview() {
 
     currentSheet = null;
+
+    materialSection.classList.add("hidden");
+    materialStatus.textContent =
+        "Después de identificar la hoja, escanea el QR del material POS1.";
+    materialStatus.className = "status warning";
+    materialQrPreview.textContent = "";
+    materialQrPreview.classList.add("hidden");
+    materialScanBtn.disabled = false;
+    materialScanBtn.textContent = "Leer QR de Material POS1";
 
     previewSection.classList.add("hidden");
 
@@ -874,7 +936,9 @@ function stopCamera(message = "Cámara detenida.") {
 }
 
 
-async function startCamera() {
+async function startCamera(mode = "SHEET") {
+
+    scanMode = mode;
 
     if (!authorized) {
 
@@ -978,7 +1042,9 @@ async function startCamera() {
         stopBtn.disabled = false;
 
         setCameraStatus(
-            "Cámara activa. Apunta al QR de la hoja viajera."
+            scanMode === "MATERIAL"
+                ? "Cámara activa. Apunta al QR del material POS1."
+                : "Cámara activa. Apunta al QR de la hoja viajera."
         );
 
         scanLoop();
@@ -1066,24 +1132,79 @@ function scanLoop() {
                 "Código QR detectado."
             );
 
-            try {
+            if (scanMode === "MATERIAL") {
 
-                const sheetNumber =
-                    parseSheetQR(code.data);
+                const materialQr = String(code.data).trim();
 
-                prepareSheet(sheetNumber, "QR");
+                if (!materialQr) {
+
+                    materialStatus.textContent =
+                        "El QR leído no contiene un valor válido. Intenta nuevamente.";
+
+                    materialStatus.className = "status error";
+
+                    setCameraStatus(
+                        "El QR del material está vacío. Intenta nuevamente.",
+                        "error"
+                    );
+
+                    return;
+                }
+
+                if (!currentSheet) {
+
+                    setCameraStatus(
+                        "Primero debes identificar una hoja viajera.",
+                        "error"
+                    );
+
+                    return;
+                }
+
+                currentSheet.materialQr = materialQr;
+
+                materialQrPreview.textContent = materialQr;
+                materialQrPreview.classList.remove("hidden");
+
+                materialStatus.textContent =
+                    "QR de Material POS1 leído correctamente. Ya puedes confirmar el registro.";
+
+                materialStatus.className = "status success";
+
+                materialScanBtn.textContent = "Volver a leer QR de Material POS1";
+                confirmBtn.disabled = false;
+
+                previewStatus.textContent =
+                    "Hoja y QR de Material POS1 identificados. Confirma el registro.";
+
+                previewStatus.className = "status success";
 
                 setCameraStatus(
-                    "Hoja identificada correctamente.",
+                    "QR de Material POS1 capturado correctamente.",
                     "success"
                 );
 
-            } catch (error) {
+            } else {
 
-                setCameraStatus(
-                    error.message,
-                    "error"
-                );
+                try {
+
+                    const sheetNumber =
+                        parseSheetQR(code.data);
+
+                    prepareSheet(sheetNumber, "QR");
+
+                    setCameraStatus(
+                        "Hoja identificada correctamente. Ahora lee el QR de Material POS1.",
+                        "success"
+                    );
+
+                } catch (error) {
+
+                    setCameraStatus(
+                        error.message,
+                        "error"
+                    );
+                }
             }
 
             return;
@@ -1098,6 +1219,22 @@ function scanLoop() {
 /* =====================================================
    9. VALIDACIÓN MANUAL
 ===================================================== */
+
+materialScanBtn.addEventListener("click", () => {
+
+    if (!currentSheet) {
+
+        setCameraStatus(
+            "Primero debes identificar una hoja viajera.",
+            "error"
+        );
+
+        return;
+    }
+
+    startCamera("MATERIAL");
+});
+
 
 manualBtn.addEventListener("click", () => {
 
@@ -1414,7 +1551,8 @@ async function loadPool() {
 
 async function registerRejectedAttempt(
     sheetNumber,
-    reason
+    reason,
+    materialQr = null
 ) {
 
     try {
@@ -1434,6 +1572,16 @@ async function registerRejectedAttempt(
                 secondsSincePreviousConsumption: null,
 
                 sheetNumber: sheetNumber,
+
+                materialPosition: "POS1",
+
+                materialQr: materialQr,
+
+                materialQrLast4: materialQr
+                    ? materialQr.slice(-4)
+                    : null,
+
+                materialCaptureMode: materialQr ? "QR" : null,
 
                 timestamp: serverTimestamp(),
 
@@ -1476,6 +1624,18 @@ async function registerSheet() {
         return;
     }
 
+    if (!currentSheet.materialQr) {
+
+        alert("Debes leer el QR del Material POS1 antes de registrar la hoja.");
+
+        materialSection.scrollIntoView({
+            behavior: "smooth",
+            block: "center"
+        });
+
+        return;
+    }
+
     if (registering) return;
 
     registering = true;
@@ -1487,6 +1647,9 @@ async function registerSheet() {
 
     const sheetNumber =
         currentSheet.number;
+
+    const materialQr =
+        currentSheet.materialQr;
 
     const formattedSheet =
         padSheet(sheetNumber);
@@ -1579,6 +1742,20 @@ async function registerSheet() {
 
                     sheetNumber: sheetNumber,
 
+                    materialPosition: "POS1",
+
+                    materialQr: materialQr,
+
+                    materialQrLast4: materialQr.slice(-4),
+
+                    materialCaptureMode: "QR",
+
+                    materialCapturedBy: CONFIG.employeeId,
+
+                    materialCapturedByName: CONFIG.userName,
+
+                    materialCapturedAt: serverTimestamp(),
+
                     status: "available",
 
                     createdAt:
@@ -1635,6 +1812,14 @@ async function registerSheet() {
 
                         sheetNumber: sheetNumber,
 
+                        materialPosition: "POS1",
+
+                        materialQr: materialQr,
+
+                        materialQrLast4: materialQr.slice(-4),
+
+                        materialCaptureMode: "QR",
+
                         timestamp: serverTimestamp(),
 
                         userId: CONFIG.employeeId,
@@ -1688,7 +1873,8 @@ async function registerSheet() {
 
             await registerRejectedAttempt(
                 sheetNumber,
-                "Intento de registro rechazado: la hoja ya estaba disponible."
+                "Intento de registro rechazado: la hoja ya estaba disponible.",
+                materialQr
             );
 
         } else if (
