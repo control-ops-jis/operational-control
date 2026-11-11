@@ -269,6 +269,25 @@ input{
     color:var(--muted);
 }
 
+.confirm-actions{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:10px;
+    margin-top:12px;
+}
+
+.confirm-actions button{
+    width:100%;
+    min-width:0;
+    margin:0;
+}
+
+@media(max-width:360px){
+    .confirm-actions{
+        grid-template-columns:1fr;
+    }
+}
+
 .pool-header{
     display:flex;
     justify-content:space-between;
@@ -374,7 +393,7 @@ footer{
 
     <!-- LECTOR QR -->
 
-    <section class="card">
+    <section class="card" id="cameraSection">
 
         <h2>1. Registrar hoja viajera</h2>
 
@@ -413,42 +432,11 @@ footer{
     </section>
 
 
-    <!-- CAPTURA MANUAL -->
-
-    <section class="card">
-
-        <h2>2. Captura manual de hoja</h2>
-
-        <div class="status warning">
-            Opción provisional mientras generamos los QR definitivos
-            de las hojas viajeras.
-        </div>
-
-        <label for="manualSheet">
-            Número de hoja (01–100)
-        </label>
-
-        <input
-            type="number"
-            id="manualSheet"
-            min="1"
-            max="100"
-            step="1"
-            placeholder="Ejemplo: 98"
-        >
-
-        <button class="secondary full" id="manualBtn">
-            Validar número
-        </button>
-
-    </section>
-
-
     <!-- LECTURA OBLIGATORIA DE MATERIAL POS1 -->
 
     <section class="card hidden" id="materialSection">
 
-        <h2>3. Leer QR de Material POS1</h2>
+        <h2>2. Leer QR de Material POS1</h2>
 
         <div class="status warning" id="materialStatus">
             Después de identificar la hoja, escanea el QR del material POS1.
@@ -457,9 +445,6 @@ footer{
 
         <div class="qr-value hidden" id="materialQrPreview"></div>
 
-        <button class="primary full" id="materialScanBtn">
-            Leer QR de Material POS1
-        </button>
 
     </section>
 
@@ -468,7 +453,7 @@ footer{
 
     <section class="card hidden" id="previewSection">
 
-        <h2>4. Confirmar registro</h2>
+        <h2>3. Confirmar registro</h2>
 
         <div class="status success" id="previewStatus">
             Hoja identificada correctamente.
@@ -488,13 +473,15 @@ footer{
             </div>
         </div>
 
-        <button class="success-btn full" id="confirmBtn">
-            Confirmar y registrar hoja
-        </button>
+        <div class="confirm-actions">
+            <button class="secondary" id="materialScanBtn">
+                Volver a escanear QR POS1
+            </button>
 
-        <button class="secondary full" id="cancelBtn">
-            Cancelar
-        </button>
+            <button class="success-btn" id="confirmBtn">
+                Confirmar registro
+            </button>
+        </div>
 
     </section>
 
@@ -504,7 +491,7 @@ footer{
     <section class="card">
 
         <div class="pool-header">
-            <h2>5. Pool de hojas disponibles</h2>
+            <h2>4. Pool de hojas disponibles</h2>
 
             <div class="counter" id="availableCounter">
                 0 disponibles
@@ -622,9 +609,6 @@ const cameraStatus = $("cameraStatus");
 const startBtn = $("startBtn");
 const stopBtn = $("stopBtn");
 
-const manualSheet = $("manualSheet");
-const manualBtn = $("manualBtn");
-
 const materialSection = $("materialSection");
 const materialStatus = $("materialStatus");
 const materialQrPreview = $("materialQrPreview");
@@ -636,8 +620,6 @@ const sheetNumberPreview = $("sheetNumberPreview");
 const previewStatus = $("previewStatus");
 
 const confirmBtn = $("confirmBtn");
-const cancelBtn = $("cancelBtn");
-
 const poolList = $("poolList");
 const poolStatus = $("poolStatus");
 const availableCounter = $("availableCounter");
@@ -848,9 +830,7 @@ function prepareSheet(number, source) {
     materialQrPreview.classList.add("hidden");
 
     materialScanBtn.disabled = false;
-    materialScanBtn.textContent = "Leer QR de Material POS1";
-
-    previewSection.classList.remove("hidden");
+    materialScanBtn.textContent = "Volver a escanear QR POS1";
 
     sheetPreview.style.display = "block";
 
@@ -861,12 +841,17 @@ function prepareSheet(number, source) {
 
     confirmBtn.disabled = true;
 
-    $("manualSheet").value = number;
-
-    materialSection.scrollIntoView({
+    document.getElementById("cameraSection").scrollIntoView({
         behavior: "smooth",
-        block: "center"
+        block: "start"
     });
+
+    // Después de validar la hoja, abrir automáticamente la cámara POS1.
+    setTimeout(() => {
+        if (currentSheet && !currentSheet.materialQr) {
+            startCamera("MATERIAL");
+        }
+    }, 350);
 }
 
 
@@ -881,7 +866,7 @@ function clearPreview() {
     materialQrPreview.textContent = "";
     materialQrPreview.classList.add("hidden");
     materialScanBtn.disabled = false;
-    materialScanBtn.textContent = "Leer QR de Material POS1";
+    materialScanBtn.textContent = "Volver a escanear QR POS1";
 
     previewSection.classList.add("hidden");
 
@@ -1171,8 +1156,10 @@ function scanLoop() {
 
                 materialStatus.className = "status success";
 
-                materialScanBtn.textContent = "Volver a leer QR de Material POS1";
+                materialScanBtn.textContent = "Volver a escanear QR POS1";
                 confirmBtn.disabled = false;
+
+                previewSection.classList.remove("hidden");
 
                 previewStatus.textContent =
                     "Hoja y QR de Material POS1 identificados. Confirma el registro.";
@@ -1184,6 +1171,11 @@ function scanLoop() {
                     "success"
                 );
 
+                previewSection.scrollIntoView({
+                    behavior: "smooth",
+                    block: "center"
+                });
+
             } else {
 
                 try {
@@ -1194,7 +1186,7 @@ function scanLoop() {
                     prepareSheet(sheetNumber, "QR");
 
                     setCameraStatus(
-                        "Hoja identificada correctamente. Ahora lee el QR de Material POS1.",
+                        "Hoja identificada. Activando cámara para leer Material POS1...",
                         "success"
                     );
 
@@ -1217,7 +1209,7 @@ function scanLoop() {
 
 
 /* =====================================================
-   9. VALIDACIÓN MANUAL
+   9. RELECTURA DEL QR DE MATERIAL POS1
 ===================================================== */
 
 materialScanBtn.addEventListener("click", () => {
@@ -1232,42 +1224,27 @@ materialScanBtn.addEventListener("click", () => {
         return;
     }
 
-    startCamera("MATERIAL");
-});
+    currentSheet.materialQr = null;
+    materialQrPreview.textContent = "";
+    materialQrPreview.classList.add("hidden");
+    confirmBtn.disabled = true;
 
+    materialStatus.textContent =
+        "Vuelve a escanear el QR del material POS1.";
 
-manualBtn.addEventListener("click", () => {
+    materialStatus.className = "status warning";
 
-    try {
+    previewStatus.textContent =
+        "Pendiente de volver a leer el QR del material POS1.";
 
-        const number =
-            Number(manualSheet.value);
+    previewStatus.className = "status warning";
 
-        if (!manualSheet.value.trim()) {
+    document.getElementById("cameraSection").scrollIntoView({
+        behavior: "smooth",
+        block: "start"
+    });
 
-            throw new Error(
-                "Ingresa el número de hoja."
-            );
-        }
-
-        prepareSheet(number, "MANUAL");
-
-    } catch (error) {
-
-        previewSection.classList.remove("hidden");
-
-        previewSection.scrollIntoView({
-            behavior: "smooth",
-            block: "center"
-        });
-
-        previewStatus.textContent = error.message;
-
-        previewStatus.className =
-            "status error";
-
-        sheetPreview.style.display = "none";
-    }
+    setTimeout(() => startCamera("MATERIAL"), 250);
 });
 
 
@@ -1850,8 +1827,6 @@ async function registerSheet() {
 
         clearPreview();
 
-        manualSheet.value = "";
-
         await loadPool();
 
     } catch (error) {
@@ -1938,18 +1913,6 @@ stopBtn.addEventListener(
 confirmBtn.addEventListener(
     "click",
     registerSheet
-);
-
-cancelBtn.addEventListener(
-    "click",
-    () => {
-
-        clearPreview();
-
-        setCameraStatus(
-            "Registro cancelado. Puedes escanear otra hoja."
-        );
-    }
 );
 
 refreshBtn.addEventListener(
@@ -2053,8 +2016,6 @@ onAuthStateChanged(
             );
 
             startBtn.disabled = true;
-
-            manualBtn.disabled = true;
 
             refreshBtn.disabled = true;
         }
