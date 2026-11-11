@@ -1,4 +1,3 @@
-```html
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -1858,8 +1857,8 @@ function codpidActionLabel(action){
 function codpidDetails(row){
 
     if(
-        row.action === "MATERIAL_QR_VERIFY" &&
-        row.result === "REJECTED" &&
+        String(row.action || "").toUpperCase() === "MATERIAL_QR_VERIFY" &&
+        String(row.result || "").toUpperCase() === "REJECTED" &&
         row.materialQrScanned
     ){
         const position = row.materialPosition || "material";
@@ -1895,18 +1894,48 @@ window.loadCodpidReports = async function(){
     const table = document.getElementById("codpidReportsTable");
     const status = document.getElementById("codpidReportStatus");
     table.innerHTML = '<tr><td colspan="12">Consultando auditoría CodPid...</td></tr>';
-    status.textContent = "Consultando movimientos e inventario CodPid...";
+    status.textContent = "Consultando auditoría CodPid...";
+
     try{
-        const [auditSnap, containersSnap, groupsSnap] = await Promise.all([
-            getDocs(collection(db,"codpidAudit")),
+        // La auditoría es la fuente principal. Su lectura no debe depender
+        // de que las colecciones auxiliares estén disponibles.
+        const auditSnap = await getDocs(collection(db,"codpidAudit"));
+        codpidAuditRows = auditSnap.docs.map(d=>{
+            const data = d.data() || {};
+            return {
+                id:d.id,
+                ...data,
+                action:String(data.action || data.eventType || data.type || "").trim().toUpperCase(),
+                result:String(data.result || "").trim().toUpperCase()
+            };
+        });
+        codpidReportLoaded = true;
+
+        // Contenedores y grupos solo enriquecen el reporte. Si alguna lectura
+        // auxiliar falla, los eventos de codpidAudit se siguen mostrando.
+        const [containersResult, groupsResult] = await Promise.allSettled([
             getDocs(collection(db,"codpidContainers")),
             getDocs(collection(db,"codpidGroups"))
         ]);
-        codpidAuditRows = auditSnap.docs.map(d=>({id:d.id,...d.data()}));
-        codpidContainerRows = containersSnap.docs.map(d=>({id:d.id,...d.data()}));
-        codpidGroupRows = groupsSnap.docs.map(d=>({id:d.id,...d.data()}));
+
+        let auxiliaryWarnings = [];
+        if(containersResult.status === "fulfilled"){
+            codpidContainerRows = containersResult.value.docs.map(d=>({id:d.id,...d.data()}));
+        }else{
+            codpidContainerRows = [];
+            auxiliaryWarnings.push("No se pudo consultar codpidContainers; los datos QR ZL/estado actual pueden aparecer vacíos.");
+            console.warn("No fue posible consultar codpidContainers:",containersResult.reason);
+        }
+
+        if(groupsResult.status === "fulfilled"){
+            codpidGroupRows = groupsResult.value.docs.map(d=>({id:d.id,...d.data()}));
+        }else{
+            codpidGroupRows = [];
+            auxiliaryWarnings.push("No se pudo consultar codpidGroups; se mostrará el ID del grupo.");
+            console.warn("No fue posible consultar codpidGroups:",groupsResult.reason);
+        }
+
         populateCodpidGroups();
-        codpidReportLoaded = true;
 
         const group = document.getElementById("codpidGroupFilter").value;
         const action = document.getElementById("codpidActionFilter").value;
@@ -1922,11 +1951,11 @@ window.loadCodpidReports = async function(){
             if(result!=="ALL" && row.result!==result) return false;
             if(user && !String(row.userId||"").toLowerCase().includes(user) && !String(row.userName||"").toLowerCase().includes(user)) return false;
             if(sheet && Number(row.sheetNumber)!==Number(sheet)) return false;
-            const date = codpidDate(row.timestamp);
+            const date = codpidDate(row.timestamp || row.createdAt);
             if(from && (!date || getLocalDateValue(date)<from)) return false;
             if(to && (!date || getLocalDateValue(date)>to)) return false;
             return true;
-        }).sort((a,b)=>(codpidDate(b.timestamp)?.getTime()||0)-(codpidDate(a.timestamp)?.getTime()||0));
+        }).sort((a,b)=>(codpidDate(b.timestamp || b.createdAt)?.getTime()||0)-(codpidDate(a.timestamp || a.createdAt)?.getTime()||0));
 
         const groupName = id => codpidGroupRows.find(g=>g.id===id)?.name || id || "-";
         const scopedAudit = codpidAuditRows.filter(r=>group==="ALL" || r.groupId===group);
@@ -1937,17 +1966,17 @@ window.loadCodpidReports = async function(){
         const rejected = scopedAudit.filter(r=>r.result==="REJECTED").length;
         document.getElementById("codpidKpiRegistered").textContent = registered;
         document.getElementById("codpidKpiConsumed").textContent = consumed;
-        document.getElementById("codpidKpiAvailable").textContent = available;
+        document.getElementById("codpidKpiAvailable").textContent = containersResult.status === "fulfilled" ? available : "—";
         document.getElementById("codpidKpiRejected").textContent = rejected;
 
         if(!filtered.length){
             table.innerHTML='<tr><td colspan="12">No hay movimientos CodPid con los filtros seleccionados.</td></tr>';
         }else{
             table.innerHTML = filtered.map(row=>{
-                const date=codpidDate(row.timestamp);
+                const date=codpidDate(row.timestamp || row.createdAt);
                 const resultClass=row.result==="SUCCESS"?"ok":"warning";
                 const container=codpidFindContainer(row);
-                const qrZL=container?.materialQr || "-";
+                const qrZL=container?.materialQr || row.materialQrExpected || row.materialQrExpectedValue || "-";
 
                 const qrPU = row.action === "MATERIAL_QR_VERIFY"
                     ? (row.materialQrScanned || "-")
@@ -1971,11 +2000,14 @@ window.loadCodpidReports = async function(){
                 </tr>`;
             }).join("");
         }
-        status.textContent = `Auditoría: ${codpidAuditRows.length} eventos · Mostrando ${filtered.length} · Grupos consultados: ${codpidGroupRows.length}. Los indicadores de registro y consumo son acumulados históricos; disponibles es el estado actual del pool.`;
+
+        const warningText = auxiliaryWarnings.length ? " Aviso: " + auxiliaryWarnings.join(" ") : "";
+        status.textContent = `Auditoría: ${codpidAuditRows.length} eventos · Mostrando ${filtered.length} · Grupos consultados: ${codpidGroupRows.length}. Los indicadores de registro y consumo son acumulados históricos; disponibles es el estado actual del pool.${warningText}`;
     }catch(error){
-        console.error("Error cargando reportes CodPid:",error);
-        table.innerHTML=`<tr><td colspan="12">No fue posible consultar CodPid: ${codpidEscape(error.message)}</td></tr>`;
-        status.textContent="Verifica permisos de lectura y conexión con Firestore.";
+        console.error("Error cargando auditoría CodPid:",error);
+        codpidReportLoaded = false;
+        table.innerHTML=`<tr><td colspan="12">No fue posible consultar la auditoría CodPid: ${codpidEscape(error.message)}</td></tr>`;
+        status.textContent="La consulta principal de codpidAudit falló. Verifica permisos de lectura y conexión con Firestore.";
     }
 };
 
@@ -2001,7 +2033,7 @@ window.exportCodpidReports = function(){
     }).sort((a,b)=>(codpidDate(b.timestamp)?.getTime()||0)-(codpidDate(a.timestamp)?.getTime()||0));
     const headers=["Movimiento","Fecha","Hora","Grupo","Hoja","Usuario","ID usuario","Perfil","Resultado","QR ZL","QR PU","Minutos desde consumo anterior","Detalle"];
     const data=rows.map(row=>{
-        const date=codpidDate(row.timestamp);
+        const date=codpidDate(row.timestamp || row.createdAt);
         const groupName=codpidGroupRows.find(g=>g.id===row.groupId)?.name||row.groupId||"-";
         const container=codpidFindContainer(row);
         const qrZL=container?.materialQr||"-";
@@ -2149,4 +2181,3 @@ document.getElementById("appVersion").innerText =
 </script>
 </body>
 </html>
-```
