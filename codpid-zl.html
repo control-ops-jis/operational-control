@@ -175,9 +175,9 @@ button:disabled{
 }
 
 .method-btn.selected{
-    border-color:var(--dhl-red);
-    background:#fff4f4;
-    color:var(--dhl-red);
+    border-color:var(--green);
+    background:#eaf7ef;
+    color:var(--green);
 }
 
 .method-btn.recommended::after{
@@ -244,7 +244,7 @@ button:disabled{
 
 .reader-actions{
     display:grid;
-    grid-template-columns:1fr 1fr;
+    grid-template-columns:1fr;
     gap:9px;
     margin-top:10px;
 }
@@ -427,8 +427,7 @@ footer{
 }
 
 @media(max-width:360px){
-    .confirm-actions,
-    .reader-actions{
+    .confirm-actions{
         grid-template-columns:1fr;
     }
 }
@@ -451,8 +450,6 @@ footer{
 
 <main>
 
-    <!-- INFORMACIÓN DEL USUARIO -->
-
     <section class="card">
         <div class="user-info">
             <div>
@@ -470,8 +467,7 @@ footer{
         </div>
     </section>
 
-
-    <!-- IDENTIFICACIÓN DE HOJA -->
+    <!-- IDENTIFICACIÓN Y MÉTODO DE LECTURA -->
 
     <section class="card" id="cameraSection">
 
@@ -509,7 +505,7 @@ footer{
 
         </div>
 
-        <!-- PANEL RING SCANNER -->
+        <!-- RING SCANNER -->
 
         <div class="reader-panel" id="ringPanel">
 
@@ -518,8 +514,7 @@ footer{
             </div>
 
             <div class="reader-description" id="ringDescription">
-                Método principal. Conecta tu Ring Scanner y activa la lectura.
-                No necesitas presionar Enter.
+                Conecta tu Ring Scanner. El lector se activa automáticamente al seleccionar este método.
             </div>
 
             <input
@@ -535,18 +530,10 @@ footer{
             >
 
             <div class="reader-status" id="ringStatus">
-                Ring inactivo. Pulsa Activar Ring para comenzar.
+                Esperando activación...
             </div>
 
             <div class="reader-actions">
-
-                <button
-                    type="button"
-                    class="primary"
-                    id="activateRingBtn"
-                >
-                    Activar Ring
-                </button>
 
                 <button
                     type="button"
@@ -561,7 +548,7 @@ footer{
 
         </div>
 
-        <!-- PANEL CÁMARA -->
+        <!-- CÁMARA -->
 
         <div class="hidden" id="cameraPanel">
 
@@ -593,11 +580,10 @@ footer{
         </div>
 
         <p class="group-label" id="readerHelp">
-            El Ring Scanner es el método principal. Puedes cambiar a cámara cuando lo necesites.
+            El método seleccionado se conservará durante las dos lecturas del proceso.
         </p>
 
     </section>
-
 
     <!-- LECTURA MATERIAL POS1 -->
 
@@ -612,31 +598,10 @@ footer{
         <div class="qr-value hidden" id="materialQrPreview"></div>
 
         <div class="status">
-            Puedes conservar Ring Scanner o cambiar a Cámara para esta lectura.
-        </div>
-
-        <div class="confirm-actions">
-
-            <button
-                type="button"
-                class="primary"
-                id="materialRingBtn"
-            >
-                ◉ Usar Ring Scanner
-            </button>
-
-            <button
-                type="button"
-                class="secondary"
-                id="materialCameraBtn"
-            >
-                ▣ Usar Cámara
-            </button>
-
+            Continúa utilizando el método de lectura seleccionado. No necesitas cambiarlo.
         </div>
 
     </section>
-
 
     <!-- VISTA PREVIA -->
 
@@ -678,7 +643,6 @@ footer{
 
     </section>
 
-
     <!-- POOL -->
 
     <section class="card">
@@ -711,9 +675,7 @@ footer{
     DHL Operational Control · Cockpit TRANSFER
 </footer>
 
-
 <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
-
 
 <script type="module">
 
@@ -815,7 +777,6 @@ const ringStatus = $("ringStatus");
 const ringTitle = $("ringTitle");
 const ringDescription = $("ringDescription");
 
-const activateRingBtn = $("activateRingBtn");
 const deactivateRingBtn = $("deactivateRingBtn");
 
 const ringMethodBtn = $("ringMethodBtn");
@@ -825,8 +786,6 @@ const materialSection = $("materialSection");
 const materialStatus = $("materialStatus");
 const materialQrPreview = $("materialQrPreview");
 
-const materialRingBtn = $("materialRingBtn");
-const materialCameraBtn = $("materialCameraBtn");
 const materialScanBtn = $("materialScanBtn");
 
 const previewSection = $("previewSection");
@@ -856,6 +815,11 @@ let animationId = null;
 let scanning = false;
 
 let activeStage = "SHEET";
+
+/*
+   El método elegido se conserva durante
+   todo el registro de la hoja.
+*/
 
 let selectedMethod = "RING";
 
@@ -955,20 +919,20 @@ function validateMaterialPos1QR(rawValue) {
 ===================================================== */
 
 function parseSheetQR(rawValue) {
+
     if (!rawValue) return null;
 
     const value = String(rawValue).trim().toUpperCase();
 
     // Formato: 25
     if (/^\d{1,3}$/.test(value)) {
+
         const n = Number(value);
+
         return n >= 1 && n <= 100 ? n : null;
     }
 
-    // Normalizar separadores:
-    // CODPID|HOJA|25
-    // CODPID]HOJA]25
-    // CODPID/NAVE4/TORRETA/25
+    // Normalizar separadores
     const normalized = value.replace(/[\]|/\/]+/g, "|");
 
     const parts = normalized
@@ -982,7 +946,9 @@ function parseSheetQR(rawValue) {
         parts[0] === "CODPID" &&
         parts[1] === "HOJA"
     ) {
+
         const n = Number(parts[2]);
+
         return /^\d{1,3}$/.test(parts[2]) && n >= 1 && n <= 100
             ? n
             : null;
@@ -995,7 +961,9 @@ function parseSheetQR(rawValue) {
         parts[1] === "NAVE4" &&
         parts[2] === "TORRETA"
     ) {
+
         const n = Number(parts[3]);
+
         return /^\d{1,3}$/.test(parts[3]) && n >= 1 && n <= 100
             ? n
             : null;
@@ -1007,7 +975,9 @@ function parseSheetQR(rawValue) {
         parts[0] === "NAVE4" &&
         parts[1] === "TORRETA"
     ) {
+
         const n = Number(parts[2]);
+
         return /^\d{1,3}$/.test(parts[2]) && n >= 1 && n <= 100
             ? n
             : null;
@@ -1016,13 +986,27 @@ function parseSheetQR(rawValue) {
     return null;
 }
 
+
 /* =====================================================
-   8. SELECCIÓN DEL MÉTODO DE LECTURA
+   8. ADMINISTRACIÓN DEL MÉTODO DE LECTURA
 ===================================================== */
+
+/*
+   IMPORTANTE:
+
+   La selección del método también ejecuta
+   su activación.
+
+   No se necesita un botón adicional para
+   activar Ring Scanner.
+
+   El método permanece seleccionado al cambiar
+   entre SHEET y MATERIAL.
+*/
 
 function selectMethod(method) {
 
-    if (registering) return;
+    if (registering || !authorized) return;
 
     selectedMethod = method;
 
@@ -1038,15 +1022,15 @@ function selectMethod(method) {
 
     if (method === "RING") {
 
-        stopCamera();
+        stopCamera(
+            "Ring Scanner seleccionado."
+        );
 
         cameraPanel.classList.add("hidden");
 
         ringPanel.classList.remove("hidden");
 
-        setRingStatus(
-            "Ring seleccionado. Pulsa Activar Ring para comenzar."
-        );
+        activateRing();
 
     } else {
 
@@ -1056,9 +1040,7 @@ function selectMethod(method) {
 
         cameraPanel.classList.remove("hidden");
 
-        setCameraStatus(
-            "Cámara seleccionada. Pulsa Activar cámara para comenzar."
-        );
+        startCamera();
     }
 }
 
@@ -1076,7 +1058,7 @@ cameraMethodBtn.addEventListener(
 
 
 /* =====================================================
-   9. REINICIAR EL MÉTODO PARA UNA ETAPA
+   9. ACTUALIZAR ETAPA SIN CAMBIAR MÉTODO
 ===================================================== */
 
 function setReaderStage(stage) {
@@ -1092,13 +1074,13 @@ function setReaderStage(stage) {
             "◉ Ring Scanner Bluetooth";
 
         ringDescription.textContent =
-            "Método principal. Escanea el QR de identificación de la hoja. No necesitas presionar Enter.";
+            "Escanea el QR de identificación de la hoja. El lector se activa automáticamente.";
 
         ringInput.placeholder =
             "Esperando QR de hoja...";
 
         $("readerHelp").textContent =
-            "Escanea la identificación de la hoja viajera mediante Ring Scanner o Cámara.";
+            "El método seleccionado se conservará durante todo el proceso de registro.";
 
     } else {
 
@@ -1115,11 +1097,36 @@ function setReaderStage(stage) {
             "Esperando QR Material POS1...";
 
         $("readerHelp").textContent =
-            "La lectura del material POS1 es obligatoria antes de confirmar.";
-
+            "El método de lectura seleccionado continúa activo para el QR POS1.";
     }
 
-    selectMethod("RING");
+    /*
+       No se modifica selectedMethod.
+
+       Se reactiva automáticamente el mismo lector
+       que estaba seleccionado originalmente.
+    */
+
+    if (selectedMethod === "RING") {
+
+        stopCamera();
+
+        ringPanel.classList.remove("hidden");
+
+        cameraPanel.classList.add("hidden");
+
+        activateRing();
+
+    } else {
+
+        stopRing(true);
+
+        ringPanel.classList.add("hidden");
+
+        cameraPanel.classList.remove("hidden");
+
+        startCamera();
+    }
 }
 
 
@@ -1191,6 +1198,13 @@ function prepareSheet(number, source) {
     previewStatus.className = "status warning";
 
     confirmBtn.disabled = true;
+
+    /*
+       Se cambia únicamente la etapa.
+
+       El método seleccionado NO se reinicia.
+       El lector vuelve a activarse automáticamente.
+    */
 
     setReaderStage("MATERIAL");
 
@@ -1283,7 +1297,17 @@ function acceptMaterialQr(rawValue, captureMode) {
         "success"
     );
 
+    /*
+       Al completar POS1 se detiene el lector.
+       El método seleccionado se conserva para
+       el siguiente registro o una relectura.
+    */
+
     stopRing(true);
+
+    stopCamera(
+        "QR POS1 validado correctamente."
+    );
 
     previewSection.scrollIntoView({
         behavior: "smooth",
@@ -1304,6 +1328,13 @@ function processScannedValue(rawValue, captureMode) {
 
         const sheetNumber =
             parseSheetQR(rawValue);
+
+        if (sheetNumber === null) {
+
+            throw new Error(
+                "QR de hoja inválido. Verifica que corresponda a una hoja del 01 al 100."
+            );
+        }
 
         prepareSheet(
             sheetNumber,
@@ -1350,14 +1381,12 @@ function stopRing(clearInput = false) {
         ringInput.value = "";
     }
 
-    activateRingBtn.disabled = false;
-
     deactivateRingBtn.disabled = true;
 
     ringPanel.classList.remove("ring-active");
 
     setRingStatus(
-        "Ring inactivo. Pulsa Activar Ring para comenzar."
+        "Ring detenido. Selecciona Ring Scanner para reactivarlo."
     );
 }
 
@@ -1374,6 +1403,13 @@ function activateRing() {
     }
 
     if (registering) return;
+
+    if (ringEnabled) {
+
+        ringInput.focus();
+
+        return;
+    }
 
     if (
         activeStage === "MATERIAL" &&
@@ -1408,8 +1444,6 @@ function activateRing() {
     ringEnabled = true;
 
     ringProcessing = false;
-
-    activateRingBtn.disabled = true;
 
     deactivateRingBtn.disabled = false;
 
@@ -1446,7 +1480,18 @@ function processRingScan() {
             "ZEBRA_HID"
         );
 
-        stopRing(true);
+        /*
+           No detener aquí el Ring.
+
+           La función que procesa el QR decide
+           qué hacer con el lector:
+
+           - Hoja identificada:
+             reactiva automáticamente Ring para POS1.
+
+           - POS1 validado:
+             detiene Ring para confirmar.
+        */
 
     } catch (error) {
 
@@ -1468,10 +1513,12 @@ function processRingScan() {
                 rawValue,
                 "ZEBRA_HID"
             ).catch(err => {
+
                 console.error(
                     "Error guardando rechazo Zebra:",
                     err
                 );
+
             });
 
             materialStatus.textContent =
@@ -1523,12 +1570,6 @@ ringInput.addEventListener("input", () => {
     }, RING_IDLE_TIME);
 
 });
-
-
-activateRingBtn.addEventListener(
-    "click",
-    activateRing
-);
 
 
 deactivateRingBtn.addEventListener(
@@ -1850,90 +1891,12 @@ function scanLoop() {
 
 
 /* =====================================================
-   15. BOTONES DE LECTURA POS1
+   15. VOLVER A ESCANEAR MATERIAL POS1
 ===================================================== */
-
-materialRingBtn.addEventListener("click", () => {
-
-    if (!currentSheet) return;
-
-    if (currentSheet.materialQr) {
-
-        currentSheet.materialQr = null;
-
-        currentSheet.materialCaptureMode = null;
-
-        materialQrPreview.textContent = "";
-
-        materialQrPreview.classList.add("hidden");
-
-        confirmBtn.disabled = true;
-    }
-
-    materialStatus.textContent =
-        "Seleccionaste Ring Scanner. Activa el lector para escanear POS1.";
-
-    materialStatus.className =
-        "status warning";
-
-    previewStatus.textContent =
-        "Pendiente de lectura del QR POS1.";
-
-    previewStatus.className =
-        "status warning";
-
-    setReaderStage("MATERIAL");
-
-    cameraSection.scrollIntoView({
-        behavior: "smooth",
-        block: "start"
-    });
-});
-
-
-materialCameraBtn.addEventListener("click", () => {
-
-    if (!currentSheet) return;
-
-    if (currentSheet.materialQr) {
-
-        currentSheet.materialQr = null;
-
-        currentSheet.materialCaptureMode = null;
-
-        materialQrPreview.textContent = "";
-
-        materialQrPreview.classList.add("hidden");
-
-        confirmBtn.disabled = true;
-    }
-
-    materialStatus.textContent =
-        "Seleccionaste Cámara. Activa la cámara para escanear POS1.";
-
-    materialStatus.className =
-        "status warning";
-
-    previewStatus.textContent =
-        "Pendiente de lectura del QR POS1.";
-
-    previewStatus.className =
-        "status warning";
-
-    setReaderStage("MATERIAL");
-
-    selectMethod("CAMERA");
-
-    cameraSection.scrollIntoView({
-        behavior: "smooth",
-        block: "start"
-    });
-});
-
 
 materialScanBtn.addEventListener("click", () => {
 
-    if (!currentSheet) return;
+    if (!currentSheet || registering) return;
 
     currentSheet.materialQr = null;
 
@@ -1946,7 +1909,7 @@ materialScanBtn.addEventListener("click", () => {
     confirmBtn.disabled = true;
 
     materialStatus.textContent =
-        "Selecciona Ring Scanner o Cámara para volver a leer POS1.";
+        "Listo para volver a escanear el QR POS1. Se conservará el método seleccionado.";
 
     materialStatus.className =
         "status warning";
@@ -1956,6 +1919,13 @@ materialScanBtn.addEventListener("click", () => {
 
     previewStatus.className =
         "status warning";
+
+    /*
+       Se mantiene el método original.
+
+       setReaderStage activa automáticamente
+       el lector correspondiente.
+    */
 
     setReaderStage("MATERIAL");
 
@@ -2655,18 +2625,26 @@ async function registerSheet() {
 
 startBtn.addEventListener(
     "click",
-    startCamera
+    () => {
+
+        if (selectedMethod !== "CAMERA") return;
+
+        startCamera();
+    }
 );
+
 
 stopBtn.addEventListener(
     "click",
     () => stopCamera()
 );
 
+
 confirmBtn.addEventListener(
     "click",
     registerSheet
 );
+
 
 refreshBtn.addEventListener(
     "click",
@@ -2734,7 +2712,7 @@ onAuthStateChanged(
                 "error"
             );
 
-            activateRingBtn.disabled = true;
+            deactivateRingBtn.disabled = true;
 
             startBtn.disabled = true;
 
@@ -2748,8 +2726,22 @@ onAuthStateChanged(
 
             await validateUser(firebaseUser);
 
+            /*
+               El método predeterminado es RING.
+
+               Después de autorizar al usuario,
+               se activa automáticamente sin
+               requerir una segunda confirmación.
+            */
+
+            selectedMethod = "RING";
+
+            ringMethodBtn.classList.add("selected");
+
+            cameraMethodBtn.classList.remove("selected");
+
             setCameraStatus(
-                "Usuario autorizado. Ring Scanner seleccionado como método principal.",
+                "Usuario autorizado. Ring Scanner listo para utilizarse.",
                 "success"
             );
 
@@ -2786,7 +2778,11 @@ onAuthStateChanged(
 
             refreshBtn.disabled = true;
 
-            activateRingBtn.disabled = true;
+            deactivateRingBtn.disabled = true;
+
+            stopRing(true);
+
+            stopCamera();
         }
     }
 );
