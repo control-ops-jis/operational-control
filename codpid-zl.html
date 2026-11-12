@@ -955,65 +955,66 @@ function validateMaterialPos1QR(rawValue) {
 ===================================================== */
 
 function parseSheetQR(rawValue) {
+    if (!rawValue) return null;
 
-    const value = String(rawValue || "")
-        .trim()
-        .toUpperCase();
+    const value = String(rawValue).trim().toUpperCase();
 
-    let match = null;
-
+    // Formato: 25
     if (/^\d{1,3}$/.test(value)) {
-
-        match = value;
-
-    } else {
-
-        const patterns = [
-
-            /^CODPID\|HOJA\|(\d{1,3})$/,
-
-            /^CODPID\|NAVE4\|TORRETA\|(\d{1,3})$/,
-
-            /^NAVE4\|TORRETA\|(\d{1,3})$/
-
-        ];
-
-        for (const pattern of patterns) {
-
-            const result = value.match(pattern);
-
-            if (result) {
-
-                match = result[1];
-
-                break;
-            }
-        }
+        const n = Number(value);
+        return n >= 1 && n <= 100 ? n : null;
     }
 
-    if (match === null) {
+    // Normalizar separadores:
+    // CODPID|HOJA|25
+    // CODPID]HOJA]25
+    // CODPID/NAVE4/TORRETA/25
+    const normalized = value.replace(/[\]|/\/]+/g, "|");
 
-        throw new Error(
-            "El QR no corresponde a un formato reconocido de hoja viajera."
-        );
-    }
+    const parts = normalized
+        .split("|")
+        .map(part => part.trim())
+        .filter(Boolean);
 
-    const number = Number(match);
-
+    // CODPID|HOJA|25
     if (
-        !Number.isInteger(number) ||
-        number < CONFIG.minSheet ||
-        number > CONFIG.maxSheet
+        parts.length === 3 &&
+        parts[0] === "CODPID" &&
+        parts[1] === "HOJA"
     ) {
-
-        throw new Error(
-            "El número de hoja debe estar entre 01 y 100."
-        );
+        const n = Number(parts[2]);
+        return /^\d{1,3}$/.test(parts[2]) && n >= 1 && n <= 100
+            ? n
+            : null;
     }
 
-    return number;
-}
+    // CODPID|NAVE4|TORRETA|25
+    if (
+        parts.length === 4 &&
+        parts[0] === "CODPID" &&
+        parts[1] === "NAVE4" &&
+        parts[2] === "TORRETA"
+    ) {
+        const n = Number(parts[3]);
+        return /^\d{1,3}$/.test(parts[3]) && n >= 1 && n <= 100
+            ? n
+            : null;
+    }
 
+    // NAVE4|TORRETA|25
+    if (
+        parts.length === 3 &&
+        parts[0] === "NAVE4" &&
+        parts[1] === "TORRETA"
+    ) {
+        const n = Number(parts[2]);
+        return /^\d{1,3}$/.test(parts[2]) && n >= 1 && n <= 100
+            ? n
+            : null;
+    }
+
+    return null;
+}
 
 /* =====================================================
    8. SELECCIÓN DEL MÉTODO DE LECTURA
