@@ -207,6 +207,13 @@ button:disabled{opacity:.55;cursor:not-allowed}
   margin-top:12px
 }
 
+.confirm-button{
+  background:var(--green);
+  color:#fff;
+  width:100%;
+  margin-top:12px
+}
+
 .camera-wrap{
   position:relative;
   width:100%;
@@ -268,9 +275,7 @@ video{
   margin-top:12px
 }
 
-/* ==========================================
-   RING SCANNER ZEBRA
-========================================== */
+/* RING SCANNER ZEBRA */
 
 .scan-methods{
   display:grid;
@@ -294,6 +299,11 @@ video{
   border:1px solid #f5d778;
   border-radius:14px;
   padding:15px
+}
+
+.ring-panel.ring-ready{
+  background:#eaf7ef;
+  border:2px solid var(--green)
 }
 
 .ring-status{
@@ -402,9 +412,7 @@ footer{
 
     <div class="challenge">
       <div class="muted">Material que debes verificar</div>
-
       <div class="position">POS1</div>
-
       <div class="qr">
         Escanea el QR único de identificación de la pieza.
       </div>
@@ -414,8 +422,12 @@ footer{
       Escanea el QR del material POS1 para validar la hoja.
     </div>
 
-    <button class="primary" id="scanPositionBtn">
-      Escanear material POS1
+    <button class="primary hidden" id="scanPositionBtn">
+      Volver a escanear POS1
+    </button>
+
+    <button class="confirm-button hidden" id="confirmConsumptionBtn" disabled>
+      Confirmar registro
     </button>
 
     <button class="secondary" id="cancelBtn"
@@ -433,17 +445,11 @@ footer{
 
     <div class="scan-methods">
 
-      <button
-        type="button"
-        class="active"
-        id="ringModeBtn">
+      <button type="button" class="active" id="ringModeBtn">
         Ring Scanner
       </button>
 
-      <button
-        type="button"
-        class="secondary"
-        id="cameraModeBtn">
+      <button type="button" class="secondary" id="cameraModeBtn">
         Cámara
       </button>
 
@@ -458,7 +464,7 @@ footer{
       </h2>
 
       <div class="ring-status" id="ringStatus">
-        Activa el lector Zebra y escanea el código.
+        Preparando Ring Scanner...
       </div>
 
       <input
@@ -475,18 +481,12 @@ footer{
 
       <div class="ring-buttons">
 
-        <button
-          type="button"
-          class="primary"
-          id="activateRingBtn"
-          style="margin-top:0">
+        <button type="button" class="primary"
+          id="activateRingBtn" style="margin-top:0">
           Activar Ring
         </button>
 
-        <button
-          type="button"
-          class="secondary"
-          id="processRingBtn">
+        <button type="button" class="secondary" id="processRingBtn">
           Procesar lectura
         </button>
 
@@ -539,9 +539,7 @@ footer{
 
 <script type="module">
 
-import {
-  initializeApp
-} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 
 import {
   getAuth,
@@ -585,21 +583,16 @@ const db = getFirestore(app);
 ========================================== */
 
 const CONFIG = {
-
   minSheet: 1,
   maxSheet: 100,
-
   users: "users",
   groups: "codpidGroups",
   containers: "codpidContainers",
   audit: "codpidAudit",
-
   materialPosition: "POS1",
-
   groupId: null,
   employeeId: null,
   userName: null
-
 };
 
 
@@ -623,36 +616,18 @@ const ctx = canvas.getContext("2d", {
 ========================================== */
 
 let authorized = false;
-
 let stream = null;
-
 let animationId = null;
-
 let scanning = false;
-
 let scanMode = null;
-
 let scanLocked = false;
-
 let expectedSheet = null;
-
 let currentSheet = null;
 
-/*
-  QR registrado por ZL en Firestore.
-  Nunca se muestra al operador.
-*/
-
 let expectedMaterialQr = null;
-
-/*
-  QR que acaba de leer el operador PU.
-*/
-
 let scannedMaterialQr = null;
 
 let processing = false;
-
 let poolBusy = false;
 
 
@@ -662,14 +637,17 @@ let poolBusy = false;
 
 let activeStage = null;
 
+/*
+  Se conserva el método elegido por el operador
+  durante todas las etapas de la operación.
+*/
+
 let selectedScanMethod = "RING";
 
 let ringActive = false;
-
 let ringTimer = null;
 
 const RING_DEBOUNCE_MS = 450;
-
 
 const padSheet = n =>
   String(n).padStart(2, "0");
@@ -685,38 +663,39 @@ const nextSheet = n =>
 ========================================== */
 
 function setStatus(message, type = "") {
-
   const element = $("flowStatus");
-
   element.textContent = message;
-
-  element.className =
-    "status" + (type ? " " + type : "");
+  element.className = "status" + (type ? " " + type : "");
 }
-
 
 function setCameraStatus(message, type = "") {
-
   const element = $("cameraStatus");
-
   element.textContent = message;
-
-  element.className =
-    "status" + (type ? " " + type : "");
+  element.className = "status" + (type ? " " + type : "");
 }
 
-
 function setExpectedSheet(number) {
-
   expectedSheet = number;
-
-  $("expectedSheet").textContent =
-    padSheet(number);
+  $("expectedSheet").textContent = padSheet(number);
 }
 
 
 /* ==========================================
-   5.1 RING SCANNER ZEBRA
+   5.1 ESTADO VISUAL DE CONFIRMACIÓN
+========================================== */
+
+function resetConfirmation() {
+
+  $("confirmConsumptionBtn").classList.add("hidden");
+  $("confirmConsumptionBtn").disabled = true;
+
+  $("scanPositionBtn").classList.add("hidden");
+  $("scanPositionBtn").disabled = false;
+}
+
+
+/* ==========================================
+   5.2 RING SCANNER ZEBRA
 ========================================== */
 
 function stopRing() {
@@ -724,21 +703,18 @@ function stopRing() {
   ringActive = false;
 
   if (ringTimer) {
-
     clearTimeout(ringTimer);
-
     ringTimer = null;
   }
 
   $("ringInput").value = "";
-
   $("ringInput").disabled = true;
 
-  $("activateRingBtn").textContent =
-    "Activar Ring";
+  $("activateRingBtn").textContent = "Activar Ring";
 
-  $("ringStatus").textContent =
-    "Ring Scanner detenido.";
+  $("ringPanel").classList.remove("ring-ready");
+
+  $("ringStatus").textContent = "Ring Scanner detenido.";
 }
 
 
@@ -747,7 +723,8 @@ function activateRing() {
   if (
     !authorized ||
     processing ||
-    !activeStage
+    !activeStage ||
+    $("confirmConsumptionBtn").classList.contains("hidden") === false
   ) return;
 
   stopCamera("Cámara detenida.");
@@ -757,26 +734,24 @@ function activateRing() {
   ringActive = true;
 
   $("ringInput").value = "";
-
   $("ringInput").disabled = false;
 
   $("ringPanel").classList.remove("hidden");
-
   $("cameraPanel").classList.add("hidden");
 
   $("ringModeBtn").classList.add("active");
 
   $("cameraModeBtn").classList.remove("active");
-
   $("cameraModeBtn").classList.add("secondary");
+
+  $("ringPanel").classList.add("ring-ready");
 
   $("ringStatus").textContent =
     activeStage === "SHEET"
-      ? "Listo. Escanea el QR de la hoja viajera con el Zebra."
-      : "Listo. Escanea el QR del material POS1 con el Zebra.";
+      ? "Ring activo. Escanea el QR de la hoja viajera."
+      : "Ring activo. Escanea el QR del material POS1.";
 
-  $("activateRingBtn").textContent =
-    "Ring Activo";
+  $("activateRingBtn").textContent = "Ring Activo";
 
   $("ringInput").focus();
 
@@ -797,9 +772,7 @@ async function processRingReading() {
   ) return;
 
   if (ringTimer) {
-
     clearTimeout(ringTimer);
-
     ringTimer = null;
   }
 
@@ -807,39 +780,60 @@ async function processRingReading() {
     String($("ringInput").value || "").trim();
 
   if (!rawValue) {
-
     $("ringStatus").textContent =
       "No se recibió ningún código. Vuelve a escanear.";
-
     return;
   }
 
   ringActive = false;
 
   $("ringInput").disabled = true;
+  $("ringPanel").classList.remove("ring-ready");
 
-  $("activateRingBtn").textContent =
-    "Activar nuevamente";
+  $("activateRingBtn").textContent = "Validando...";
 
   $("ringStatus").textContent =
     "Lectura recibida. Validando código...";
 
-  await handleScannedCode(
-    rawValue,
-    activeStage
-  );
+  await handleScannedCode(rawValue, activeStage);
 }
 
+
+/*
+  Reactiva automáticamente el método elegido
+  cuando una lectura no es válida.
+*/
+
+function reactivateSelectedMethod() {
+
+  if (
+    !authorized ||
+    processing ||
+    !activeStage
+  ) return;
+
+  if (
+    !$("confirmConsumptionBtn").classList.contains("hidden")
+  ) return;
+
+  if (selectedScanMethod === "RING") {
+    activateRing();
+  } else {
+    startCamera(activeStage);
+  }
+}
+
+
+/*
+  Cambia de etapa sin perder el método elegido.
+*/
 
 function setScanStage(mode) {
 
   stopCamera("Cámara detenida.");
-
   stopRing();
 
   activeStage = mode;
-
-  selectedScanMethod = "RING";
 
   $("cameraSection").classList.remove("hidden");
 
@@ -848,25 +842,16 @@ function setScanStage(mode) {
       ? "Escanear hoja viajera"
       : "Escanear material POS1";
 
-  $("ringPanel").classList.remove("hidden");
-
-  $("cameraPanel").classList.add("hidden");
-
-  $("ringModeBtn").classList.add("active");
-
-  $("cameraModeBtn").classList.remove("active");
-
-  $("cameraModeBtn").classList.add("secondary");
-
-  $("ringStatus").textContent =
-    mode === "SHEET"
-      ? "Escanea el QR de la hoja viajera con el Ring Scanner."
-      : "Escanea el QR del material POS1 con el Ring Scanner.";
-
   $("cameraSection").scrollIntoView({
     behavior: "smooth",
     block: "start"
   });
+
+  if (selectedScanMethod === "CAMERA") {
+    startCamera(mode);
+  } else {
+    activateRing();
+  }
 }
 
 
@@ -874,14 +859,12 @@ function retryScan() {
 
   if (!activeStage) return;
 
+  resetConfirmation();
+
   if (selectedScanMethod === "RING") {
-
     activateRing();
-
   } else {
-
     startCamera(activeStage);
-
   }
 }
 
@@ -890,21 +873,11 @@ function retryScan() {
    6. LECTURA Y VALIDACIÓN DE QR
 ========================================== */
 
-/*
-  QR DE HOJA VIAJERA
-
-  Acepta separadores originales "|"
-  y separadores "]" enviados por Zebra.
-*/
-
 function parseSheetQR(rawValue) {
 
   const value = String(rawValue || "")
     .trim()
     .toUpperCase();
-
-  // Normalización del separador Zebra.
-  // CODPID]HOJA]25 se convierte en CODPID|HOJA|25.
 
   const normalizedValue =
     value.replace(/\]/g, "|");
@@ -917,13 +890,9 @@ function parseSheetQR(rawValue) {
   if (match === null) {
 
     const patterns = [
-
       /^CODPID\|HOJA\|(\d{1,3})$/,
-
       /^CODPID\|NAVE4\|TORRETA\|(\d{1,3})$/,
-
       /^NAVE4\|TORRETA\|(\d{1,3})$/
-
     ];
 
     for (const pattern of patterns) {
@@ -931,16 +900,13 @@ function parseSheetQR(rawValue) {
       const result = normalizedValue.match(pattern);
 
       if (result) {
-
         match = result[1];
-
         break;
       }
     }
   }
 
   if (match === null) {
-
     throw new Error(
       "El QR no corresponde a un formato reconocido de hoja viajera."
     );
@@ -953,7 +919,6 @@ function parseSheetQR(rawValue) {
     number < CONFIG.minSheet ||
     number > CONFIG.maxSheet
   ) {
-
     throw new Error(
       "El número de hoja debe estar entre 01 y 100."
     );
@@ -963,20 +928,11 @@ function parseSheetQR(rawValue) {
 }
 
 
-/*
-  QR DE MATERIAL POS1
-
-  Se conserva la validación original.
-  El código debe coincidir exactamente
-  con el valor registrado previamente por ZL.
-*/
-
 function parseMaterialQR(rawValue) {
 
   const value = String(rawValue ?? "").trim();
 
   if (!value) {
-
     throw new Error(
       "El QR del material POS1 está vacío o no es válido."
     );
@@ -993,33 +949,24 @@ function parseMaterialQR(rawValue) {
 function stopCamera(message = "Cámara detenida.") {
 
   scanning = false;
-
   scanLocked = false;
 
   if (animationId) {
-
     cancelAnimationFrame(animationId);
-
     animationId = null;
   }
 
   if (stream) {
-
     stream.getTracks().forEach(track => track.stop());
-
     stream = null;
   }
 
   video.pause();
-
   video.srcObject = null;
-
   video.style.display = "none";
 
   $("placeholder").style.display = "block";
-
   $("frame").style.display = "none";
-
   $("stopBtn").disabled = true;
 
   setCameraStatus(message);
@@ -1030,12 +977,14 @@ async function startCamera(mode) {
 
   if (!authorized || processing) return;
 
+  if (
+    !$("confirmConsumptionBtn").classList.contains("hidden")
+  ) return;
+
   if (!window.isSecureContext) {
 
     $("cameraSection").classList.remove("hidden");
-
     $("cameraPanel").classList.remove("hidden");
-
     $("ringPanel").classList.add("hidden");
 
     setCameraStatus(
@@ -1052,9 +1001,7 @@ async function startCamera(mode) {
   ) {
 
     $("cameraSection").classList.remove("hidden");
-
     $("cameraPanel").classList.remove("hidden");
-
     $("ringPanel").classList.add("hidden");
 
     setCameraStatus(
@@ -1066,25 +1013,19 @@ async function startCamera(mode) {
   }
 
   stopRing();
-
   stopCamera("Preparando cámara...");
 
   scanMode = mode;
-
   activeStage = mode;
-
   selectedScanMethod = "CAMERA";
 
   $("cameraSection").classList.remove("hidden");
-
   $("ringPanel").classList.add("hidden");
-
   $("cameraPanel").classList.remove("hidden");
 
   $("ringModeBtn").classList.remove("active");
 
   $("cameraModeBtn").classList.add("active");
-
   $("cameraModeBtn").classList.remove("secondary");
 
   $("cameraTitle").textContent =
@@ -1102,45 +1043,27 @@ async function startCamera(mode) {
     try {
 
       stream = await navigator.mediaDevices.getUserMedia({
-
         audio: false,
-
         video: {
-
-          facingMode: {
-            ideal: "environment"
-          },
-
-          width: {
-            ideal: 1280
-          },
-
-          height: {
-            ideal: 720
-          }
-
+          facingMode: { ideal: "environment" },
+          width: { ideal: 1280 },
+          height: { ideal: 720 }
         }
-
       });
 
     } catch {
 
       stream = await navigator.mediaDevices.getUserMedia({
-
         audio: false,
-
         video: true
-
       });
 
     }
 
     video.srcObject = stream;
-
     video.style.display = "block";
 
     $("placeholder").style.display = "none";
-
     $("frame").style.display = "block";
 
     await video.play();
@@ -1150,13 +1073,10 @@ async function startCamera(mode) {
     $("stopBtn").disabled = false;
 
     setCameraStatus(
-
       mode === "SHEET"
         ? "Apunta al QR de la hoja viajera."
         : "Apunta exclusivamente al QR del material POS1.",
-
       "success"
-
     );
 
     scanLoop();
@@ -1170,23 +1090,16 @@ async function startCamera(mode) {
     if (
       ["NotAllowedError", "PermissionDeniedError"].includes(error.name)
     ) {
-
       message =
         "Permiso denegado. Autoriza la cámara en Chrome.";
-
     } else if (error.name === "NotFoundError") {
-
       message = "No se encontró una cámara disponible.";
-
     } else if (error.name === "NotReadableError") {
-
       message =
         "La cámara está siendo utilizada por otra aplicación.";
-
     }
 
     stopCamera(message);
-
     setCameraStatus(message, "error");
   }
 }
@@ -1203,7 +1116,6 @@ function scanLoop() {
   ) {
 
     canvas.width = video.videoWidth;
-
     canvas.height = video.videoHeight;
 
     ctx.drawImage(
@@ -1225,9 +1137,7 @@ function scanLoop() {
       imageData.data,
       imageData.width,
       imageData.height,
-      {
-        inversionAttempts: "attemptBoth"
-      }
+      { inversionAttempts: "attemptBoth" }
     );
 
     if (code?.data) {
@@ -1238,10 +1148,7 @@ function scanLoop() {
 
       stopCamera("QR detectado. Validando...");
 
-      handleScannedCode(
-        code.data,
-        detectedMode
-      );
+      handleScannedCode(code.data, detectedMode);
 
       return;
     }
@@ -1269,13 +1176,9 @@ async function logRejected(
       {
 
         action,
-
         details,
-
         groupId: CONFIG.groupId,
-
         result: "REJECTED",
-
         secondsSincePreviousConsumption: null,
 
         sheetNumber:
@@ -1292,11 +1195,8 @@ async function logRejected(
           extra.materialQrExpectedLast4 || null,
 
         timestamp: serverTimestamp(),
-
         userId: CONFIG.employeeId,
-
         userName: CONFIG.userName,
-
         userRole: "pu_cod"
 
       }
@@ -1327,7 +1227,6 @@ async function validateSheet(number) {
     !groupSnap.exists() ||
     groupSnap.data().active !== true
   ) {
-
     throw new Error(
       "El grupo no existe o está inactivo."
     );
@@ -1341,7 +1240,6 @@ async function validateSheet(number) {
     liveExpected < 1 ||
     liveExpected > 100
   ) {
-
     throw new Error(
       "La secuencia del grupo no está configurada correctamente."
     );
@@ -1352,16 +1250,12 @@ async function validateSheet(number) {
   if (number !== liveExpected) {
 
     await logRejected(
-
       "CONSUME",
-
       number,
-
       "Hoja fuera de secuencia. Esperada: " +
         padSheet(liveExpected) +
         "; recibida: " +
         padSheet(number) + "."
-
     );
 
     throw new Error(
@@ -1389,13 +1283,9 @@ async function validateSheet(number) {
   ) {
 
     await logRejected(
-
       "CONSUME",
-
       number,
-
       "La hoja esperada no está disponible en el pool."
-
     );
 
     throw new Error(
@@ -1407,28 +1297,15 @@ async function validateSheet(number) {
 
   const containerData = containerSnap.data();
 
-  /*
-    VALIDACIÓN IMPORTANTE:
-
-    El materialQr debe existir en el documento
-    que registró ZL.
-
-    Si no existe, PU NO permite consumir.
-  */
-
   const registeredMaterialQr =
     String(containerData.materialQr ?? "").trim();
 
   if (!registeredMaterialQr) {
 
     await logRejected(
-
       "MATERIAL_QR_MISSING",
-
       number,
-
       "La hoja está disponible, pero no contiene materialQr registrado por ZL."
-
     );
 
     throw new Error(
@@ -1436,18 +1313,12 @@ async function validateSheet(number) {
     );
   }
 
-  if (
-    containerData.materialPosition !== "POS1"
-  ) {
+  if (containerData.materialPosition !== "POS1") {
 
     await logRejected(
-
       "MATERIAL_POSITION_INVALID",
-
       number,
-
       "El registro de ZL no corresponde a POS1."
-
     );
 
     throw new Error(
@@ -1456,10 +1327,10 @@ async function validateSheet(number) {
   }
 
   currentSheet = number;
-
   expectedMaterialQr = registeredMaterialQr;
-
   scannedMaterialQr = null;
+
+  resetConfirmation();
 
   $("challengeSection").classList.remove("hidden");
 
@@ -1475,7 +1346,11 @@ async function validateSheet(number) {
     block: "start"
   });
 
-  // POS1 inicia con Ring Scanner como método predeterminado.
+  /*
+    IMPORTANTE:
+    Se conserva el método elegido y se activa
+    automáticamente para la etapa POS1.
+  */
 
   setScanStage("MATERIAL");
 }
@@ -1504,13 +1379,11 @@ async function handleScannedCode(rawValue, mode) {
 
       setStatus(error.message, "error");
 
-      $("ringStatus").textContent =
-        error.message + " Puedes activar nuevamente el Ring Scanner.";
+      $("ringStatus").textContent = error.message;
 
-      setCameraStatus(
-        error.message + " Puedes reintentar el escaneo.",
-        "error"
-      );
+      setCameraStatus(error.message, "error");
+
+      reactivateSelectedMethod();
 
       return;
     }
@@ -1524,18 +1397,16 @@ async function handleScannedCode(rawValue, mode) {
       console.error("Validación de hoja:", error);
 
       currentSheet = null;
-
       expectedMaterialQr = null;
-
       scannedMaterialQr = null;
 
       setStatus(error.message, "error");
 
-      $("ringStatus").textContent =
-        error.message + " Puedes volver a escanear la hoja.";
+      $("ringStatus").textContent = error.message;
 
       setCameraStatus(error.message, "error");
 
+      reactivateSelectedMethod();
     }
 
     return;
@@ -1572,13 +1443,11 @@ async function handleScannedCode(rawValue, mode) {
 
       setStatus(error.message, "error");
 
-      $("ringStatus").textContent =
-        error.message;
+      $("ringStatus").textContent = error.message;
 
-      setCameraStatus(
-        error.message,
-        "error"
-      );
+      setCameraStatus(error.message, "error");
+
+      reactivateSelectedMethod();
 
       return;
     }
@@ -1587,10 +1456,7 @@ async function handleScannedCode(rawValue, mode) {
 
     /*
       COMPARACIÓN EXACTA:
-
-      QR capturado en ZL
-      contra
-      QR escaneado en PU.
+      QR capturado en ZL contra QR escaneado en PU.
     */
 
     if (materialQr !== expectedMaterialQr) {
@@ -1599,32 +1465,24 @@ async function handleScannedCode(rawValue, mode) {
         expectedMaterialQr.slice(-4);
 
       await logRejected(
-
         "MATERIAL_QR_VERIFY",
-
         currentSheet,
-
         "QR de material POS1 incorrecto. El valor escaneado no coincide con el registro de ZL.",
-
         {
-
           materialQrScanned: materialQr,
-
           materialQrExpectedLast4: expectedLast4
-
         }
-
       );
 
       scannedMaterialQr = null;
 
       setStatus(
-        "QR INCORRECTO. El material escaneado no corresponde al registrado en ZL. La hoja continúa disponible y puedes volver a intentarlo.",
+        "QR INCORRECTO. El material escaneado no corresponde al registrado en ZL. La hoja continúa disponible. Vuelve a escanear POS1.",
         "error"
       );
 
       $("ringStatus").textContent =
-        "QR incorrecto. Activa nuevamente el Ring Scanner para intentar otra lectura.";
+        "QR incorrecto. Preparando nuevamente el lector.";
 
       setCameraStatus(
         "Validación rechazada. Escanea nuevamente el QR del material POS1.",
@@ -1636,24 +1494,45 @@ async function handleScannedCode(rawValue, mode) {
         block: "center"
       });
 
+      reactivateSelectedMethod();
+
       return;
     }
 
     /*
-      COINCIDENCIA CORRECTA
+      COINCIDENCIA CORRECTA.
 
-      Se procede a registrar el consumo.
+      En este punto NO se consume todavía.
+      Se detiene el lector y se solicita confirmación.
     */
 
-    setStatus(
-      "QR POS1 correcto. Coincide con el registro de ZL. Registrando consumo...",
+    stopCamera("Validación POS1 correcta.");
+
+    stopRing();
+
+    $("ringStatus").textContent =
+      "POS1 validado correctamente. Lector detenido.";
+
+    setCameraStatus(
+      "POS1 validado correctamente.",
       "success"
     );
 
-    $("ringStatus").textContent =
-      "QR correcto. Registrando consumo...";
+    setStatus(
+      "QR POS1 correcto. Coincide con el registro de ZL. Verifica la información y confirma el registro para consumir la hoja.",
+      "success"
+    );
 
-    await consumeSheet(materialQr);
+    $("confirmConsumptionBtn").classList.remove("hidden");
+    $("confirmConsumptionBtn").disabled = false;
+
+    $("scanPositionBtn").classList.remove("hidden");
+    $("scanPositionBtn").disabled = false;
+
+    $("confirmConsumptionBtn").scrollIntoView({
+      behavior: "smooth",
+      block: "center"
+    });
   }
 }
 
@@ -1668,29 +1547,25 @@ async function consumeSheet(materialQrScanned) {
     processing ||
     !authorized ||
     currentSheet === null ||
-    !expectedMaterialQr
+    !expectedMaterialQr ||
+    !materialQrScanned
   ) return;
 
   processing = true;
 
   $("scanPositionBtn").disabled = true;
-
+  $("confirmConsumptionBtn").disabled = true;
   $("refreshBtn").disabled = true;
-
   $("activateRingBtn").disabled = true;
-
   $("processRingBtn").disabled = true;
 
   const sheetNumber = currentSheet;
-
   const formattedSheet = padSheet(sheetNumber);
 
   const containerRef = doc(
     db,
     CONFIG.containers,
-    CONFIG.groupId +
-    "_hoja_" +
-    formattedSheet
+    CONFIG.groupId + "_hoja_" + formattedSheet
   );
 
   const groupRef = doc(
@@ -1716,31 +1591,25 @@ async function consumeSheet(materialQrScanned) {
           await transaction.get(containerRef);
 
         if (!groupSnap.exists()) {
-
           throw new Error("GROUP_NOT_FOUND");
         }
 
         const groupData = groupSnap.data();
 
         if (groupData.active !== true) {
-
           throw new Error("GROUP_INACTIVE");
         }
 
         if (
           Number(groupData.nextExpectedSheet) !== sheetNumber
         ) {
-
           throw new Error(
             "SEQUENCE_CHANGED:" +
-            padSheet(
-              Number(groupData.nextExpectedSheet)
-            )
+            padSheet(Number(groupData.nextExpectedSheet))
           );
         }
 
         if (!containerSnap.exists()) {
-
           throw new Error("CONTAINER_NOT_FOUND");
         }
 
@@ -1751,13 +1620,11 @@ async function consumeSheet(materialQrScanned) {
           Number(containerData.sheetNumber) !== sheetNumber ||
           containerData.status !== "available"
         ) {
-
           throw new Error("CONTAINER_NOT_AVAILABLE");
         }
 
         /*
           SEGUNDA VALIDACIÓN DEL QR:
-
           Se recupera nuevamente el valor directamente
           de Firestore dentro de la transacción.
         */
@@ -1766,14 +1633,10 @@ async function consumeSheet(materialQrScanned) {
           String(containerData.materialQr ?? "").trim();
 
         if (!currentRegisteredQr) {
-
           throw new Error("MATERIAL_QR_MISSING");
         }
 
-        if (
-          containerData.materialPosition !== "POS1"
-        ) {
-
+        if (containerData.materialPosition !== "POS1") {
           throw new Error("MATERIAL_POSITION_INVALID");
         }
 
@@ -1781,7 +1644,6 @@ async function consumeSheet(materialQrScanned) {
           currentRegisteredQr !== expectedMaterialQr ||
           currentRegisteredQr !== materialQrScanned
         ) {
-
           throw new Error("MATERIAL_QR_MISMATCH");
         }
 
@@ -1796,16 +1658,13 @@ async function consumeSheet(materialQrScanned) {
         ) {
 
           secondsSincePreviousConsumption = Math.max(
-
             0,
-
             Math.floor(
               (
                 Date.now() -
                 previousTimestamp.toMillis()
               ) / 1000
             )
-
           );
         }
 
@@ -1816,17 +1675,11 @@ async function consumeSheet(materialQrScanned) {
         transaction.update(containerRef, {
 
           status: "consumed",
-
           consumedAt: serverTimestamp(),
-
           consumedBy: CONFIG.employeeId,
-
           consumedByName: CONFIG.userName,
-
           consumedPosition: CONFIG.materialPosition,
-
           consumedMaterialQr: materialQrScanned,
-
           updatedAt: serverTimestamp()
 
         });
@@ -1838,9 +1691,7 @@ async function consumeSheet(materialQrScanned) {
         transaction.update(groupRef, {
 
           nextExpectedSheet: nextSheet(sheetNumber),
-
           lastConsumptionAt: serverTimestamp(),
-
           updatedAt: serverTimestamp()
 
         });
@@ -1857,36 +1708,25 @@ async function consumeSheet(materialQrScanned) {
             "Consumo validado correctamente. QR de material POS1 coincide con el registro de ZL.",
 
           groupId: CONFIG.groupId,
-
           result: "SUCCESS",
-
           secondsSincePreviousConsumption,
-
           sheetNumber,
-
           materialPosition: CONFIG.materialPosition,
-
           materialQr: materialQrScanned,
 
           materialQrLast4:
             materialQrScanned.slice(-4),
 
           materialCaptureMode: "QR",
-
           timestamp: serverTimestamp(),
-
           userId: CONFIG.employeeId,
-
           userName: CONFIG.userName,
-
           userRole: "pu_cod"
 
         });
 
         return {
-
           nextExpected: nextSheet(sheetNumber)
-
         };
 
       }
@@ -1899,19 +1739,17 @@ async function consumeSheet(materialQrScanned) {
     setExpectedSheet(result.nextExpected);
 
     currentSheet = null;
-
     expectedMaterialQr = null;
-
     scannedMaterialQr = null;
 
     stopCamera("Consumo registrado correctamente.");
-
     stopRing();
 
     activeStage = null;
 
-    $("challengeSection").classList.add("hidden");
+    resetConfirmation();
 
+    $("challengeSection").classList.add("hidden");
     $("cameraSection").classList.add("hidden");
 
     await refreshAll();
@@ -1938,25 +1776,19 @@ async function consumeSheet(materialQrScanned) {
       error.message;
 
     if (error.message === "GROUP_NOT_FOUND") {
-
       message = "El grupo ya no existe.";
-
     }
 
     else if (error.message === "GROUP_INACTIVE") {
-
       message = "El grupo está inactivo.";
-
     }
 
     else if (
       error.message.startsWith("SEQUENCE_CHANGED:")
     ) {
-
       message =
         "La secuencia cambió. La hoja autorizada ahora es " +
         error.message.split(":")[1] + ".";
-
     }
 
     else if (
@@ -1965,66 +1797,46 @@ async function consumeSheet(materialQrScanned) {
         "CONTAINER_NOT_AVAILABLE"
       ].includes(error.message)
     ) {
-
       message =
         "La hoja ya no está disponible en el pool.";
-
     }
 
     else if (error.message === "MATERIAL_QR_MISSING") {
-
       message =
         "El registro de ZL no contiene un QR de material. No se realizó el consumo.";
-
     }
 
-    else if (
-      error.message === "MATERIAL_POSITION_INVALID"
-    ) {
-
+    else if (error.message === "MATERIAL_POSITION_INVALID") {
       message =
         "El registro no corresponde a POS1. No se realizó el consumo.";
-
     }
 
-    else if (
-      error.message === "MATERIAL_QR_MISMATCH"
-    ) {
-
+    else if (error.message === "MATERIAL_QR_MISMATCH") {
       message =
         "El QR del material cambió o no coincide con el registro de ZL. No se realizó el consumo.";
-
     }
 
     await logRejected(
-
       "CONSUME",
-
       sheetNumber,
-
       message,
-
       {
-
         materialQrScanned,
-
         materialQrExpectedLast4:
           expectedMaterialQr
             ? expectedMaterialQr.slice(-4)
             : null
-
       }
-
     );
 
     setStatus(message, "error");
 
     $("ringStatus").textContent =
-      "No se realizó el consumo. Puedes volver a activar el Ring Scanner.";
+      "No se realizó el consumo. Puedes volver a escanear POS1.";
 
     /*
-      Si la operación sigue pendiente, conservamos
-      la hoja y el QR esperado para permitir reintentar.
+      La hoja y el QR esperado se conservan
+      para permitir reintentar la validación.
     */
 
     if (
@@ -2033,8 +1845,11 @@ async function consumeSheet(materialQrScanned) {
     ) {
 
       $("challengeSection").classList.remove("hidden");
-
       $("cameraSection").classList.remove("hidden");
+
+      resetConfirmation();
+
+      $("scanPositionBtn").classList.remove("hidden");
 
       setCameraStatus(
         "No se realizó el consumo. Puedes volver a escanear POS1.",
@@ -2054,11 +1869,9 @@ async function consumeSheet(materialQrScanned) {
     processing = false;
 
     $("scanPositionBtn").disabled = false;
-
+    $("confirmConsumptionBtn").disabled = false;
     $("refreshBtn").disabled = false;
-
     $("activateRingBtn").disabled = false;
-
     $("processRingBtn").disabled = false;
 
   }
@@ -2072,19 +1885,17 @@ async function consumeSheet(materialQrScanned) {
 function cancelOperation() {
 
   stopCamera("Operación cancelada.");
-
   stopRing();
 
   activeStage = null;
 
   currentSheet = null;
-
   expectedMaterialQr = null;
-
   scannedMaterialQr = null;
 
-  $("challengeSection").classList.add("hidden");
+  resetConfirmation();
 
+  $("challengeSection").classList.add("hidden");
   $("cameraSection").classList.add("hidden");
 
   setStatus(
@@ -2102,7 +1913,6 @@ async function validateUser(firebaseUser) {
   authorized = false;
 
   if (!firebaseUser) {
-
     throw new Error(
       "No existe una sesión activa. Ingresa nuevamente desde index.html."
     );
@@ -2125,7 +1935,6 @@ async function validateUser(firebaseUser) {
   }
 
   if (!savedUser?.employeeId) {
-
     throw new Error(
       "No se encontró la información de sesión. Ingresa nuevamente."
     );
@@ -2138,14 +1947,12 @@ async function validateUser(firebaseUser) {
   );
 
   if (!userSnap.exists()) {
-
     throw new Error("El usuario no existe en Firestore.");
   }
 
   const userData = userSnap.data();
 
   if (userData.active !== true) {
-
     throw new Error("El usuario se encuentra inactivo.");
   }
 
@@ -2154,22 +1961,18 @@ async function validateUser(firebaseUser) {
     firebaseUser.email.toLowerCase() !==
       String(userData.email || "").toLowerCase()
   ) {
-
     throw new Error(
       "La sesión de Firebase no coincide con el usuario registrado."
     );
   }
 
   const roles = Array.isArray(userData.codpidRoles)
-
     ? userData.codpidRoles.map(
         role => String(role).toLowerCase()
       )
-
     : [];
 
   if (!roles.includes("pu_cod")) {
-
     throw new Error(
       "El usuario no tiene asignado el perfil Cockpit PU."
     );
@@ -2182,7 +1985,6 @@ async function validateUser(firebaseUser) {
     selectedRole &&
     selectedRole !== "pu_cod"
   ) {
-
     throw new Error(
       "El perfil seleccionado no corresponde a Cockpit PU."
     );
@@ -2192,7 +1994,6 @@ async function validateUser(firebaseUser) {
     String(userData.codpidGroupId || "").trim();
 
   if (!groupId) {
-
     throw new Error(
       "El usuario no tiene un grupo Cockpit asignado."
     );
@@ -2203,7 +2004,6 @@ async function validateUser(firebaseUser) {
   );
 
   if (!groupSnap.exists()) {
-
     throw new Error(
       "El grupo Cockpit asignado no existe."
     );
@@ -2212,7 +2012,6 @@ async function validateUser(firebaseUser) {
   const groupData = groupSnap.data();
 
   if (groupData.active !== true) {
-
     throw new Error(
       "El grupo Cockpit se encuentra inactivo."
     );
@@ -2225,7 +2024,6 @@ async function validateUser(firebaseUser) {
     sequence < 1 ||
     sequence > 100
   ) {
-
     throw new Error(
       "La secuencia del grupo no está configurada entre 01 y 100."
     );
@@ -2266,11 +2064,8 @@ async function loadPool() {
   try {
 
     const poolQuery = query(
-
       collection(db, CONFIG.containers),
-
       where("groupId", "==", CONFIG.groupId)
-
     );
 
     const snapshot = await getDocs(poolQuery);
@@ -2284,11 +2079,8 @@ async function loadPool() {
       if (data.status === "available") {
 
         available.push({
-
           id: documentSnap.id,
-
           sheetNumber: Number(data.sheetNumber)
-
         });
 
       }
@@ -2303,9 +2095,7 @@ async function loadPool() {
       available.length + " disponibles";
 
     const suggestedIsAvailable = available.some(
-
       item => item.sheetNumber === expectedSheet
-
     );
 
     if (available.length === 0) {
@@ -2326,7 +2116,6 @@ async function loadPool() {
           item.sheetNumber === expectedSheet;
 
         return `
-
           <button
             type="button"
             class="pool-item ${isSuggested ? "suggested" : "other"}"
@@ -2345,7 +2134,6 @@ async function loadPool() {
             </span>
 
           </button>
-
         `;
 
       }).join("");
@@ -2360,7 +2148,6 @@ async function loadPool() {
       } else {
 
         $("poolNote").textContent =
-
           "La hoja " +
           padSheet(expectedSheet) +
           " aún no está disponible. Las demás hojas no se pueden consumir todavía.";
@@ -2390,10 +2177,10 @@ async function loadPool() {
           stopRing();
 
           currentSheet = null;
-
           expectedMaterialQr = null;
-
           scannedMaterialQr = null;
+
+          resetConfirmation();
 
           $("challengeSection").classList.add("hidden");
 
@@ -2403,15 +2190,20 @@ async function loadPool() {
               item.disabled = true;
             });
 
+          /*
+            Al iniciar la operación se activa
+            automáticamente el método predeterminado: Ring.
+          */
+
+          selectedScanMethod = "RING";
+
           setScanStage("SHEET");
 
           $("poolList")
             .querySelectorAll("button")
             .forEach(item => {
-
               item.disabled =
                 !item.classList.contains("suggested");
-
             });
 
         });
@@ -2426,13 +2218,11 @@ async function loadPool() {
       '<div class="empty">No fue posible consultar el pool.</div>';
 
     $("poolNote").textContent = error.message;
-
     $("poolNote").style.color = "#a40000";
 
   } finally {
 
     poolBusy = false;
-
     $("refreshBtn").disabled = false;
 
   }
@@ -2457,7 +2247,6 @@ async function refreshAll() {
       !groupSnap.exists() ||
       groupSnap.data().active !== true
     ) {
-
       throw new Error(
         "El grupo no existe o está inactivo."
       );
@@ -2471,7 +2260,6 @@ async function refreshAll() {
       sequence < 1 ||
       sequence > 100
     ) {
-
       throw new Error(
         "La secuencia del grupo no es válida."
       );
@@ -2486,7 +2274,6 @@ async function refreshAll() {
     console.error("Error actualizando PU:", error);
 
     $("poolNote").textContent = error.message;
-
     $("poolNote").style.color = "#a40000";
 
   }
@@ -2498,7 +2285,9 @@ async function refreshAll() {
 ========================================== */
 
 /*
-  ACTIVAR RING SCANNER
+  ACTIVAR RING MANUALMENTE
+  También permite recuperar el lector si el
+  operador lo detuvo manualmente.
 */
 
 $("activateRingBtn").addEventListener(
@@ -2521,8 +2310,8 @@ $("processRingBtn").addEventListener(
   RECEPCIÓN DE CARACTERES DEL ZEBRA
 
   El lector funciona como teclado Bluetooth HID.
-  Como no envía Enter, se procesa cuando deja
-  de escribir durante 450 milisegundos.
+  Se procesa cuando deja de escribir durante
+  450 milisegundos.
 */
 
 $("ringInput").addEventListener("input", () => {
@@ -2533,15 +2322,11 @@ $("ringInput").addEventListener("input", () => {
   ) return;
 
   if (ringTimer) {
-
     clearTimeout(ringTimer);
-
   }
 
   ringTimer = setTimeout(() => {
-
     processRingReading();
-
   }, RING_DEBOUNCE_MS);
 
 });
@@ -2570,7 +2355,13 @@ $("ringInput").addEventListener("keydown", event => {
 
 $("ringModeBtn").addEventListener("click", () => {
 
-  if (!activeStage || processing) return;
+  if (
+    !activeStage ||
+    processing ||
+    !$("confirmConsumptionBtn").classList.contains("hidden")
+  ) return;
+
+  selectedScanMethod = "RING";
 
   activateRing();
 
@@ -2583,7 +2374,13 @@ $("ringModeBtn").addEventListener("click", () => {
 
 $("cameraModeBtn").addEventListener("click", () => {
 
-  if (!activeStage || processing) return;
+  if (
+    !activeStage ||
+    processing ||
+    !$("confirmConsumptionBtn").classList.contains("hidden")
+  ) return;
+
+  selectedScanMethod = "CAMERA";
 
   startCamera(activeStage);
 
@@ -2591,17 +2388,52 @@ $("cameraModeBtn").addEventListener("click", () => {
 
 
 /*
-  BOTÓN DE LECTURA POS1
+  VOLVER A ESCANEAR POS1
+
+  Reactiva el método seleccionado originalmente.
 */
 
 $("scanPositionBtn").addEventListener("click", () => {
 
   if (
     currentSheet === null ||
-    !expectedMaterialQr
+    !expectedMaterialQr ||
+    processing
   ) return;
 
+  scannedMaterialQr = null;
+
+  resetConfirmation();
+
+  setStatus(
+    "Vuelve a escanear el QR del material POS1.",
+    "warning"
+  );
+
   setScanStage("MATERIAL");
+
+});
+
+
+/*
+  CONFIRMAR CONSUMO
+
+  El consumo solo se ejecuta después
+  de la confirmación expresa del operador.
+*/
+
+$("confirmConsumptionBtn").addEventListener("click", async () => {
+
+  if (
+    processing ||
+    currentSheet === null ||
+    !expectedMaterialQr ||
+    !scannedMaterialQr
+  ) return;
+
+  $("confirmConsumptionBtn").disabled = true;
+
+  await consumeSheet(scannedMaterialQr);
 
 });
 
@@ -2620,8 +2452,7 @@ $("stopBtn").addEventListener("click", () => {
 /*
   REINTENTAR LECTURA
 
-  Respeta el método seleccionado:
-  Ring Scanner o Cámara.
+  Respeta el método seleccionado.
 */
 
 $("retryBtn").addEventListener("click", () => {
@@ -2684,9 +2515,7 @@ document.addEventListener("visibilitychange", () => {
 window.addEventListener("pagehide", () => {
 
   if (stream) {
-
     stopCamera();
-
   }
 
   stopRing();
@@ -2703,6 +2532,9 @@ onAuthStateChanged(auth, async firebaseUser => {
   if (!firebaseUser) {
 
     authorized = false;
+
+    stopRing();
+    stopCamera();
 
     $("userName").textContent =
       "Sesión no encontrada";
@@ -2735,6 +2567,9 @@ onAuthStateChanged(auth, async firebaseUser => {
     console.error("Autorización PU:", error);
 
     authorized = false;
+
+    stopRing();
+    stopCamera();
 
     $("userName").textContent =
       "Acceso no autorizado";
