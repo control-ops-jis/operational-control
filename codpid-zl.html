@@ -1,5 +1,4 @@
 
-
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -112,6 +111,149 @@ h2{
     color:#775500;
 }
 
+button{
+    border:0;
+    border-radius:12px;
+    padding:14px 12px;
+    font-size:15px;
+    font-weight:bold;
+    cursor:pointer;
+    min-height:48px;
+}
+
+button:disabled{
+    opacity:.45;
+    cursor:not-allowed;
+}
+
+.primary{
+    background:var(--dhl-red);
+    color:white;
+}
+
+.secondary{
+    background:#eceff3;
+    color:#252525;
+}
+
+.success-btn{
+    background:var(--green);
+    color:white;
+}
+
+.full{
+    width:100%;
+    margin-top:12px;
+}
+
+.method-selector{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:10px;
+    margin:12px 0;
+}
+
+.method-btn{
+    border:2px solid #e0e3e8;
+    background:#f7f8fa;
+    color:#30343b;
+    min-height:76px;
+    display:flex;
+    flex-direction:column;
+    justify-content:center;
+    align-items:center;
+    gap:5px;
+}
+
+.method-btn .method-icon{
+    font-size:23px;
+}
+
+.method-btn small{
+    font-size:11px;
+    font-weight:normal;
+}
+
+.method-btn.selected{
+    border-color:var(--dhl-red);
+    background:#fff4f4;
+    color:var(--dhl-red);
+}
+
+.method-btn.recommended::after{
+    content:"PRINCIPAL";
+    font-size:9px;
+    background:var(--dhl-yellow);
+    color:#222;
+    padding:3px 7px;
+    border-radius:10px;
+    font-weight:bold;
+}
+
+.reader-panel{
+    background:#f8f9fb;
+    border:1px solid #d7dce2;
+    padding:14px;
+    border-radius:14px;
+    margin-top:12px;
+}
+
+.reader-panel.ring-active{
+    border-color:var(--green);
+    background:#f0faf4;
+}
+
+.reader-title{
+    font-weight:bold;
+    font-size:14px;
+    margin-bottom:7px;
+}
+
+.reader-description{
+    color:var(--muted);
+    font-size:12px;
+    line-height:1.5;
+    margin-bottom:10px;
+}
+
+.ring-input{
+    width:100%;
+    border:2px solid #b9c0ca;
+    border-radius:12px;
+    background:white;
+    padding:15px;
+    font-size:19px;
+    font-weight:bold;
+    letter-spacing:1px;
+    text-align:center;
+    margin:0;
+}
+
+.ring-input:focus{
+    outline:none;
+    border-color:var(--dhl-red);
+    box-shadow:0 0 0 3px rgba(212,5,17,.12);
+}
+
+.reader-status{
+    font-size:12px;
+    color:var(--muted);
+    margin-top:9px;
+    line-height:1.4;
+}
+
+.reader-actions{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:9px;
+    margin-top:10px;
+}
+
+.reader-actions button{
+    font-size:13px;
+    padding:12px 8px;
+}
+
 .camera-wrap{
     position:relative;
     width:100%;
@@ -167,55 +309,11 @@ video{
     box-shadow:0 0 8px white;
 }
 
-.actions{
+.camera-actions{
     display:grid;
     grid-template-columns:1fr 1fr;
     gap:10px;
-    margin-top:13px;
-}
-
-button{
-    border:0;
-    border-radius:12px;
-    padding:14px 12px;
-    font-size:15px;
-    font-weight:bold;
-    cursor:pointer;
-    min-height:48px;
-}
-
-button:disabled{
-    opacity:.45;
-    cursor:not-allowed;
-}
-
-.primary{
-    background:var(--dhl-red);
-    color:white;
-}
-
-.secondary{
-    background:#eceff3;
-    color:#252525;
-}
-
-.success-btn{
-    background:var(--green);
-    color:white;
-}
-
-.full{
-    width:100%;
     margin-top:12px;
-}
-
-input{
-    width:100%;
-    padding:14px;
-    border:1px solid #ccc;
-    border-radius:12px;
-    font-size:17px;
-    margin-top:8px;
 }
 
 .qr-value{
@@ -228,97 +326,6 @@ input{
     font-weight:bold;
     overflow-wrap:anywhere;
     word-break:break-word;
-}
-
-/* NUEVO: PANEL ZEBRA BLUETOOTH */
-
-.zebra-panel{
-    border:1px solid #d7dce2;
-    background:#f8f9fb;
-    padding:14px;
-    border-radius:14px;
-    margin-top:14px;
-}
-
-.zebra-title{
-    font-weight:bold;
-    font-size:14px;
-    margin-bottom:7px;
-}
-
-.zebra-description{
-    color:var(--muted);
-    font-size:12px;
-    line-height:1.5;
-    margin-bottom:10px;
-}
-
-.zebra-input{
-    width:100%;
-    border:2px solid #b9c0ca;
-    border-radius:12px;
-    background:white;
-    padding:15px;
-    font-size:19px;
-    font-weight:bold;
-    letter-spacing:1px;
-    text-align:center;
-    margin:0;
-}
-
-.zebra-input:focus{
-    outline:none;
-    border-color:var(--dhl-red);
-    box-shadow:0 0 0 3px rgba(212,5,17,.12);
-}
-
-.zebra-status{
-    font-size:12px;
-    color:var(--muted);
-    margin-top:9px;
-    line-height:1.4;
-}
-
-.zebra-actions{
-    display:grid;
-    grid-template-columns:1fr 1fr;
-    gap:9px;
-    margin-top:10px;
-}
-
-.zebra-actions button{
-    font-size:13px;
-    padding:12px 8px;
-}
-
-.zebra-active{
-    border-color:var(--green);
-    background:#f0faf4;
-}
-
-.zebra-active .zebra-status{
-    color:#116638;
-}
-
-.result-box{
-    background:#f7f7f8;
-    border:1px solid var(--border);
-    border-radius:12px;
-    padding:14px;
-    margin-top:10px;
-}
-
-.result-label{
-    font-size:11px;
-    color:var(--muted);
-    font-weight:bold;
-    text-transform:uppercase;
-}
-
-.result-value{
-    font-size:25px;
-    font-weight:bold;
-    margin-top:6px;
 }
 
 .sheet-preview{
@@ -352,16 +359,6 @@ input{
     width:100%;
     min-width:0;
     margin:0;
-}
-
-@media(max-width:360px){
-    .confirm-actions{
-        grid-template-columns:1fr;
-    }
-
-    .zebra-actions{
-        grid-template-columns:1fr;
-    }
 }
 
 .pool-header{
@@ -429,6 +426,13 @@ footer{
     display:none !important;
 }
 
+@media(max-width:360px){
+    .confirm-actions,
+    .reader-actions{
+        grid-template-columns:1fr;
+    }
+}
+
 @media(min-width:500px){
     .camera-wrap{
         aspect-ratio:4/3;
@@ -467,124 +471,169 @@ footer{
     </section>
 
 
-    <!-- LECTOR QR DE HOJA -->
+    <!-- IDENTIFICACIÓN DE HOJA -->
 
     <section class="card" id="cameraSection">
 
-        <h2>1. Registrar hoja viajera</h2>
+        <h2 id="readerStepTitle">1. Registrar hoja viajera</h2>
 
         <div class="status" id="cameraStatus">
-            Cámara apagada. Presiona Activar cámara para comenzar.
+            Usuario pendiente de validación.
         </div>
 
-        <div class="camera-wrap">
+        <div class="reader-title">
+            Selecciona el método de lectura
+        </div>
 
-            <video id="video" playsinline muted></video>
+        <div class="method-selector">
 
-            <div class="camera-placeholder" id="placeholder">
-                <span class="symbol">▦</span>
-                Escanea el QR de identificación de la hoja viajera.
+            <button
+                type="button"
+                class="method-btn selected recommended"
+                id="ringMethodBtn"
+            >
+                <span class="method-icon">◉</span>
+                Ring Scanner
+                <small>Bluetooth HID</small>
+            </button>
+
+            <button
+                type="button"
+                class="method-btn"
+                id="cameraMethodBtn"
+            >
+                <span class="method-icon">▣</span>
+                Cámara
+                <small>Lector QR</small>
+            </button>
+
+        </div>
+
+        <!-- PANEL RING SCANNER -->
+
+        <div class="reader-panel" id="ringPanel">
+
+            <div class="reader-title" id="ringTitle">
+                ◉ Ring Scanner Bluetooth
             </div>
 
-            <div class="scan-frame" id="scanFrame"></div>
+            <div class="reader-description" id="ringDescription">
+                Método principal. Conecta tu Ring Scanner y activa la lectura.
+                No necesitas presionar Enter.
+            </div>
+
+            <input
+                type="text"
+                id="ringInput"
+                class="ring-input"
+                autocomplete="off"
+                autocapitalize="off"
+                spellcheck="false"
+                inputmode="none"
+                maxlength="60"
+                placeholder="Esperando lectura..."
+            >
+
+            <div class="reader-status" id="ringStatus">
+                Ring inactivo. Pulsa Activar Ring para comenzar.
+            </div>
+
+            <div class="reader-actions">
+
+                <button
+                    type="button"
+                    class="primary"
+                    id="activateRingBtn"
+                >
+                    Activar Ring
+                </button>
+
+                <button
+                    type="button"
+                    class="secondary"
+                    id="deactivateRingBtn"
+                    disabled
+                >
+                    Detener Ring
+                </button>
+
+            </div>
 
         </div>
 
-        <div class="actions">
-            <button class="primary" id="startBtn">
-                Activar cámara
-            </button>
+        <!-- PANEL CÁMARA -->
 
-            <button class="secondary" id="stopBtn" disabled>
-                Detener cámara
-            </button>
+        <div class="hidden" id="cameraPanel">
+
+            <div class="camera-wrap">
+
+                <video id="video" playsinline muted></video>
+
+                <div class="camera-placeholder" id="placeholder">
+                    <span class="symbol">▦</span>
+                    Apunta al QR de identificación.
+                </div>
+
+                <div class="scan-frame" id="scanFrame"></div>
+
+            </div>
+
+            <div class="camera-actions">
+
+                <button class="primary" id="startBtn">
+                    Activar cámara
+                </button>
+
+                <button class="secondary" id="stopBtn" disabled>
+                    Detener cámara
+                </button>
+
+            </div>
+
         </div>
 
-        <p class="group-label">
-            Se utilizará la cámara trasera del dispositivo.
-            El lector reconoce el QR y prepara la hoja para confirmación.
+        <p class="group-label" id="readerHelp">
+            El Ring Scanner es el método principal. Puedes cambiar a cámara cuando lo necesites.
         </p>
 
     </section>
 
 
-    <!-- LECTURA OBLIGATORIA DE MATERIAL POS1 -->
+    <!-- LECTURA MATERIAL POS1 -->
 
     <section class="card hidden" id="materialSection">
 
         <h2>2. Leer QR de Material POS1</h2>
 
         <div class="status warning" id="materialStatus">
-            Después de identificar la hoja, escanea el QR del material POS1.
-            Esta lectura es obligatoria para registrar la hoja.
+            La lectura del material POS1 es obligatoria.
         </div>
 
         <div class="qr-value hidden" id="materialQrPreview"></div>
 
-        <!-- NUEVO: LECTOR ZEBRA HID -->
+        <div class="status">
+            Puedes conservar Ring Scanner o cambiar a Cámara para esta lectura.
+        </div>
 
-        <div class="zebra-panel" id="zebraPanel">
+        <div class="confirm-actions">
 
-            <div class="zebra-title">
-                ◉ Lector Zebra Bluetooth
-            </div>
-
-            <div class="zebra-description">
-                Conecta tu Ring Scanner por Bluetooth.
-                Presiona Activar Zebra y escanea el QR POS1.
-                No necesitas presionar Enter.
-            </div>
-
-            <input
-                type="text"
-                id="zebraInput"
-                class="zebra-input"
-                autocomplete="off"
-                autocapitalize="off"
-                spellcheck="false"
-                inputmode="none"
-                maxlength="30"
-                placeholder="Esperando lectura Zebra..."
+            <button
+                type="button"
+                class="primary"
+                id="materialRingBtn"
             >
+                ◉ Usar Ring Scanner
+            </button>
 
-            <div class="zebra-status" id="zebraStatus">
-                Zebra inactivo. Presiona Activar Zebra para comenzar.
-            </div>
-
-            <div class="zebra-actions">
-
-                <button
-                    type="button"
-                    class="primary"
-                    id="activateZebraBtn"
-                >
-                    Activar Zebra
-                </button>
-
-                <button
-                    type="button"
-                    class="secondary"
-                    id="deactivateZebraBtn"
-                    disabled
-                >
-                    Desactivar Zebra
-                </button>
-
-            </div>
+            <button
+                type="button"
+                class="secondary"
+                id="materialCameraBtn"
+            >
+                ▣ Usar Cámara
+            </button>
 
         </div>
-
-        <div class="status" style="margin-top:12px;">
-            También puedes utilizar la cámara para leer el QR POS1.
-        </div>
-
-        <button
-            type="button"
-            class="secondary full"
-            id="startMaterialCameraBtn"
-        >
-            📷 Leer POS1 con cámara
-        </button>
 
     </section>
 
@@ -595,11 +644,12 @@ footer{
 
         <h2>3. Confirmar registro</h2>
 
-        <div class="status success" id="previewStatus">
-            Hoja identificada correctamente.
+        <div class="status warning" id="previewStatus">
+            Pendiente de lectura POS1.
         </div>
 
         <div class="sheet-preview" id="sheetPreview">
+
             <div class="description">
                 HOJA VIAJERA
             </div>
@@ -611,6 +661,7 @@ footer{
             <div class="description">
                 Cockpit · NAVE 4
             </div>
+
         </div>
 
         <div class="confirm-actions">
@@ -633,11 +684,13 @@ footer{
     <section class="card">
 
         <div class="pool-header">
+
             <h2>4. Pool de hojas disponibles</h2>
 
             <div class="counter" id="availableCounter">
                 0 disponibles
             </div>
+
         </div>
 
         <div class="status" id="poolStatus">
@@ -753,18 +806,28 @@ const cameraStatus = $("cameraStatus");
 const startBtn = $("startBtn");
 const stopBtn = $("stopBtn");
 
+const cameraSection = $("cameraSection");
+const cameraPanel = $("cameraPanel");
+const ringPanel = $("ringPanel");
+
+const ringInput = $("ringInput");
+const ringStatus = $("ringStatus");
+const ringTitle = $("ringTitle");
+const ringDescription = $("ringDescription");
+
+const activateRingBtn = $("activateRingBtn");
+const deactivateRingBtn = $("deactivateRingBtn");
+
+const ringMethodBtn = $("ringMethodBtn");
+const cameraMethodBtn = $("cameraMethodBtn");
+
 const materialSection = $("materialSection");
 const materialStatus = $("materialStatus");
 const materialQrPreview = $("materialQrPreview");
+
+const materialRingBtn = $("materialRingBtn");
+const materialCameraBtn = $("materialCameraBtn");
 const materialScanBtn = $("materialScanBtn");
-
-const startMaterialCameraBtn = $("startMaterialCameraBtn");
-
-const zebraPanel = $("zebraPanel");
-const zebraInput = $("zebraInput");
-const zebraStatus = $("zebraStatus");
-const activateZebraBtn = $("activateZebraBtn");
-const deactivateZebraBtn = $("deactivateZebraBtn");
 
 const previewSection = $("previewSection");
 const sheetPreview = $("sheetPreview");
@@ -772,6 +835,7 @@ const sheetNumberPreview = $("sheetNumberPreview");
 const previewStatus = $("previewStatus");
 
 const confirmBtn = $("confirmBtn");
+
 const poolList = $("poolList");
 const poolStatus = $("poolStatus");
 const availableCounter = $("availableCounter");
@@ -791,7 +855,9 @@ let animationId = null;
 
 let scanning = false;
 
-let scanMode = "SHEET";
+let activeStage = "SHEET";
+
+let selectedMethod = "RING";
 
 let registering = false;
 
@@ -799,13 +865,13 @@ let authorized = false;
 
 let poolRefreshInProgress = false;
 
-let zebraEnabled = false;
+let ringEnabled = false;
 
-let zebraTimer = null;
+let ringTimer = null;
 
-let zebraProcessing = false;
+let ringProcessing = false;
 
-const ZEBRA_IDLE_TIME = 450;
+const RING_IDLE_TIME = 450;
 
 const canvas = document.createElement("canvas");
 
@@ -837,6 +903,17 @@ function setPoolStatus(message, type = "") {
 }
 
 
+function setRingStatus(message, type = "") {
+
+    ringStatus.textContent = message;
+
+    ringPanel.classList.toggle(
+        "ring-active",
+        ringEnabled || type === "success"
+    );
+}
+
+
 function padSheet(number) {
 
     return String(number).padStart(2, "0");
@@ -855,16 +932,14 @@ function escapeHTML(value) {
 
 
 /* =====================================================
-   5.1 VALIDACIÓN ESTRICTA MATERIAL POS1
+   6. VALIDACIÓN MATERIAL POS1
 ===================================================== */
 
 function validateMaterialPos1QR(rawValue) {
 
     const value = String(rawValue ?? "").trim();
 
-    const numericPattern = /^\d{10}$/;
-
-    if (!numericPattern.test(value)) {
+    if (!/^\d{10}$/.test(value)) {
 
         throw new Error(
             "QR POS1 inválido. Debe contener exactamente 10 dígitos numéricos."
@@ -876,361 +951,7 @@ function validateMaterialPos1QR(rawValue) {
 
 
 /* =====================================================
-   5.2 MANEJADOR ÚNICO DE MATERIAL POS1
-===================================================== */
-
-/*
-   Ambos lectores utilizan esta función:
-
-   Cámara: QR
-   Zebra Bluetooth: ZEBRA_HID
-
-   No se duplica la lógica de validación ni
-   la asignación de currentSheet.materialQr.
-*/
-
-function acceptMaterialQr(rawValue, captureMode) {
-
-    if (!currentSheet) {
-
-        throw new Error(
-            "Primero debes identificar una hoja viajera."
-        );
-    }
-
-    if (registering) {
-
-        throw new Error(
-            "Existe un registro en proceso."
-        );
-    }
-
-    const materialQr =
-        validateMaterialPos1QR(rawValue);
-
-    currentSheet.materialQr = materialQr;
-
-    currentSheet.materialCaptureMode = captureMode;
-
-    materialQrPreview.textContent = materialQr;
-
-    materialQrPreview.classList.remove("hidden");
-
-    materialStatus.textContent =
-        "QR POS1 válido: 10 dígitos numéricos. Ya puedes confirmar el registro.";
-
-    materialStatus.className =
-        "status success";
-
-    previewSection.classList.remove("hidden");
-
-    previewStatus.textContent =
-        "Hoja y QR de Material POS1 identificados y validados. Confirma el registro.";
-
-    previewStatus.className =
-        "status success";
-
-    confirmBtn.disabled = false;
-
-    if (captureMode === "ZEBRA_HID") {
-
-        setZebraStatus(
-            "Lectura Zebra recibida y validada correctamente.",
-            "success"
-        );
-
-    } else {
-
-        setZebraStatus(
-            "Lectura realizada mediante cámara.",
-            ""
-        );
-    }
-
-    setCameraStatus(
-        "QR de Material POS1 validado correctamente.",
-        "success"
-    );
-
-    previewSection.scrollIntoView({
-        behavior: "smooth",
-        block: "center"
-    });
-
-    return materialQr;
-}
-
-
-/* =====================================================
-   5.3 CONTROL DEL PANEL ZEBRA
-===================================================== */
-
-function setZebraStatus(message, type = "") {
-
-    zebraStatus.textContent = message;
-
-    zebraPanel.classList.toggle(
-        "zebra-active",
-        type === "success" || zebraEnabled
-    );
-}
-
-
-function stopZebra(clearInput = false) {
-
-    zebraEnabled = false;
-
-    clearTimeout(zebraTimer);
-
-    zebraTimer = null;
-
-    zebraProcessing = false;
-
-    if (clearInput) {
-
-        zebraInput.value = "";
-    }
-
-    activateZebraBtn.disabled = false;
-
-    deactivateZebraBtn.disabled = true;
-
-    zebraPanel.classList.remove("zebra-active");
-
-    setZebraStatus(
-        "Zebra inactivo. Presiona Activar Zebra para comenzar."
-    );
-}
-
-
-function activateZebra() {
-
-    if (!authorized) {
-
-        setZebraStatus(
-            "Usuario no autorizado."
-        );
-
-        return;
-    }
-
-    if (!currentSheet) {
-
-        setZebraStatus(
-            "Primero debes identificar una hoja viajera."
-        );
-
-        return;
-    }
-
-    if (registering) return;
-
-    if (currentSheet.materialQr) {
-
-        setZebraStatus(
-            "Ya existe un QR POS1 validado. Si necesitas cambiarlo, utiliza Volver a escanear."
-        );
-
-        return;
-    }
-
-    clearTimeout(zebraTimer);
-
-    zebraInput.value = "";
-
-    zebraEnabled = true;
-
-    zebraProcessing = false;
-
-    activateZebraBtn.disabled = true;
-
-    deactivateZebraBtn.disabled = false;
-
-    zebraPanel.classList.add("zebra-active");
-
-    setZebraStatus(
-        "Zebra activo. Escanea el QR POS1. No necesitas presionar Enter.",
-        "success"
-    );
-
-    /*
-       El foco permite recibir los caracteres enviados
-       por el scanner como teclado Bluetooth HID.
-
-       inputmode=none evita abrir innecesariamente
-       el teclado virtual en dispositivos compatibles.
-    */
-
-    zebraInput.focus();
-}
-
-
-function processZebraScan() {
-
-    if (!zebraEnabled || zebraProcessing) return;
-
-    const rawValue = String(zebraInput.value || "").trim();
-
-    if (!rawValue) return;
-
-    zebraProcessing = true;
-
-    clearTimeout(zebraTimer);
-
-    try {
-
-        acceptMaterialQr(
-            rawValue,
-            "ZEBRA_HID"
-        );
-
-        /*
-           Después de una lectura correcta,
-           desactivamos el receptor para evitar
-           capturas duplicadas.
-        */
-
-        stopZebra(true);
-
-    } catch (error) {
-
-        console.error(
-            "Lectura Zebra rechazada:",
-            error
-        );
-
-        materialStatus.textContent =
-            error.message;
-
-        materialStatus.className =
-            "status error";
-
-        setZebraStatus(
-            error.message + " Intenta nuevamente.",
-            "error"
-        );
-
-        if (currentSheet) {
-
-            awaitRejectedZebraAttempt(
-                currentSheet.number,
-                error.message,
-                rawValue
-            );
-        }
-
-        zebraInput.value = "";
-
-        zebraProcessing = false;
-
-        /*
-           El scanner permanece activo para permitir
-           una nueva lectura sin volver a activarlo.
-        */
-
-        setTimeout(() => {
-
-            if (zebraEnabled && !currentSheet?.materialQr) {
-
-                zebraInput.focus();
-            }
-
-        }, 100);
-    }
-}
-
-
-function awaitRejectedZebraAttempt(
-    sheetNumber,
-    reason,
-    rawValue
-) {
-
-    registerRejectedAttempt(
-        sheetNumber,
-        "ZEBRA HID: " + reason,
-        rawValue,
-        "ZEBRA_HID"
-    ).catch(error => {
-
-        console.error(
-            "Error guardando rechazo Zebra:",
-            error
-        );
-    });
-}
-
-
-/* =====================================================
-   5.4 RECEPCIÓN AUTOMÁTICA ZEBRA SIN ENTER
-===================================================== */
-
-zebraInput.addEventListener("input", () => {
-
-    if (!zebraEnabled) return;
-
-    if (zebraProcessing) return;
-
-    clearTimeout(zebraTimer);
-
-    const value = zebraInput.value;
-
-    if (!value) return;
-
-    setZebraStatus(
-        "Recibiendo caracteres del lector Zebra..."
-    );
-
-    /*
-       El lector no envía Enter.
-
-       Detectamos el final de la lectura cuando
-       transcurren 450 ms sin recibir caracteres.
-
-       El tiempo puede ajustarse posteriormente
-       si el modelo Zebra necesita otro intervalo.
-    */
-
-    zebraTimer = setTimeout(() => {
-
-        processZebraScan();
-
-    }, ZEBRA_IDLE_TIME);
-
-});
-
-
-activateZebraBtn.addEventListener(
-    "click",
-    activateZebra
-);
-
-
-deactivateZebraBtn.addEventListener(
-    "click",
-    () => stopZebra(true)
-);
-
-
-/*
-   Si el usuario toca nuevamente el campo mientras
-   Zebra está activo, se conserva el foco.
-*/
-
-zebraInput.addEventListener("click", () => {
-
-    if (
-        zebraEnabled &&
-        !currentSheet?.materialQr
-    ) {
-
-        zebraInput.focus();
-    }
-});
-
-
-/* =====================================================
-   6. INTERPRETACIÓN DEL QR DE HOJA
+   7. INTERPRETACIÓN DEL QR DE HOJA
 ===================================================== */
 
 function parseSheetQR(rawValue) {
@@ -1295,7 +1016,114 @@ function parseSheetQR(rawValue) {
 
 
 /* =====================================================
-   7. PREPARAR HOJA PARA CONFIRMACIÓN
+   8. SELECCIÓN DEL MÉTODO DE LECTURA
+===================================================== */
+
+function selectMethod(method) {
+
+    if (registering) return;
+
+    selectedMethod = method;
+
+    ringMethodBtn.classList.toggle(
+        "selected",
+        method === "RING"
+    );
+
+    cameraMethodBtn.classList.toggle(
+        "selected",
+        method === "CAMERA"
+    );
+
+    if (method === "RING") {
+
+        stopCamera();
+
+        cameraPanel.classList.add("hidden");
+
+        ringPanel.classList.remove("hidden");
+
+        setRingStatus(
+            "Ring seleccionado. Pulsa Activar Ring para comenzar."
+        );
+
+    } else {
+
+        stopRing(true);
+
+        ringPanel.classList.add("hidden");
+
+        cameraPanel.classList.remove("hidden");
+
+        setCameraStatus(
+            "Cámara seleccionada. Pulsa Activar cámara para comenzar."
+        );
+    }
+}
+
+
+ringMethodBtn.addEventListener(
+    "click",
+    () => selectMethod("RING")
+);
+
+
+cameraMethodBtn.addEventListener(
+    "click",
+    () => selectMethod("CAMERA")
+);
+
+
+/* =====================================================
+   9. REINICIAR EL MÉTODO PARA UNA ETAPA
+===================================================== */
+
+function setReaderStage(stage) {
+
+    activeStage = stage;
+
+    if (stage === "SHEET") {
+
+        $("readerStepTitle").textContent =
+            "1. Registrar hoja viajera";
+
+        ringTitle.textContent =
+            "◉ Ring Scanner Bluetooth";
+
+        ringDescription.textContent =
+            "Método principal. Escanea el QR de identificación de la hoja. No necesitas presionar Enter.";
+
+        ringInput.placeholder =
+            "Esperando QR de hoja...";
+
+        $("readerHelp").textContent =
+            "Escanea la identificación de la hoja viajera mediante Ring Scanner o Cámara.";
+
+    } else {
+
+        $("readerStepTitle").textContent =
+            "2. Leer QR de Material POS1";
+
+        ringTitle.textContent =
+            "◉ Ring Scanner Bluetooth";
+
+        ringDescription.textContent =
+            "Escanea el QR de Material POS1. Se validarán exactamente 10 dígitos numéricos.";
+
+        ringInput.placeholder =
+            "Esperando QR Material POS1...";
+
+        $("readerHelp").textContent =
+            "La lectura del material POS1 es obligatoria antes de confirmar.";
+
+    }
+
+    selectMethod("RING");
+}
+
+
+/* =====================================================
+   10. PREPARAR HOJA
 ===================================================== */
 
 function prepareSheet(number, source) {
@@ -1318,7 +1146,9 @@ function prepareSheet(number, source) {
         );
     }
 
-    stopZebra(true);
+    stopRing(true);
+
+    stopCamera();
 
     currentSheet = {
 
@@ -1345,16 +1175,12 @@ function prepareSheet(number, source) {
         "Hoja " + padSheet(number) +
         " identificada. Ahora escanea el QR del material POS1.";
 
-    materialStatus.className = "status warning";
+    materialStatus.className =
+        "status warning";
 
     materialQrPreview.textContent = "";
 
     materialQrPreview.classList.add("hidden");
-
-    materialScanBtn.disabled = false;
-
-    materialScanBtn.textContent =
-        "Volver a escanear QR POS1";
 
     sheetPreview.style.display = "block";
 
@@ -1365,43 +1191,33 @@ function prepareSheet(number, source) {
 
     confirmBtn.disabled = true;
 
-    document.getElementById("cameraSection").scrollIntoView({
+    setReaderStage("MATERIAL");
+
+    materialSection.scrollIntoView({
         behavior: "smooth",
-        block: "start"
+        block: "center"
     });
-
-    setTimeout(() => {
-
-        if (currentSheet && !currentSheet.materialQr) {
-
-            startCamera("MATERIAL");
-        }
-
-    }, 350);
 }
 
 
 function clearPreview() {
 
-    stopZebra(true);
+    stopRing(true);
+
+    stopCamera();
 
     currentSheet = null;
 
     materialSection.classList.add("hidden");
 
     materialStatus.textContent =
-        "Después de identificar la hoja, escanea el QR del material POS1.";
+        "La lectura del material POS1 es obligatoria.";
 
     materialStatus.className = "status warning";
 
     materialQrPreview.textContent = "";
 
     materialQrPreview.classList.add("hidden");
-
-    materialScanBtn.disabled = false;
-
-    materialScanBtn.textContent =
-        "Volver a escanear QR POS1";
 
     previewSection.classList.add("hidden");
 
@@ -1411,11 +1227,317 @@ function clearPreview() {
 
     confirmBtn.textContent =
         "Confirmar registro";
+
+    setReaderStage("SHEET");
 }
 
 
 /* =====================================================
-   8. LECTOR DE CÁMARA
+   11. ACEPTAR MATERIAL POS1
+===================================================== */
+
+function acceptMaterialQr(rawValue, captureMode) {
+
+    if (!currentSheet) {
+
+        throw new Error(
+            "Primero debes identificar una hoja viajera."
+        );
+    }
+
+    if (registering) {
+
+        throw new Error(
+            "Existe un registro en proceso."
+        );
+    }
+
+    const materialQr =
+        validateMaterialPos1QR(rawValue);
+
+    currentSheet.materialQr = materialQr;
+
+    currentSheet.materialCaptureMode = captureMode;
+
+    materialQrPreview.textContent = materialQr;
+
+    materialQrPreview.classList.remove("hidden");
+
+    materialStatus.textContent =
+        "QR POS1 válido: 10 dígitos numéricos. Ya puedes confirmar el registro.";
+
+    materialStatus.className =
+        "status success";
+
+    previewStatus.textContent =
+        "Hoja y QR de Material POS1 identificados y validados. Confirma el registro.";
+
+    previewStatus.className =
+        "status success";
+
+    confirmBtn.disabled = false;
+
+    setCameraStatus(
+        "QR POS1 validado correctamente.",
+        "success"
+    );
+
+    stopRing(true);
+
+    previewSection.scrollIntoView({
+        behavior: "smooth",
+        block: "center"
+    });
+
+    return materialQr;
+}
+
+
+/* =====================================================
+   12. PROCESAR CONTENIDO DE CUALQUIER LECTOR
+===================================================== */
+
+function processScannedValue(rawValue, captureMode) {
+
+    if (activeStage === "SHEET") {
+
+        const sheetNumber =
+            parseSheetQR(rawValue);
+
+        prepareSheet(
+            sheetNumber,
+            captureMode
+        );
+
+        setCameraStatus(
+            "Hoja " + padSheet(sheetNumber) +
+            " identificada correctamente.",
+            "success"
+        );
+
+        return;
+    }
+
+    if (activeStage === "MATERIAL") {
+
+        acceptMaterialQr(
+            rawValue,
+            captureMode
+        );
+
+        return;
+    }
+}
+
+
+/* =====================================================
+   13. RING SCANNER BLUETOOTH HID
+===================================================== */
+
+function stopRing(clearInput = false) {
+
+    ringEnabled = false;
+
+    clearTimeout(ringTimer);
+
+    ringTimer = null;
+
+    ringProcessing = false;
+
+    if (clearInput) {
+
+        ringInput.value = "";
+    }
+
+    activateRingBtn.disabled = false;
+
+    deactivateRingBtn.disabled = true;
+
+    ringPanel.classList.remove("ring-active");
+
+    setRingStatus(
+        "Ring inactivo. Pulsa Activar Ring para comenzar."
+    );
+}
+
+
+function activateRing() {
+
+    if (!authorized) {
+
+        setRingStatus(
+            "Usuario no autorizado."
+        );
+
+        return;
+    }
+
+    if (registering) return;
+
+    if (
+        activeStage === "MATERIAL" &&
+        (!currentSheet || currentSheet.materialQr)
+    ) {
+
+        setRingStatus(
+            "No hay una lectura POS1 pendiente."
+        );
+
+        return;
+    }
+
+    if (
+        activeStage === "SHEET" &&
+        currentSheet
+    ) {
+
+        setRingStatus(
+            "Termina o limpia la hoja actual antes de iniciar otra."
+        );
+
+        return;
+    }
+
+    stopCamera();
+
+    clearTimeout(ringTimer);
+
+    ringInput.value = "";
+
+    ringEnabled = true;
+
+    ringProcessing = false;
+
+    activateRingBtn.disabled = true;
+
+    deactivateRingBtn.disabled = false;
+
+    ringPanel.classList.add("ring-active");
+
+    setRingStatus(
+        activeStage === "SHEET"
+            ? "Ring activo. Escanea el QR de la hoja viajera."
+            : "Ring activo. Escanea el QR de Material POS1.",
+        "success"
+    );
+
+    ringInput.focus();
+}
+
+
+function processRingScan() {
+
+    if (!ringEnabled || ringProcessing) return;
+
+    const rawValue =
+        String(ringInput.value || "").trim();
+
+    if (!rawValue) return;
+
+    ringProcessing = true;
+
+    clearTimeout(ringTimer);
+
+    try {
+
+        processScannedValue(
+            rawValue,
+            "ZEBRA_HID"
+        );
+
+        stopRing(true);
+
+    } catch (error) {
+
+        console.error(
+            "Lectura Ring rechazada:",
+            error
+        );
+
+        setRingStatus(
+            error.message + " Intenta nuevamente.",
+            "error"
+        );
+
+        if (activeStage === "MATERIAL" && currentSheet) {
+
+            registerRejectedAttempt(
+                currentSheet.number,
+                "ZEBRA HID: " + error.message,
+                rawValue,
+                "ZEBRA_HID"
+            ).catch(err => {
+                console.error(
+                    "Error guardando rechazo Zebra:",
+                    err
+                );
+            });
+
+            materialStatus.textContent =
+                error.message;
+
+            materialStatus.className =
+                "status error";
+        }
+
+        ringInput.value = "";
+
+        ringProcessing = false;
+
+        setTimeout(() => {
+
+            if (ringEnabled) {
+
+                ringInput.focus();
+            }
+
+        }, 100);
+    }
+}
+
+
+ringInput.addEventListener("input", () => {
+
+    if (!ringEnabled || ringProcessing) return;
+
+    clearTimeout(ringTimer);
+
+    if (!ringInput.value) return;
+
+    setRingStatus(
+        "Recibiendo lectura del Ring Scanner..."
+    );
+
+    /*
+       El Ring Scanner no envía Enter.
+
+       Se detecta el final de la lectura
+       después de 450 ms sin caracteres.
+    */
+
+    ringTimer = setTimeout(() => {
+
+        processRingScan();
+
+    }, RING_IDLE_TIME);
+
+});
+
+
+activateRingBtn.addEventListener(
+    "click",
+    activateRing
+);
+
+
+deactivateRingBtn.addEventListener(
+    "click",
+    () => stopRing(true)
+);
+
+
+/* =====================================================
+   14. CÁMARA
 ===================================================== */
 
 function stopCamera(message = "Cámara detenida.") {
@@ -1456,9 +1578,7 @@ function stopCamera(message = "Cámara detenida.") {
 }
 
 
-async function startCamera(mode = "SHEET") {
-
-    scanMode = mode;
+async function startCamera() {
 
     if (!authorized) {
 
@@ -1471,6 +1591,34 @@ async function startCamera(mode = "SHEET") {
     }
 
     if (registering) return;
+
+    if (
+        activeStage === "MATERIAL" &&
+        (!currentSheet || currentSheet.materialQr)
+    ) {
+
+        setCameraStatus(
+            "No hay una lectura POS1 pendiente.",
+            "error"
+        );
+
+        return;
+    }
+
+    if (
+        activeStage === "SHEET" &&
+        currentSheet
+    ) {
+
+        setCameraStatus(
+            "Termina o limpia la hoja actual antes de iniciar otra.",
+            "error"
+        );
+
+        return;
+    }
+
+    stopRing(true);
 
     if (scanning || stream) {
 
@@ -1567,7 +1715,7 @@ async function startCamera(mode = "SHEET") {
         stopBtn.disabled = false;
 
         setCameraStatus(
-            scanMode === "MATERIAL"
+            activeStage === "MATERIAL"
                 ? "Cámara activa. Apunta al QR del material POS1."
                 : "Cámara activa. Apunta al QR de la hoja viajera."
         );
@@ -1576,7 +1724,10 @@ async function startCamera(mode = "SHEET") {
 
     } catch (error) {
 
-        console.error("Error al abrir cámara:", error);
+        console.error(
+            "Error al abrir cámara:",
+            error
+        );
 
         let message =
             "No fue posible abrir la cámara.";
@@ -1602,7 +1753,6 @@ async function startCamera(mode = "SHEET") {
 
             message =
                 "La cámara está siendo utilizada por otra aplicación.";
-
         }
 
         stopCamera(message);
@@ -1657,74 +1807,35 @@ function scanLoop() {
                 "Código QR detectado."
             );
 
-            if (scanMode === "MATERIAL") {
+            try {
 
-                if (!currentSheet) {
+                processScannedValue(
+                    code.data,
+                    "QR"
+                );
 
-                    setCameraStatus(
-                        "Primero debes identificar una hoja viajera.",
-                        "error"
-                    );
+            } catch (error) {
 
-                    return;
-                }
+                console.error(
+                    "QR rechazado:",
+                    error
+                );
 
-                try {
+                setCameraStatus(
+                    error.message,
+                    "error"
+                );
 
-                    acceptMaterialQr(
-                        code.data,
-                        "QR"
-                    );
-
-                } catch (error) {
+                if (
+                    activeStage === "MATERIAL" &&
+                    currentSheet
+                ) {
 
                     materialStatus.textContent =
                         error.message;
 
                     materialStatus.className =
                         "status error";
-
-                    setCameraStatus(
-                        error.message + " Intenta nuevamente.",
-                        "error"
-                    );
-
-                    setTimeout(() => {
-
-                        if (
-                            currentSheet &&
-                            !currentSheet.materialQr &&
-                            !registering
-                        ) {
-
-                            startCamera("MATERIAL");
-                        }
-
-                    }, 700);
-
-                    return;
-                }
-
-            } else {
-
-                try {
-
-                    const sheetNumber =
-                        parseSheetQR(code.data);
-
-                    prepareSheet(sheetNumber, "QR");
-
-                    setCameraStatus(
-                        "Hoja identificada. Activando cámara para leer Material POS1...",
-                        "success"
-                    );
-
-                } catch (error) {
-
-                    setCameraStatus(
-                        error.message,
-                        "error"
-                    );
                 }
             }
 
@@ -1738,69 +1849,12 @@ function scanLoop() {
 
 
 /* =====================================================
-   9. RELECTURA DEL QR DE MATERIAL POS1
+   15. BOTONES DE LECTURA POS1
 ===================================================== */
 
-materialScanBtn.addEventListener("click", () => {
+materialRingBtn.addEventListener("click", () => {
 
-    if (!currentSheet) {
-
-        setCameraStatus(
-            "Primero debes identificar una hoja viajera.",
-            "error"
-        );
-
-        return;
-    }
-
-    stopZebra(true);
-
-    currentSheet.materialQr = null;
-
-    currentSheet.materialCaptureMode = null;
-
-    materialQrPreview.textContent = "";
-
-    materialQrPreview.classList.add("hidden");
-
-    confirmBtn.disabled = true;
-
-    materialStatus.textContent =
-        "Vuelve a escanear el QR del material POS1. Debe contener exactamente 10 dígitos numéricos.";
-
-    materialStatus.className =
-        "status warning";
-
-    previewStatus.textContent =
-        "Pendiente de volver a leer y validar el QR del material POS1.";
-
-    previewStatus.className =
-        "status warning";
-
-    document.getElementById("cameraSection").scrollIntoView({
-        behavior: "smooth",
-        block: "start"
-    });
-
-    setTimeout(() => {
-
-        startCamera("MATERIAL");
-
-    }, 250);
-});
-
-
-startMaterialCameraBtn.addEventListener("click", () => {
-
-    if (!currentSheet) {
-
-        setCameraStatus(
-            "Primero debes identificar una hoja viajera.",
-            "error"
-        );
-
-        return;
-    }
+    if (!currentSheet) return;
 
     if (currentSheet.materialQr) {
 
@@ -1815,10 +1869,8 @@ startMaterialCameraBtn.addEventListener("click", () => {
         confirmBtn.disabled = true;
     }
 
-    stopZebra(true);
-
     materialStatus.textContent =
-        "Escanea el QR del material POS1 con la cámara.";
+        "Seleccionaste Ring Scanner. Activa el lector para escanear POS1.";
 
     materialStatus.className =
         "status warning";
@@ -1829,12 +1881,92 @@ startMaterialCameraBtn.addEventListener("click", () => {
     previewStatus.className =
         "status warning";
 
-    startCamera("MATERIAL");
+    setReaderStage("MATERIAL");
+
+    cameraSection.scrollIntoView({
+        behavior: "smooth",
+        block: "start"
+    });
+});
+
+
+materialCameraBtn.addEventListener("click", () => {
+
+    if (!currentSheet) return;
+
+    if (currentSheet.materialQr) {
+
+        currentSheet.materialQr = null;
+
+        currentSheet.materialCaptureMode = null;
+
+        materialQrPreview.textContent = "";
+
+        materialQrPreview.classList.add("hidden");
+
+        confirmBtn.disabled = true;
+    }
+
+    materialStatus.textContent =
+        "Seleccionaste Cámara. Activa la cámara para escanear POS1.";
+
+    materialStatus.className =
+        "status warning";
+
+    previewStatus.textContent =
+        "Pendiente de lectura del QR POS1.";
+
+    previewStatus.className =
+        "status warning";
+
+    setReaderStage("MATERIAL");
+
+    selectMethod("CAMERA");
+
+    cameraSection.scrollIntoView({
+        behavior: "smooth",
+        block: "start"
+    });
+});
+
+
+materialScanBtn.addEventListener("click", () => {
+
+    if (!currentSheet) return;
+
+    currentSheet.materialQr = null;
+
+    currentSheet.materialCaptureMode = null;
+
+    materialQrPreview.textContent = "";
+
+    materialQrPreview.classList.add("hidden");
+
+    confirmBtn.disabled = true;
+
+    materialStatus.textContent =
+        "Selecciona Ring Scanner o Cámara para volver a leer POS1.";
+
+    materialStatus.className =
+        "status warning";
+
+    previewStatus.textContent =
+        "Pendiente de volver a leer y validar el QR POS1.";
+
+    previewStatus.className =
+        "status warning";
+
+    setReaderStage("MATERIAL");
+
+    cameraSection.scrollIntoView({
+        behavior: "smooth",
+        block: "start"
+    });
 });
 
 
 /* =====================================================
-   10. VALIDACIÓN DE USUARIO Y GRUPO
+   16. VALIDACIÓN DE USUARIO Y GRUPO
 ===================================================== */
 
 async function validateUser(firebaseUser) {
@@ -1983,7 +2115,7 @@ async function validateUser(firebaseUser) {
 
 
 /* =====================================================
-   11. CONSULTAR POOL DEL GRUPO
+   17. CONSULTAR POOL DEL GRUPO
 ===================================================== */
 
 async function loadPool() {
@@ -2108,7 +2240,7 @@ async function loadPool() {
 
 
 /* =====================================================
-   12. REGISTRAR INTENTO RECHAZADO EN AUDITORÍA
+   18. AUDITORÍA DE RECHAZOS
 ===================================================== */
 
 async function registerRejectedAttempt(
@@ -2168,7 +2300,7 @@ async function registerRejectedAttempt(
 
 
 /* =====================================================
-   13. REGISTRAR HOJA EN FIRESTORE
+   19. REGISTRAR HOJA EN FIRESTORE
 ===================================================== */
 
 async function registerSheet() {
@@ -2189,7 +2321,9 @@ async function registerSheet() {
 
     if (!currentSheet.materialQr) {
 
-        alert("Debes leer el QR del Material POS1 antes de registrar la hoja.");
+        alert(
+            "Debes leer el QR del Material POS1 antes de registrar la hoja."
+        );
 
         materialSection.scrollIntoView({
             behavior: "smooth",
@@ -2198,13 +2332,6 @@ async function registerSheet() {
 
         return;
     }
-
-    /*
-       SEGUNDA VALIDACIÓN DE SEGURIDAD.
-
-       El formato se verifica nuevamente antes
-       de permitir cualquier escritura en Firestore.
-    */
 
     try {
 
@@ -2232,7 +2359,9 @@ async function registerSheet() {
 
     registering = true;
 
-    stopZebra(true);
+    stopRing(true);
+
+    stopCamera();
 
     confirmBtn.disabled = true;
 
@@ -2514,18 +2643,18 @@ async function registerSheet() {
             !currentSheet.materialQr;
 
         confirmBtn.textContent =
-            "Confirmar y registrar hoja";
+            "Confirmar registro";
     }
 }
 
 
 /* =====================================================
-   14. EVENTOS
+   20. EVENTOS GENERALES
 ===================================================== */
 
 startBtn.addEventListener(
     "click",
-    () => startCamera("SHEET")
+    startCamera
 );
 
 stopBtn.addEventListener(
@@ -2555,9 +2684,9 @@ document.addEventListener(
             );
         }
 
-        if (document.hidden && zebraEnabled) {
+        if (document.hidden && ringEnabled) {
 
-            stopZebra(true);
+            stopRing(true);
         }
     }
 );
@@ -2571,13 +2700,13 @@ window.addEventListener(
             stopCamera();
         }
 
-        stopZebra(true);
+        stopRing(true);
     }
 );
 
 
 /* =====================================================
-   15. INICIALIZACIÓN Y AUTENTICACIÓN
+   21. INICIALIZACIÓN Y AUTENTICACIÓN
 ===================================================== */
 
 onAuthStateChanged(
@@ -2604,6 +2733,10 @@ onAuthStateChanged(
                 "error"
             );
 
+            activateRingBtn.disabled = true;
+
+            startBtn.disabled = true;
+
             return;
         }
 
@@ -2615,9 +2748,11 @@ onAuthStateChanged(
             await validateUser(firebaseUser);
 
             setCameraStatus(
-                "Usuario autorizado. Listo para registrar hojas.",
+                "Usuario autorizado. Ring Scanner seleccionado como método principal.",
                 "success"
             );
+
+            setReaderStage("SHEET");
 
             await loadPool();
 
@@ -2650,7 +2785,7 @@ onAuthStateChanged(
 
             refreshBtn.disabled = true;
 
-            activateZebraBtn.disabled = true;
+            activateRingBtn.disabled = true;
         }
     }
 );
