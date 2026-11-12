@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -445,7 +446,6 @@ footer{
 
         <div class="qr-value hidden" id="materialQrPreview"></div>
 
-
     </section>
 
 
@@ -581,6 +581,9 @@ const CONFIG = {
 
     collectionAudit: "codpidAudit",
 
+    // Formato obligatorio del QR Material POS1.
+    materialQrLength: 10,
+
     groupId: null,
 
     employeeId: null,
@@ -691,6 +694,52 @@ function escapeHTML(value) {
         .replaceAll(">", "&gt;")
         .replaceAll('"', "&quot;")
         .replaceAll("'", "&#039;");
+}
+
+
+/* =====================================================
+   5.1 VALIDACIÓN ESTRICTA MATERIAL POS1
+===================================================== */
+
+/*
+   REGLA DE PRODUCCIÓN:
+
+   El QR Material POS1 debe contener:
+
+   - Exactamente 10 caracteres.
+   - Únicamente números del 0 al 9.
+   - Sin letras.
+   - Sin espacios internos.
+   - Sin caracteres especiales.
+
+   Se conserva como STRING para no perder
+   posibles ceros iniciales.
+
+   Ejemplo válido:
+   2646311078
+
+   Ejemplos rechazados:
+   264631107
+   26463110789
+   26463A1078
+   ABC6311078
+   26463 1078
+*/
+
+function validateMaterialPos1QR(rawValue) {
+
+    const value = String(rawValue ?? "").trim();
+
+    const numericPattern = /^\d{10}$/;
+
+    if (!numericPattern.test(value)) {
+
+        throw new Error(
+            "QR POS1 inválido. Debe contener exactamente 10 dígitos numéricos."
+        );
+    }
+
+    return value;
 }
 
 
@@ -860,11 +909,15 @@ function clearPreview() {
     currentSheet = null;
 
     materialSection.classList.add("hidden");
+
     materialStatus.textContent =
         "Después de identificar la hoja, escanea el QR del material POS1.";
+
     materialStatus.className = "status warning";
+
     materialQrPreview.textContent = "";
     materialQrPreview.classList.add("hidden");
+
     materialScanBtn.disabled = false;
     materialScanBtn.textContent = "Volver a escanear QR POS1";
 
@@ -936,6 +989,10 @@ async function startCamera(mode = "SHEET") {
     }
 
     if (registering) return;
+
+    if (scanning || stream) {
+        stopCamera("Reiniciando cámara...");
+    }
 
     if (!window.isSecureContext) {
 
@@ -1119,19 +1176,48 @@ function scanLoop() {
 
             if (scanMode === "MATERIAL") {
 
-                const materialQr = String(code.data).trim();
+                /*
+                   VALIDACIÓN OBLIGATORIA POS1.
 
-                if (!materialQr) {
+                   Si el contenido no tiene exactamente
+                   10 números, NO se acepta y NO habilita
+                   la confirmación.
+                */
+
+                let materialQr;
+
+                try {
+
+                    materialQr =
+                        validateMaterialPos1QR(code.data);
+
+                } catch (error) {
 
                     materialStatus.textContent =
-                        "El QR leído no contiene un valor válido. Intenta nuevamente.";
+                        error.message;
 
-                    materialStatus.className = "status error";
+                    materialStatus.className =
+                        "status error";
 
                     setCameraStatus(
-                        "El QR del material está vacío. Intenta nuevamente.",
+                        error.message + " Intenta nuevamente.",
                         "error"
                     );
+
+                    // Reactiva automáticamente la cámara
+                    // para permitir una nueva lectura.
+                    setTimeout(() => {
+
+                        if (
+                            currentSheet &&
+                            !currentSheet.materialQr &&
+                            !registering
+                        ) {
+
+                            startCamera("MATERIAL");
+                        }
+
+                    }, 700);
 
                     return;
                 }
@@ -1146,28 +1232,35 @@ function scanLoop() {
                     return;
                 }
 
+                // Solamente se asigna el valor después de validarlo.
                 currentSheet.materialQr = materialQr;
 
-                materialQrPreview.textContent = materialQr;
+                materialQrPreview.textContent =
+                    materialQr;
+
                 materialQrPreview.classList.remove("hidden");
 
                 materialStatus.textContent =
-                    "QR de Material POS1 leído correctamente. Ya puedes confirmar el registro.";
+                    "QR POS1 válido: 10 dígitos numéricos. Ya puedes confirmar el registro.";
 
-                materialStatus.className = "status success";
+                materialStatus.className =
+                    "status success";
 
-                materialScanBtn.textContent = "Volver a escanear QR POS1";
+                materialScanBtn.textContent =
+                    "Volver a escanear QR POS1";
+
                 confirmBtn.disabled = false;
 
                 previewSection.classList.remove("hidden");
 
                 previewStatus.textContent =
-                    "Hoja y QR de Material POS1 identificados. Confirma el registro.";
+                    "Hoja y QR de Material POS1 identificados y validados. Confirma el registro.";
 
-                previewStatus.className = "status success";
+                previewStatus.className =
+                    "status success";
 
                 setCameraStatus(
-                    "QR de Material POS1 capturado correctamente.",
+                    "QR de Material POS1 validado correctamente.",
                     "success"
                 );
 
@@ -1225,26 +1318,33 @@ materialScanBtn.addEventListener("click", () => {
     }
 
     currentSheet.materialQr = null;
+
     materialQrPreview.textContent = "";
+
     materialQrPreview.classList.add("hidden");
+
     confirmBtn.disabled = true;
 
     materialStatus.textContent =
-        "Vuelve a escanear el QR del material POS1.";
+        "Vuelve a escanear el QR del material POS1. Debe contener exactamente 10 dígitos numéricos.";
 
-    materialStatus.className = "status warning";
+    materialStatus.className =
+        "status warning";
 
     previewStatus.textContent =
-        "Pendiente de volver a leer el QR del material POS1.";
+        "Pendiente de volver a leer y validar el QR del material POS1.";
 
-    previewStatus.className = "status warning";
+    previewStatus.className =
+        "status warning";
 
     document.getElementById("cameraSection").scrollIntoView({
         behavior: "smooth",
         block: "start"
     });
 
-    setTimeout(() => startCamera("MATERIAL"), 250);
+    setTimeout(() => {
+        startCamera("MATERIAL");
+    }, 250);
 });
 
 
@@ -1609,6 +1709,38 @@ async function registerSheet() {
             behavior: "smooth",
             block: "center"
         });
+
+        return;
+    }
+
+    /*
+       SEGUNDA VALIDACIÓN DE SEGURIDAD.
+
+       No confiamos únicamente en la validación
+       realizada durante la lectura de cámara.
+
+       Antes de registrar en Firestore volvemos
+       a comprobar el formato del QR.
+    */
+
+    try {
+
+        currentSheet.materialQr =
+            validateMaterialPos1QR(
+                currentSheet.materialQr
+            );
+
+    } catch (error) {
+
+        alert(error.message);
+
+        confirmBtn.disabled = true;
+
+        materialStatus.textContent =
+            error.message;
+
+        materialStatus.className =
+            "status error";
 
         return;
     }
