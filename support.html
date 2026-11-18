@@ -338,6 +338,18 @@ th:first-child{
         grid-template-columns:1fr;
     }
 }
+
+/* CONTINGENCIA CODPID - SOPORTE */
+.codpid-support-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;margin:12px 0}
+.codpid-support-box{background:#fafafa;border:1px solid #e5e5e5;border-radius:15px;padding:14px}
+.codpid-support-box label{display:block;font-size:12px;color:#555;font-weight:bold;margin-bottom:7px}
+.codpid-support-box input,.codpid-support-box select,.codpid-support-box textarea{width:100%;padding:11px;border:1px solid #ccc;border-radius:10px;font-weight:bold}
+.codpid-support-box textarea{min-height:80px;resize:vertical}
+.codpid-support-status{padding:12px;border-radius:12px;background:#f3f3f3;margin:10px 0;font-weight:bold}
+.codpid-support-table{min-width:900px}
+.codpid-support-table button{margin:2px}
+.codpid-support-warning{background:#fff4cc;color:#705500;padding:12px;border-radius:12px;margin:10px 0;font-size:13px;line-height:1.45}
+
 </style>
 </head>
 
@@ -368,6 +380,10 @@ th:first-child{
 
         <button class="tab-btn" id="tabUsers" onclick="openTab('users')">
             Usuarios
+        </button>
+
+        <button class="tab-btn" id="tabCodpidSupport" onclick="openTab('codpidSupport')">
+            CodPid
         </button>
     </div>
 
@@ -507,6 +523,9 @@ th:first-child{
                     <option value="CONSUME">Consumo</option>
                     <option value="POSITION_VERIFY">Validación de posición</option>
                     <option value="MATERIAL_QR_VERIFY">Validación de QR de material</option>
+                    <option value="SUPPORT_SEQUENCE_ADJUST">Ajuste de secuencia (Soporte)</option>
+                    <option value="SUPPORT_RETIRE">Retiro de hoja (Soporte)</option>
+                    <option value="SUPPORT_CANCEL">Cancelación de hoja (Soporte)</option>
                 </select>
                 <select id="codpidResultFilter">
                     <option value="ALL">Todos los resultados</option>
@@ -545,6 +564,44 @@ th:first-child{
         <h2>Usuarios</h2>
         <div class="empty-state">
             ""
+        </div>
+    </div>
+
+    <div class="panel" id="codpidSupportPanel" style="display:none;">
+        <h2>Contingencia administrativa CodPid</h2>
+        <div class="codpid-support-warning">
+            Herramienta exclusiva para Admin / IT. Permite ajustar el siguiente número esperado ante una contingencia. Las hojas omitidas se calculan a partir del ajuste y solo se pueden retirar o cancelar si actualmente siguen disponibles. No se eliminan documentos ni auditoría.
+        </div>
+        <div class="codpid-support-grid">
+            <div class="codpid-support-box">
+                <label for="codpidSupportGroup">Grupo CodPid</label>
+                <select id="codpidSupportGroup"><option value="">Cargando grupos...</option></select>
+            </div>
+            <div class="codpid-support-box">
+                <label>Secuencia esperada actual</label>
+                <div id="codpidSupportCurrent" class="codpid-support-status">—</div>
+            </div>
+            <div class="codpid-support-box">
+                <label for="codpidSupportTarget">Nueva secuencia esperada (01–100)</label>
+                <input id="codpidSupportTarget" type="number" min="1" max="100" placeholder="Ej. 86">
+            </div>
+            <div class="codpid-support-box">
+                <label for="codpidSupportReason">Motivo obligatorio del ajuste</label>
+                <textarea id="codpidSupportReason" placeholder="Describe la contingencia operativa"></textarea>
+            </div>
+        </div>
+        <div class="form-actions">
+            <button class="primary-btn" onclick="adjustCodpidExpectedSequence()">Ajustar secuencia esperada</button>
+            <button class="secondary-btn" onclick="refreshCodpidSupport()">Actualizar datos</button>
+        </div>
+        <div id="codpidSupportStatus" class="codpid-support-status">Selecciona un grupo para consultar su secuencia.</div>
+        <h3>Hojas omitidas con registro y aún disponibles</h3>
+        <p class="codpid-note">Solo se listan hojas registradas que quedaron dentro del salto y conservan status <b>available</b>. Las hojas consumidas, inexistentes o ya retiradas/canceladas no aparecen como accionables.</p>
+        <div class="table-wrap">
+            <table class="codpid-support-table">
+                <thead><tr><th>Grupo</th><th>Hoja</th><th>ID registro</th><th>QR ZL</th><th>Estado</th><th>Acciones</th></tr></thead>
+                <tbody id="codpidSupportOmittedTable"><tr><td colspan="6">Selecciona un grupo y actualiza los datos.</td></tr></tbody>
+            </table>
         </div>
     </div>
 
@@ -641,10 +698,13 @@ import {
     getFirestore,
     collection,
     getDocs,
+    getDoc,
     query,
     doc,
     updateDoc,
-    serverTimestamp
+    serverTimestamp,
+    runTransaction,
+    where
 }
 from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
@@ -798,9 +858,14 @@ function openTab(tab){
     document.getElementById("usersPanel").style.display =
         tab==="users" ? "block" : "none";
 
+    document.getElementById("codpidSupportPanel").style.display =
+        tab==="codpidSupport" ? "block" : "none";
+
     document.getElementById("tabCaptures").classList.toggle("active",tab==="captures");
     document.getElementById("tabReports").classList.toggle("active",tab==="reports");
     document.getElementById("tabUsers").classList.toggle("active",tab==="users");
+    document.getElementById("tabCodpidSupport").classList.toggle("active",tab==="codpidSupport");
+    if(tab==="codpidSupport") loadCodpidSupportGroups();
 
     if(tab==="reports") openReportView("general");
 }
@@ -1823,6 +1888,178 @@ window.closeOcrModal = function(){
 };
 
 // =====================================================
+// CONTINGENCIA CODPID - ADMIN / IT
+// Ajustes y acciones transaccionales con auditoría.
+// =====================================================
+let codpidSupportGroups = [];
+let codpidSupportContainers = [];
+let codpidSupportAudit = [];
+let codpidSupportLoaded = false;
+let codpidSupportBusy = false;
+
+function supportSheet(value){
+    const n=Number(value);
+    return Number.isInteger(n)&&n>=1&&n<=100?n:null;
+}
+function supportPad(value){return String(value).padStart(2,"0");}
+function supportUserId(){return String(currentUser.employeeId||currentUser.email||currentUser.uid||"support");}
+function supportUserName(){return String(currentUser.name||currentUser.employeeId||currentUser.email||"Soporte");}
+function supportEsc(value){return codpidEscape(value);}
+function supportCircularSkipped(from,to){
+    // Avance hacia adelante en un ciclo 01–100. El destino NO se omite.
+    const skipped=[]; let cursor=from;
+    while(cursor!==to && skipped.length<100){skipped.push(cursor);cursor=cursor===100?1:cursor+1;}
+    return skipped;
+}
+function supportGroupName(id){return codpidSupportGroups.find(g=>g.id===id)?.name||id||"-";}
+
+window.loadCodpidSupportGroups=async function(){
+    const select=document.getElementById("codpidSupportGroup");
+    select.innerHTML='<option value="">Cargando grupos...</option>';
+    try{
+        const snap=await getDocs(collection(db,"codpidGroups"));
+        codpidSupportGroups=snap.docs.map(d=>({id:d.id,...d.data()}));
+        select.innerHTML='<option value="">Selecciona grupo</option>';
+        codpidSupportGroups.forEach(g=>{const o=document.createElement("option");o.value=g.id;o.textContent=g.name||g.id;select.appendChild(o);});
+        select.onchange=()=>refreshCodpidSupport();
+        codpidSupportLoaded=true;
+        if(codpidSupportGroups.length===0){document.getElementById("codpidSupportStatus").textContent="No se encontraron grupos CodPid.";return;}
+        await refreshCodpidSupport();
+    }catch(error){
+        console.error("Error cargando grupos para soporte CodPid",error);
+        select.innerHTML='<option value="">No se pudieron cargar los grupos</option>';
+        document.getElementById("codpidSupportStatus").textContent="Error al consultar codpidGroups: "+error.message;
+    }
+};
+
+window.refreshCodpidSupport=async function(){
+    const groupId=document.getElementById("codpidSupportGroup").value;
+    const currentBox=document.getElementById("codpidSupportCurrent");
+    const table=document.getElementById("codpidSupportOmittedTable");
+    const status=document.getElementById("codpidSupportStatus");
+    if(!groupId){currentBox.textContent="—";table.innerHTML='<tr><td colspan="6">Selecciona un grupo.</td></tr>';status.textContent="Selecciona un grupo para consultar su secuencia.";return;}
+    table.innerHTML='<tr><td colspan="6">Actualizando datos del grupo...</td></tr>';status.textContent="Consultando grupo, hojas y auditoría...";
+    try{
+        const [groupSnap,containerSnap,auditSnap]=await Promise.all([
+            getDoc(doc(db,"codpidGroups",groupId)),
+            getDocs(query(collection(db,"codpidContainers"),where("groupId","==",groupId))),
+            getDocs(query(collection(db,"codpidAudit"),where("groupId","==",groupId)))
+        ]);
+        const group=groupSnap.exists()?groupSnap.data():null;
+        codpidSupportContainers=containerSnap.docs.map(d=>({id:d.id,...d.data()}));
+        codpidSupportAudit=auditSnap.docs.map(d=>({id:d.id,...d.data(),action:String(d.data().action||d.data().eventType||d.data().type||"").toUpperCase()}));
+        if(!group){currentBox.textContent="Grupo no encontrado";table.innerHTML='<tr><td colspan="6">No se encontró el grupo seleccionado.</td></tr>';status.textContent="No se encontró el documento de grupo.";return;}
+        const expected=supportSheet(group.nextExpectedSheet);
+        currentBox.textContent=expected?supportPad(expected):"Valor inválido: "+String(group.nextExpectedSheet);
+        document.getElementById("codpidSupportTarget").value=expected||"";
+        // Candidatos omitidos se determinan a partir de eventos de ajuste guardados y
+        // documentos que siguen disponibles. No se cambia el status operational por "omitted".
+        const omitted=codpidSupportContainers.filter(c=>c.supportOmitted===true&&c.status==="available").sort((a,b)=>Number(a.sheetNumber)-Number(b.sheetNumber));
+        if(!omitted.length){table.innerHTML='<tr><td colspan="6">No hay hojas omitidas registradas que sigan disponibles en este grupo.</td></tr>';}
+        else{table.innerHTML=omitted.map(c=>`<tr><td>${supportEsc(supportGroupName(groupId))}</td><td>${supportPad(c.sheetNumber)}</td><td>${supportEsc(c.id)}</td><td>${supportEsc(c.materialQr||c.zlQr||"-")}</td><td><span class="badge warning">Disponible / omitida</span></td><td><button class="secondary-btn codpid-sheet-action" data-container-id="${supportEsc(c.id)}" data-action="retire">Retirar</button><button class="secondary-btn codpid-sheet-action" data-container-id="${supportEsc(c.id)}" data-action="cancel">Cancelar</button></td></tr>`).join("");}
+        status.textContent=`Grupo ${supportGroupName(groupId)} · ${codpidSupportContainers.length} hojas registradas · ${omitted.length} omitidas disponibles. El ajuste no cambia el status de las hojas.`;
+    }catch(error){
+        console.error("Error consultando contingencia CodPid",error);
+        table.innerHTML=`<tr><td colspan="6">Error de consulta: ${supportEsc(error.message)}</td></tr>`;status.textContent="No fue posible consultar la información. Verifica permisos de Firestore.";
+    }
+};
+
+document.getElementById("codpidSupportOmittedTable").addEventListener("click",event=>{
+    const button=event.target.closest(".codpid-sheet-action");
+    if(!button)return;
+    window.supportSheetAction(button.dataset.containerId,button.dataset.action);
+});
+
+window.adjustCodpidExpectedSequence=async function(){
+    if(codpidSupportBusy)return;
+    const groupId=document.getElementById("codpidSupportGroup").value;
+    const target=supportSheet(document.getElementById("codpidSupportTarget").value);
+    const reason=document.getElementById("codpidSupportReason").value.trim();
+    if(!groupId){alert("Selecciona un grupo CodPid.");return;}
+    if(!target){alert("La nueva secuencia debe ser un número entre 01 y 100.");return;}
+    if(!reason){alert("El motivo del ajuste es obligatorio.");return;}
+    const groupRef=doc(db,"codpidGroups",groupId);
+    const auditRef=doc(collection(db,"codpidAudit"));
+    const currentShown=supportSheet(document.getElementById("codpidSupportCurrent").textContent.trim());
+    const previewSkipped=currentShown&&currentShown!==target?supportCircularSkipped(currentShown,target):[];
+    if(currentShown===target){alert("El destino es igual a la secuencia esperada actual.");return;}
+    const confirmText=`CONFIRMAR AJUSTE CODPID\n\nGrupo: ${supportGroupName(groupId)}\nSecuencia actual: ${currentShown?supportPad(currentShown):"No disponible"}\nNueva secuencia: ${supportPad(target)}\n\nSe omitirán en el flujo: ${previewSkipped.map(supportPad).join(", ")||"(no calculado)"}.\n\nLas hojas registradas disponibles en ese rango se identificarán como omitidas para esta herramienta.\n\nMotivo: ${reason}\n\n¿Deseas aplicar el ajuste?`;
+    if(!confirm(confirmText))return;
+    codpidSupportBusy=true;
+    try{
+        let adjustment=null;
+        await runTransaction(db,async tx=>{
+            const groupSnap=await tx.get(groupRef);
+            if(!groupSnap.exists())throw new Error("El grupo ya no existe.");
+            const oldExpected=supportSheet(groupSnap.data().nextExpectedSheet);
+            if(!oldExpected)throw new Error("La secuencia esperada actual del grupo es inválida.");
+            if(oldExpected===target)throw new Error("La secuencia destino es igual a la secuencia actual; no se realizó ningún cambio.");
+            const skipped=supportCircularSkipped(oldExpected,target);
+            const containersQuery=query(collection(db,"codpidContainers"),where("groupId","==",groupId));
+            const containersSnap=await tx.get(containersQuery);
+            const eligible=containersSnap.docs.filter(d=>{const data=d.data();return data.status==="available"&&skipped.includes(Number(data.sheetNumber));});
+            const skippedContainerIds=eligible.map(d=>d.id);
+            const skippedRegisteredSheets=eligible.map(d=>Number(d.data().sheetNumber));
+            const audit={
+                action:"SUPPORT_SEQUENCE_ADJUST",eventType:"SUPPORT_SEQUENCE_ADJUST",result:"SUCCESS",
+                groupId,fromExpectedSheet:oldExpected,toExpectedSheet:target,
+                sheetNumber:target,skippedSheetNumbers:skipped,skippedRegisteredSheets,skippedContainerIds,
+                reason,details:`Secuencia esperada ajustada de ${supportPad(oldExpected)} a ${supportPad(target)}. Hojas omitidas en el avance: ${skipped.map(supportPad).join(", ")||"ninguna"}. Hojas registradas disponibles identificadas: ${skippedRegisteredSheets.map(supportPad).join(", ")||"ninguna"}. Motivo: ${reason}`,
+                userId:supportUserId(),userName:supportUserName(),userRole:currentUser.role,
+                timestamp:serverTimestamp(),createdAt:serverTimestamp()
+            };
+            eligible.forEach(d=>tx.update(d.ref,{supportOmitted:true,supportOmittedAdjustmentId:auditRef.id,supportOmittedAt:serverTimestamp(),supportOmittedBy:supportUserId()}));
+            tx.update(groupRef,{nextExpectedSheet:target,updatedAt:serverTimestamp(),updatedBy:supportUserId(),supportLastAdjustmentReason:reason});
+            tx.set(auditRef,audit);
+            adjustment={oldExpected,target,skipped,skippedRegisteredSheets};
+        });
+        document.getElementById("codpidSupportReason").value="";
+        alert(`Ajuste realizado. Secuencia esperada: ${supportPad(adjustment.oldExpected)} → ${supportPad(adjustment.target)}. Hojas registradas disponibles omitidas: ${adjustment.skippedRegisteredSheets.map(supportPad).join(", ")||"ninguna"}.`);
+        await refreshCodpidSupport();
+        codpidReportLoaded=false;
+    }catch(error){
+        console.error("Error ajustando secuencia CodPid",error);
+        alert("No se realizó el ajuste: "+error.message);
+    }finally{codpidSupportBusy=false;}
+};
+
+window.supportSheetAction=async function(containerId,action){
+    if(codpidSupportBusy)return;
+    const sheet=codpidSupportContainers.find(c=>c.id===containerId);
+    if(!sheet||sheet.status!=="available"){alert("Esta hoja no está disponible para la acción. Actualiza la consulta.");return;}
+    if(!["retire","cancel"].includes(action)){return;}
+    const actionName=action==="retire"?"RETIRAR":"CANCELAR";
+    const reason=prompt(`Confirmar ${actionName} de la hoja ${supportPad(sheet.sheetNumber)}.
+
+Escribe el motivo obligatorio de la acción:`);
+    if(reason===null)return;
+    const trimmed=reason.trim();
+    if(!trimmed){alert("El motivo es obligatorio. No se realizó ningún cambio.");return;}
+    const groupId=sheet.groupId;
+    const containerRef=doc(db,"codpidContainers",containerId);
+    const auditRef=doc(collection(db,"codpidAudit"));
+    const newStatus=action==="retire"?"retired":"cancelled";
+    const auditAction=action==="retire"?"SUPPORT_RETIRE":"SUPPORT_CANCEL";
+    codpidSupportBusy=true;
+    try{
+        await runTransaction(db,async tx=>{
+            const containerSnap=await tx.get(containerRef);
+            if(!containerSnap.exists())throw new Error("El documento de hoja no existe.");
+            const data=containerSnap.data();
+            if(data.status!=="available")throw new Error(`La hoja cambió de estado (${data.status||"sin estado"}); solo se permiten hojas disponibles.`);
+            tx.update(containerRef,{status:newStatus,supportOmitted:false,supportAction:action,supportActionReason:trimmed,supportActionAt:serverTimestamp(),supportActionBy:supportUserId(),updatedAt:serverTimestamp(),updatedBy:supportUserId()});
+            tx.set(auditRef,{action:auditAction,eventType:auditAction,result:"SUCCESS",groupId,sheetNumber:Number(data.sheetNumber),containerId,materialQr:data.materialQr||data.zlQr||null,reason:trimmed,details:`Hoja ${supportPad(data.sheetNumber)} ${action==="retire"?"retirada":"cancelada"} por soporte. Motivo: ${trimmed}`,userId:supportUserId(),userName:supportUserName(),userRole:currentUser.role,timestamp:serverTimestamp(),createdAt:serverTimestamp()});
+        });
+        alert(`Hoja ${supportPad(sheet.sheetNumber)} ${action==="retire"?"retirada":"cancelada"} correctamente. El registro se conserva para auditoría.`);
+        await refreshCodpidSupport();
+        codpidReportLoaded=false;
+    }catch(error){
+        console.error("Error aplicando acción de soporte a hoja CodPid",error);
+        alert("No se realizó la acción: "+error.message);
+    }finally{codpidSupportBusy=false;}
+};
+
+// =====================================================
 // REPORTES CODPID (solo lectura)
 // =====================================================
 let codpidAuditRows = [];
@@ -1849,7 +2086,10 @@ function codpidActionLabel(action){
         REUSE:"Reutilización",
         CONSUME:"Consumo",
         POSITION_VERIFY:"Validación de posición",
-        MATERIAL_QR_VERIFY:"Validación de QR de material"
+        MATERIAL_QR_VERIFY:"Validación de QR de material",
+        SUPPORT_SEQUENCE_ADJUST:"Ajuste de secuencia (Soporte)",
+        SUPPORT_RETIRE:"Retiro de hoja (Soporte)",
+        SUPPORT_CANCEL:"Cancelación de hoja (Soporte)"
     };
     return labels[action] || action || "Movimiento";
 }
@@ -1866,7 +2106,7 @@ function codpidDetails(row){
         return `QR de material ${position} incorrecto. El valor escaneado "${row.materialQrScanned}" no coincide con el registro de ZL.`;
     }
 
-    return row.details || "-";
+    return row.details || row.reason || (row.action==="SUPPORT_SEQUENCE_ADJUST" ? `Secuencia ${row.fromExpectedSheet!=null?String(row.fromExpectedSheet).padStart(2,"0"):"-"} → ${row.toExpectedSheet!=null?String(row.toExpectedSheet).padStart(2,"0"):"-"}. Hojas omitidas: ${(row.skippedRegisteredSheets||[]).map(n=>String(n).padStart(2,"0")).join(", ")}` : "-");
 }
 
 function codpidFindContainer(row){
