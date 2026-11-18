@@ -570,7 +570,7 @@ th:first-child{
     <div class="panel" id="codpidSupportPanel" style="display:none;">
         <h2>Contingencia administrativa CodPid</h2>
         <div class="codpid-support-warning">
-            Herramienta que permite ajustar el siguiente número de contenedor esperado en PU. Los contenedores omitidos se calculan a partir del ajuste y solo se pueden retirar o cancelar si actualmente siguen disponibles. No se eliminan.
+            Herramienta exclusiva para Admin / IT. Permite ajustar el siguiente número esperado ante una contingencia. Las hojas omitidas se calculan a partir del ajuste y solo se pueden retirar o cancelar si actualmente siguen disponibles. No se eliminan documentos ni auditoría.
         </div>
         <div class="codpid-support-grid">
             <div class="codpid-support-box">
@@ -1980,6 +1980,15 @@ window.adjustCodpidExpectedSequence=async function(){
     if(!reason){alert("El motivo del ajuste es obligatorio.");return;}
     const groupRef=doc(db,"codpidGroups",groupId);
     const auditRef=doc(collection(db,"codpidAudit"));
+    // Firestore Web SDK no permite tx.get(query). Primero obtenemos
+    // las referencias del grupo y luego leemos cada documento dentro
+    // de la transacción para validar su estado actual antes de escribir.
+    const containersQuery=query(
+        collection(db,"codpidContainers"),
+        where("groupId","==",groupId)
+    );
+    const containersSnapshot=await getDocs(containersQuery);
+    const candidateRefs=containersSnapshot.docs.map(d=>d.ref);
     const currentShown=supportSheet(document.getElementById("codpidSupportCurrent").textContent.trim());
     const previewSkipped=currentShown&&currentShown!==target?supportCircularSkipped(currentShown,target):[];
     if(currentShown===target){alert("El destino es igual a la secuencia esperada actual.");return;}
@@ -1995,9 +2004,17 @@ window.adjustCodpidExpectedSequence=async function(){
             if(!oldExpected)throw new Error("La secuencia esperada actual del grupo es inválida.");
             if(oldExpected===target)throw new Error("La secuencia destino es igual a la secuencia actual; no se realizó ningún cambio.");
             const skipped=supportCircularSkipped(oldExpected,target);
-            const containersQuery=query(collection(db,"codpidContainers"),where("groupId","==",groupId));
-            const containersSnap=await tx.get(containersQuery);
-            const eligible=containersSnap.docs.filter(d=>{const data=d.data();return data.status==="available"&&skipped.includes(Number(data.sheetNumber));});
+            const freshSnapshots=[];
+            // Leer documentos individuales: Transaction.get acepta DocumentReference,
+            // no Query. Todas las lecturas se completan antes de cualquier escritura.
+            for(const ref of candidateRefs){
+                const freshSnap=await tx.get(ref);
+                if(freshSnap.exists()) freshSnapshots.push(freshSnap);
+            }
+            const eligible=freshSnapshots.filter(s=>{
+                const data=s.data();
+                return data.groupId===groupId && data.status==="available" && skipped.includes(Number(data.sheetNumber));
+            });
             const skippedContainerIds=eligible.map(d=>d.id);
             const skippedRegisteredSheets=eligible.map(d=>Number(d.data().sheetNumber));
             const audit={
@@ -2008,7 +2025,7 @@ window.adjustCodpidExpectedSequence=async function(){
                 userId:supportUserId(),userName:supportUserName(),userRole:currentUser.role,
                 timestamp:serverTimestamp(),createdAt:serverTimestamp()
             };
-            eligible.forEach(d=>tx.update(d.ref,{supportOmitted:true,supportOmittedAdjustmentId:auditRef.id,supportOmittedAt:serverTimestamp(),supportOmittedBy:supportUserId()}));
+            eligible.forEach(d=>tx.update(doc(db,"codpidContainers",d.id),{supportOmitted:true,supportOmittedAdjustmentId:auditRef.id,supportOmittedAt:serverTimestamp(),supportOmittedBy:supportUserId()}));
             tx.update(groupRef,{nextExpectedSheet:target,updatedAt:serverTimestamp(),updatedBy:supportUserId(),supportLastAdjustmentReason:reason});
             tx.set(auditRef,audit);
             adjustment={oldExpected,target,skipped,skippedRegisteredSheets};
