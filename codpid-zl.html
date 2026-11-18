@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -2125,7 +2124,12 @@ async function loadPool() {
 
             const data = documentSnap.data();
 
-            if (data.status === "available") {
+            // Las hojas omitidas por Soporte permanecen en Firestore
+            // para auditoría, pero no forman parte del pool operativo.
+            if (
+                data.status === "available" &&
+                data.supportOmitted !== true
+            ) {
 
                 availableSheets.push({
 
@@ -2407,22 +2411,34 @@ async function registerSheet() {
 
                 let isReuse = false;
 
+                let previousStatus = null;
+
                 if (containerSnap.exists()) {
 
                     previousData =
                         containerSnap.data();
 
-                    if (
-                        previousData.status === "available"
-                    ) {
+                    previousStatus =
+                        String(previousData.status || "").toLowerCase();
+
+                    if (previousStatus === "available") {
+
+                        if (previousData.supportOmitted === true) {
+
+                            throw new Error(
+                                "SHEET_OMITTED"
+                            );
+                        }
 
                         throw new Error(
                             "DUPLICATE_AVAILABLE"
                         );
                     }
 
+                    // Se permite reutilizar una hoja consumida normalmente,
+                    // o reactivar una hoja retirada/cancelada por Soporte.
                     if (
-                        previousData.status !== "consumed"
+                        !["consumed", "retired", "cancelled"].includes(previousStatus)
                     ) {
 
                         throw new Error(
@@ -2498,8 +2514,14 @@ async function registerSheet() {
                             : "REGISTER",
 
                         details: isReuse
-                            ? "Hoja consumida previamente y registrada nuevamente en el pool."
+                            ? (
+                                previousStatus === "consumed"
+                                    ? "Hoja consumida previamente y registrada nuevamente en el pool Cockpit."
+                                    : "Hoja reactivada por ZL después de haber sido " + previousStatus + " por Soporte. Se capturó nuevamente el QR POS1 y se reemplazó la asociación anterior."
+                              )
                             : "Nueva hoja registrada en el pool Cockpit.",
+
+                        previousStatus: previousStatus,
 
                         groupId: CONFIG.groupId,
 
@@ -2529,16 +2551,20 @@ async function registerSheet() {
                 );
 
                 return {
-                    isReuse
+                    isReuse,
+                    previousStatus
                 };
             }
         );
 
-        const message = result.isReuse
+        const message = result.previousStatus === "retired" || result.previousStatus === "cancelled"
             ? "La hoja " + formattedSheet +
-              " fue reutilizada y registrada nuevamente."
-            : "La hoja " + formattedSheet +
-              " fue registrada correctamente.";
+              " fue reactivada correctamente. El QR POS1 anterior fue reemplazado."
+            : result.isReuse
+                ? "La hoja " + formattedSheet +
+                  " fue reutilizada y registrada nuevamente."
+                : "La hoja " + formattedSheet +
+                  " fue registrada correctamente.";
 
         setCameraStatus(
             message,
@@ -2569,6 +2595,19 @@ async function registerSheet() {
             await registerRejectedAttempt(
                 sheetNumber,
                 "Intento de registro rechazado: la hoja ya estaba disponible.",
+                materialQr,
+                materialCaptureMode
+            );
+
+        } else if (error.message === "SHEET_OMITTED") {
+
+            message =
+                "La hoja " + formattedSheet +
+                " fue omitida por Soporte. Para reutilizarla, primero debe retirarse o cancelarse desde el módulo de Soporte.";
+
+            await registerRejectedAttempt(
+                sheetNumber,
+                "Intento de registro rechazado: la hoja continúa marcada como omitida por Soporte.",
                 materialQr,
                 materialCaptureMode
             );
