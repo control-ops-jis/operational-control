@@ -2110,9 +2110,12 @@ async function loadPool() {
                 CONFIG.collectionContainers
             );
 
+        // Firestore devuelve únicamente hojas disponibles.
+        // Las hojas consumidas ya no generan lecturas al reconstruir el pool.
         const poolQuery = query(
             containersRef,
-            where("groupId", "==", CONFIG.groupId)
+            where("groupId", "==", CONFIG.groupId),
+            where("status", "==", "available")
         );
 
         const snapshot =
