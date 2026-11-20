@@ -1334,6 +1334,7 @@ async function validateSheet(number) {
   setScanStage("MATERIAL");
 }
 
+
 /* ==========================================
    10. PROCESAMIENTO DE QR
 ========================================== */
@@ -1540,10 +1541,13 @@ async function consumeSheet(materialQrScanned) {
   const sheetNumber = currentSheet;
   const formattedSheet = padSheet(sheetNumber);
 
+  const containerId =
+    CONFIG.groupId + "_hoja_" + formattedSheet;
+
   const containerRef = doc(
     db,
     CONFIG.containers,
-    CONFIG.groupId + "_hoja_" + formattedSheet
+    containerId
   );
 
   const groupRef = doc(
@@ -1596,7 +1600,8 @@ async function consumeSheet(materialQrScanned) {
         if (
           containerData.groupId !== CONFIG.groupId ||
           Number(containerData.sheetNumber) !== sheetNumber ||
-          containerData.status !== "available"
+          containerData.status !== "available" ||
+          containerData.supportOmitted === true
         ) {
           throw new Error("CONTAINER_NOT_AVAILABLE");
         }
@@ -1712,9 +1717,16 @@ async function consumeSheet(materialQrScanned) {
 
     /*
       CONSUMO COMPLETADO
+
+      La transacción ya confirmó el cambio en Firestore.
+      Se actualiza la caché local sin volver a descargar
+      todo el pool ni consultar nuevamente el grupo.
     */
 
     setExpectedSheet(result.nextExpected);
+
+    // La hoja consumida deja de formar parte del pool local.
+    availablePoolCache.delete(containerId);
 
     currentSheet = null;
     expectedMaterialQr = null;
@@ -1730,7 +1742,8 @@ async function consumeSheet(materialQrScanned) {
     $("challengeSection").classList.add("hidden");
     $("cameraSection").classList.add("hidden");
 
-    await refreshAll();
+    // Redibujar el pool usando la caché local actualizada.
+    renderPool();
 
     $("poolNote").textContent =
       "Consumo registrado correctamente. Selecciona la nueva hoja marcada en verde.";
@@ -1776,7 +1789,7 @@ async function consumeSheet(materialQrScanned) {
       ].includes(error.message)
     ) {
       message =
-        "La hoja ya no está disponible en el pool.";
+        "La hoja ya no está disponible en el pool o fue omitida desde Soporte.";
     }
 
     else if (error.message === "MATERIAL_QR_MISSING") {
@@ -1840,6 +1853,7 @@ async function consumeSheet(materialQrScanned) {
 
     }
 
+    // En caso de error sí se sincroniza nuevamente con Firestore.
     await refreshAll();
 
   } finally {
@@ -2028,7 +2042,139 @@ async function validateUser(firebaseUser) {
 
 
 /* ==========================================
-   14. POOL DE HOJAS
+   14. RENDERIZAR POOL LOCAL
+========================================== */
+
+function renderPool() {
+
+  const available = Array.from(
+    availablePoolCache.values()
+  ).sort(
+    (a, b) => a.sheetNumber - b.sheetNumber
+  );
+
+  $("counter").textContent =
+    available.length + " disponibles";
+
+  const suggestedIsAvailable = available.some(
+    item => item.sheetNumber === expectedSheet
+  );
+
+  if (available.length === 0) {
+
+    $("poolList").innerHTML =
+      '<div class="empty">No hay hojas disponibles en este grupo.</div>';
+
+    $("poolNote").textContent =
+      "Cuando ZL registre una hoja, aparecerá aquí.";
+
+    $("poolNote").style.color = "";
+
+    return;
+  }
+
+  $("poolList").innerHTML = available.map(item => {
+
+    const isSuggested =
+      item.sheetNumber === expectedSheet;
+
+    return `
+      <button
+        type="button"
+        class="pool-item ${isSuggested ? "suggested" : "other"}"
+        data-sheet="${item.sheetNumber}"
+        ${isSuggested ? "" : "disabled"}
+        aria-label="${
+          isSuggested ? "Seleccionar" : "No autorizada"
+        } hoja ${padSheet(item.sheetNumber)}">
+
+        <span class="pool-number">
+          Hoja ${padSheet(item.sheetNumber)}
+        </span>
+
+        <span class="pool-state">
+          ${isSuggested ? "CONSUMIR" : "DISPONIBLE"}
+        </span>
+
+      </button>
+    `;
+
+  }).join("");
+
+  if (suggestedIsAvailable) {
+
+    $("poolNote").textContent =
+      "Toca la hoja verde para comenzar.";
+
+    $("poolNote").style.color = "#16834a";
+
+  } else {
+
+    $("poolNote").textContent =
+      "La hoja esperada aún no está disponible. No consumas otra hoja.";
+
+    $("poolNote").style.color = "#a40000";
+
+  }
+
+  // Mantener intacta la selección de la hoja autorizada en verde.
+  $("poolList")
+    .querySelectorAll(".pool-item.suggested")
+    .forEach(button => {
+
+      button.addEventListener("click", async () => {
+
+        if (processing || !authorized) return;
+
+        const selectedNumber =
+          Number(button.dataset.sheet);
+
+        if (selectedNumber !== expectedSheet) return;
+
+        stopCamera(
+          "Preparando escaneo de hoja viajera..."
+        );
+
+        stopRing();
+
+        currentSheet = null;
+        expectedMaterialQr = null;
+        scannedMaterialQr = null;
+
+        resetConfirmation();
+
+        $("challengeSection").classList.add("hidden");
+
+        $("poolList")
+          .querySelectorAll("button")
+          .forEach(item => {
+            item.disabled = true;
+          });
+
+        /*
+          Al iniciar la operación se activa
+          automáticamente el método predeterminado: Ring.
+        */
+
+        selectedScanMethod = "RING";
+
+        setScanStage("SHEET");
+
+        $("poolList")
+          .querySelectorAll("button")
+          .forEach(item => {
+            item.disabled =
+              !item.classList.contains("suggested");
+          });
+
+      });
+
+    });
+}
+
+
+/* ==========================================
+   15. CARGAR POOL DESDE FIRESTORE
 ========================================== */
 
 async function loadPool() {
@@ -2041,7 +2187,7 @@ async function loadPool() {
 
   try {
 
-    // La consulta excluye desde Firestore todos los documentos consumidos.
+    // Consulta únicamente las hojas disponibles del grupo.
     const poolQuery = query(
       collection(db, CONFIG.containers),
       where("groupId", "==", CONFIG.groupId),
@@ -2050,16 +2196,21 @@ async function loadPool() {
 
     const snapshot = await getDocs(poolQuery);
 
-    const available = [];
     availablePoolCache.clear();
 
     snapshot.forEach(documentSnap => {
 
       const data = documentSnap.data();
 
+      /*
+        Las hojas omitidas desde Soporte no deben aparecer
+        en el pool ni poder seleccionarse para consumo.
+      */
+
       if (
         data.status === "available" &&
-        data.groupId === CONFIG.groupId
+        data.groupId === CONFIG.groupId &&
+        data.supportOmitted !== true
       ) {
 
         const cachedItem = {
@@ -2071,132 +2222,11 @@ async function loadPool() {
         };
 
         availablePoolCache.set(documentSnap.id, cachedItem);
-        available.push(cachedItem);
       }
 
     });
 
-    available.sort(
-      (a, b) => a.sheetNumber - b.sheetNumber
-    );
-
-    $("counter").textContent =
-      available.length + " disponibles";
-
-    const suggestedIsAvailable = available.some(
-      item => item.sheetNumber === expectedSheet
-    );
-
-    if (available.length === 0) {
-
-      $("poolList").innerHTML =
-        '<div class="empty">No hay hojas disponibles en este grupo.</div>';
-
-      $("poolNote").textContent =
-        "Cuando ZL registre una hoja, aparecerá aquí.";
-
-      $("poolNote").style.color = "";
-
-    } else {
-
-      $("poolList").innerHTML = available.map(item => {
-
-        const isSuggested =
-          item.sheetNumber === expectedSheet;
-
-        return `
-          <button
-            type="button"
-            class="pool-item ${isSuggested ? "suggested" : "other"}"
-            data-sheet="${item.sheetNumber}"
-            ${isSuggested ? "" : "disabled"}
-            aria-label="${
-              isSuggested ? "Seleccionar" : "No autorizada"
-            } hoja ${padSheet(item.sheetNumber)}">
-
-            <span class="pool-number">
-              Hoja ${padSheet(item.sheetNumber)}
-            </span>
-
-            <span class="pool-state">
-              ${isSuggested ? "CONSUMIR" : "DISPONIBLE"}
-            </span>
-
-          </button>
-        `;
-
-      }).join("");
-
-      if (suggestedIsAvailable) {
-
-        $("poolNote").textContent =
-          "Toca la hoja verde para comenzar.";
-
-        $("poolNote").style.color = "#16834a";
-
-      } else {
-
-        $("poolNote").textContent =
-          "La hoja esperada aún no está disponible. No consumas otra hoja.";
-
-        $("poolNote").style.color = "#a40000";
-
-      }
-    }
-
-    // Mantener intacta la selección de la hoja autorizada en verde.
-    $("poolList")
-      .querySelectorAll(".pool-item.suggested")
-      .forEach(button => {
-
-        button.addEventListener("click", async () => {
-
-          if (processing || !authorized) return;
-
-          const selectedNumber =
-            Number(button.dataset.sheet);
-
-          if (selectedNumber !== expectedSheet) return;
-
-          stopCamera(
-            "Preparando escaneo de hoja viajera..."
-          );
-
-          stopRing();
-
-          currentSheet = null;
-          expectedMaterialQr = null;
-          scannedMaterialQr = null;
-
-          resetConfirmation();
-
-          $("challengeSection").classList.add("hidden");
-
-          $("poolList")
-            .querySelectorAll("button")
-            .forEach(item => {
-              item.disabled = true;
-            });
-
-          /*
-            Al iniciar la operación se activa
-            automáticamente el método predeterminado: Ring.
-          */
-
-          selectedScanMethod = "RING";
-
-          setScanStage("SHEET");
-
-          $("poolList")
-            .querySelectorAll("button")
-            .forEach(item => {
-              item.disabled =
-                !item.classList.contains("suggested");
-            });
-
-        });
-
-      });
+    renderPool();
 
   } catch (error) {
 
@@ -2215,8 +2245,9 @@ async function loadPool() {
   }
 }
 
+
 /* ==========================================
-   15. ACTUALIZAR SECUENCIA Y POOL
+   16. ACTUALIZAR SECUENCIA Y POOL
 ========================================== */
 
 async function refreshAll() {
@@ -2267,7 +2298,7 @@ async function refreshAll() {
 
 
 /* ==========================================
-   16. EVENTOS
+   17. EVENTOS
 ========================================== */
 
 /*
@@ -2510,7 +2541,7 @@ window.addEventListener("pagehide", () => {
 
 
 /* ==========================================
-   17. INICIO Y AUTENTICACIÓN
+   18. INICIO Y AUTENTICACIÓN
 ========================================== */
 
 onAuthStateChanged(auth, async firebaseUser => {
