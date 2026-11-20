@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -833,6 +834,20 @@ let ringEnabled = false;
 let ringTimer = null;
 
 let ringProcessing = false;
+
+/*
+   OPTIMIZACIÓN FIRESTORE:
+
+   Conservamos en memoria las hojas disponibles
+   para evitar volver a descargar todo el pool
+   después de cada registro exitoso.
+
+   Esta caché solo sirve para mostrar información.
+   La transacción de Firestore sigue siendo
+   la autoridad para aceptar o rechazar registros.
+*/
+
+let availableSheetsCache = [];
 
 const RING_IDLE_TIME = 450;
 
@@ -2085,7 +2100,123 @@ async function validateUser(firebaseUser) {
 
 
 /* =====================================================
-   17. CONSULTAR POOL DEL GRUPO
+   17. RENDERIZAR POOL DESDE MEMORIA
+===================================================== */
+
+/*
+   Esta función no consulta Firestore.
+
+   Únicamente dibuja en pantalla los documentos
+   que ya están guardados en availableSheetsCache.
+*/
+
+function renderPool() {
+
+    const availableSheets = availableSheetsCache;
+
+    availableCounter.textContent =
+        availableSheets.length + " disponibles";
+
+    if (availableSheets.length === 0) {
+
+        poolList.innerHTML = `
+            <div class="empty">
+                Todavía no hay hojas disponibles
+                en este grupo.
+            </div>
+        `;
+
+        return;
+    }
+
+    poolList.innerHTML =
+        availableSheets.map(item => `
+
+            <div class="pool-item">
+
+                <div>
+                    <div class="pool-number">
+                        Hoja ${padSheet(item.sheetNumber)}
+                    </div>
+
+                    <div class="group-label">
+                        ${escapeHTML(item.id)}
+                    </div>
+                </div>
+
+                <span class="pool-status">
+                    DISPONIBLE
+                </span>
+
+            </div>
+
+        `).join("");
+}
+
+
+/* =====================================================
+   18. ACTUALIZAR POOL LOCALMENTE
+===================================================== */
+
+/*
+   Se ejecuta únicamente después de que
+   Firestore confirma el registro exitoso.
+
+   Si la hoja ya estaba en la caché, se actualiza.
+   Si es nueva, se agrega.
+
+   No genera lecturas ni escrituras en Firestore.
+*/
+
+function updatePoolCacheAfterRegistration(
+    containerId,
+    sheetNumber
+) {
+
+    const updatedItem = {
+
+        id: containerId,
+
+        sheetNumber: Number(sheetNumber),
+
+        status: "available",
+
+        createdBy: CONFIG.employeeId
+
+    };
+
+    const existingIndex =
+        availableSheetsCache.findIndex(
+            item => item.id === containerId
+        );
+
+    if (existingIndex >= 0) {
+
+        availableSheetsCache[existingIndex] =
+            updatedItem;
+
+    } else {
+
+        availableSheetsCache.push(
+            updatedItem
+        );
+    }
+
+    availableSheetsCache.sort((a, b) =>
+        a.sheetNumber - b.sheetNumber
+    );
+
+    renderPool();
+
+    setPoolStatus(
+        "Pool actualizado localmente. Para sincronizar cambios externos, utiliza Actualizar.",
+        "success"
+    );
+}
+
+
+/* =====================================================
+   19. CONSULTAR POOL DEL GRUPO
 ===================================================== */
 
 async function loadPool() {
@@ -2152,46 +2283,18 @@ async function loadPool() {
             a.sheetNumber - b.sheetNumber
         );
 
-        availableCounter.textContent =
-            availableSheets.length + " disponibles";
+        /*
+           La consulta manual o inicial reemplaza
+           la caché completa con el resultado real
+           de Firestore.
+        */
 
-        if (availableSheets.length === 0) {
+        availableSheetsCache = availableSheets;
 
-            poolList.innerHTML = `
-                <div class="empty">
-                    Todavía no hay hojas disponibles
-                    en este grupo.
-                </div>
-            `;
-
-        } else {
-
-            poolList.innerHTML =
-                availableSheets.map(item => `
-
-                    <div class="pool-item">
-
-                        <div>
-                            <div class="pool-number">
-                                Hoja ${padSheet(item.sheetNumber)}
-                            </div>
-
-                            <div class="group-label">
-                                ${escapeHTML(item.id)}
-                            </div>
-                        </div>
-
-                        <span class="pool-status">
-                            DISPONIBLE
-                        </span>
-
-                    </div>
-
-                `).join("");
-        }
+        renderPool();
 
         setPoolStatus(
-            "Pool actualizado correctamente.",
+            "Pool sincronizado correctamente con Firestore.",
             "success"
         );
 
@@ -2218,7 +2321,7 @@ async function loadPool() {
 
 
 /* =====================================================
-   18. AUDITORÍA DE RECHAZOS
+   20. AUDITORÍA DE RECHAZOS
 ===================================================== */
 
 async function registerRejectedAttempt(
@@ -2278,7 +2381,7 @@ async function registerRejectedAttempt(
 
 
 /* =====================================================
-   19. REGISTRAR HOJA EN FIRESTORE
+   21. REGISTRAR HOJA EN FIRESTORE
 ===================================================== */
 
 async function registerSheet() {
@@ -2574,9 +2677,23 @@ async function registerSheet() {
             "success"
         );
 
-        clearPreview();
+        /*
+           OPTIMIZACIÓN:
 
-        await loadPool();
+           Firestore ya confirmó la transacción.
+           Actualizamos el pool en memoria en lugar
+           de volver a consultar todos los documentos.
+
+           Se eliminó la llamada anterior:
+           await loadPool();
+        */
+
+        updatePoolCacheAfterRegistration(
+            containerId,
+            sheetNumber
+        );
+
+        clearPreview();
 
     } catch (error) {
 
@@ -2662,7 +2779,7 @@ async function registerSheet() {
 
 
 /* =====================================================
-   20. EVENTOS GENERALES
+   22. EVENTOS GENERALES
 ===================================================== */
 
 startBtn.addEventListener(
@@ -2727,7 +2844,7 @@ window.addEventListener(
 
 
 /* =====================================================
-   21. INICIALIZACIÓN Y AUTENTICACIÓN
+   23. INICIALIZACIÓN Y AUTENTICACIÓN
 ===================================================== */
 
 onAuthStateChanged(
